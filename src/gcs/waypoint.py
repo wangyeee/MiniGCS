@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
                              QTableWidget, QTableWidgetItem, QWidget)
 from PyQt5.QtGui import QValidator, QDoubleValidator
 
-import mavlink
+from pymavlink.dialects.v10 import common as mavlink
 
 WP_TYPE_NAMES = {
     mavlink.MAV_CMD_NAV_WAYPOINT : 'Waypoint',
