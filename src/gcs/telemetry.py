@@ -1,11 +1,8 @@
-from PyQt5.QtWidgets import QApplication, QHBoxLayout, QWidget, QComboBox, QLabel, QGridLayout, QPushButton, QSizePolicy
-from PyQt5.QtCore import Qt, QVariant, QObject, pyqtSignal, QThread
-# from pymavlink.dialects.v10 import common as mavlink
 from pymavlink import mavutil
-from serial import Serial
+from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
+                             QSizePolicy, QWidget)
 from serial.tools.list_ports import comports
-
-import sys, time
 
 BAUD_RATES = {
     110 : '110',
@@ -173,3 +170,5 @@ class MAVLinkConnection(QThread):
                 msgType = msg.get_type()
                 if msgType in self.handlerLookup:
                     self.handlerLookup[msgType].emit(msg)
+        self.connection.close()
+        print('connection closed')

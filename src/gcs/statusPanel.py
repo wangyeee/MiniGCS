@@ -16,6 +16,9 @@ GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_PPP : 'PPP 3D fix'
 }
 
+BATTERY_BAR_STYLE_TEMPLATE = 'QProgressBar::chunk {{background: "{0}"; \
+                                                    border: 1px solid black;}}'
+
 class SystemStatusPanel(QWidget):
 
     connectToMAVLink = pyqtSignal()
@@ -60,6 +63,12 @@ class SystemStatusPanel(QWidget):
     def updateBatteryStatus(self, voltage, current, remaining):
         self.battVoltLabel.setText('{}V'.format(voltage))
         self.battBar.setValue(remaining)
+        if remaining >= 60:
+            self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('green'))
+        elif remaining >= 30:
+            self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('yellow'))
+        else:
+            self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('red'))
 
     def updateGPSFixStatus(self, fix):
         if fix in GPS_FIX_LABELS:
