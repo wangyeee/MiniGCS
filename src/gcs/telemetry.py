@@ -56,8 +56,7 @@ class ConnectionEditWindow(QWidget):
 
     portList = {}
 
-    connectToMAVLink = pyqtSignal(object, object)
-    cancelConnectionSignal = pyqtSignal()  # test only
+    connectToMAVLink = pyqtSignal(object)
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -128,7 +127,7 @@ class ConnectionEditWindow(QWidget):
         baud = self.baudDropDown.currentData()
         # print('{} -- {}'.format(port, baud))
         connection = mavutil.mavlink_connection(port, int(baud))
-        self.connectToMAVLink.emit(self, connection)
+        self.connectToMAVLink.emit(connection)
         self.close()
 
 class MAVLinkConnection(QThread):
@@ -174,23 +173,3 @@ class MAVLinkConnection(QThread):
                 msgType = msg.get_type()
                 if msgType in self.handlerLookup:
                     self.handlerLookup[msgType].emit(msg)
-
-class TestMav(QObject):
-
-    def createConnection(self, edit: ConnectionEditWindow, conn):
-        self.mav = MAVLinkConnection(conn)
-        edit.cancelConnectionSignal.connect(self.mav.requestExit)
-        self.mav.gpsRawIntHandler.connect(self.messageHandler)
-        self.mav.start()
-
-    def messageHandler(self, msg):
-        print(msg)
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    tele = ConnectionEditWindow()
-    test = TestMav()
-    tele.connectToMAVLink.connect(test.createConnection)
-    tele.show()
-    sys.exit(app.exec_())

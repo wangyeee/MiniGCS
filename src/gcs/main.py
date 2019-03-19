@@ -1,9 +1,7 @@
 import math
 import os
 import sys
-import time
 
-from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
                              QSizePolicy, QVBoxLayout, QWidget)
 
@@ -12,20 +10,24 @@ from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 
-
 class MiniGCS(QMainWindow):
+
+    mav = None
+
     def __init__(self, parent = None):
         super().__init__(parent)
         current_path = os.path.abspath(os.path.dirname(__file__))
         qmlFile = os.path.join(current_path, 'map.qml')
         self.setWindowTitle('Mini GCS')
+        self.teleWindow = ConnectionEditWindow()
+        self.teleWindow.connectToMAVLink.connect(self.createConnection)
         self.window = QWidget()
         mainLayout = QHBoxLayout()
         leftLayout = QVBoxLayout()
         self.left = QWidget()
         self.pfd = PrimaryFlightDisplay(self.window)
         self.sts = SystemStatusPanel(self.window)
-        self.sts.connectToMAVLink.connect(self.startConnectToMAVlink)
+        self.sts.connectToMAVLink.connect(self.teleWindow.show)
         self.sts.disconnectFromMAVLink.connect(self.disconnect)
         leftLayout.addWidget(self.pfd)
         leftLayout.addWidget(self.sts)
@@ -42,12 +44,7 @@ class MiniGCS(QMainWindow):
         self.window.setLayout(mainLayout)
         self.setCentralWidget(self.window)
 
-    def startConnectToMAVlink(self):
-        self.teleWindow = ConnectionEditWindow()
-        self.teleWindow.connectToMAVLink.connect(self.createConnection)
-        self.teleWindow.show()
-
-    def createConnection(self, edit: ConnectionEditWindow, conn):
+    def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn)
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
@@ -75,5 +72,5 @@ class MiniGCS(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     frame = MiniGCS()
-    frame.showMaximized()
+    frame.show()
     sys.exit(app.exec_())
