@@ -5,8 +5,8 @@ import QtPositioning 5.2
 
 MapItem {
     id: mapItem
-    width: 1024
-    height: 768
+    width: 600
+    height: 480
 
     signal waypointSelected(real x, real y, real clat, real clng)
     signal mapDragEvent(real x, real y, real clat, real clng, int type)
@@ -131,12 +131,48 @@ MapItem {
                 }
             }
         }
+
+        // Drone symbol
+        MapQuickItem {
+            id: droneMarker
+            anchorPoint.x: droneDot.width / 2
+            anchorPoint.y: droneDot.height / 2
+            coordinate : navMap.center
+            visible: false
+            sourceItem: Rectangle {
+                id: droneDot
+                width: 12
+                height: 12
+                color: "red"
+                radius: 6
+                antialiasing: true
+                opacity: 1
+            }
+        }
+        MapCircle {
+            id: droneRadius
+            visible: false
+            center: navMap.center
+            radius: 100.0
+            color: '#800000FF'
+            border.width: 1
+        }
     }
 
     onUpdateZoomLevel: {
         if (zoom >= navMap.minimumZoomLevel || zoom <= navMap.maximumZoomLevel) {
             navMap.zoomLevel = zoom
         }
+    }
+
+    onUpdateDroneLocation: {
+        droneMarker.coordinate.latitude = lat
+        droneMarker.coordinate.longitude = lng
+        droneRadius.center.latitude = lat
+        droneRadius.center.longitude = lng
+        droneRadius.radius = hacc
+        droneMarker.visible = true
+        droneRadius.visible = (hacc > 5.0)
     }
 
     onUpdateCoordinate: {

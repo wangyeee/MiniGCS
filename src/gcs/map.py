@@ -27,6 +27,7 @@ class MapItem(QQuickItem):
 
     updateCoordinate = pyqtSignal(float, float, arguments=['lat', 'lng'])
     updateZoomLevel = pyqtSignal(int, arguments=['zoom'])
+    updateDroneLocation = pyqtSignal(float, float, float, float, arguments=['lat', 'lng', 'hacc', 'vacc'])
 
     waypointRemoved = pyqtSignal(int, arguments=['wpNumber'])  # signal sent to qml to remove wp in polyline
     waypointChanged = pyqtSignal(int, float, float, arguments=['wpNumber', 'latitude', 'longitude'])  # signal sent to qml to update wp in polyline
@@ -56,6 +57,9 @@ class MapItem(QQuickItem):
         lng = self.lng + deltaLng
         if -90.0 <= lat <= 90.0 and 0.0 <= lng <= 180.0:
             self.moveMapToCoordinate(lat, lng)
+
+    def moveDroneLocation(self, lat, lng, hacc, vacc):
+        self.updateDroneLocation.emit(lat, lng, hacc, vacc)
 
 class WaypointsModel(QAbstractListModel):
 
@@ -244,14 +248,18 @@ class MapView(QQuickView):
                 self.dragStart = False
 
     def updateHomeEvent(self, lat, lng):
-        print('New home location: {0}, {1}'.format(lat, lng))
+        # print('New home location: {0}, {1}'.format(lat, lng))
         self.moveHomeEvent.emit(QGeoCoordinate(lat, lng))
 
-    def minimumSize(self):
-        return QSize(1024, 768)
+    def updateDroneLocation(self, lat, lng, hacc, vacc):
+        # print('Drone location updated: {}, {}'.format(lat, lng))
+        self.map.moveDroneLocation(lat, lng, hacc, vacc)
 
-    def maximumSize(self):
-        return QSize(10000, 10000)
+    def minimumSize(self):
+        return QSize(600, 480)
+
+    # def maximumSize(self):
+    # return QSize(10000, 10000)
 
 class MapWidget(QWidget):
 

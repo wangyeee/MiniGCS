@@ -1,12 +1,13 @@
+'''
+Port from qgroundcontrol PFD
+'''
 import math
-import sys
-import time
 
-from PyQt5.QtCore import (QPoint, QPointF, QRectF, Qt, QThread, QTimer,
+from PyQt5.QtCore import (QPoint, QPointF, QRectF, Qt, QTimer,
                           pyqtSignal, qRound)
 from PyQt5.QtGui import (QBrush, QColor, QFont, QFontMetrics, QLinearGradient,
                          QPainter, QPainterPath, QPen)
-from PyQt5.QtWidgets import QApplication, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QSizePolicy, QWidget
 
 class PrimaryFlightDisplay(QWidget):
     ROLL_SCALE_RANGE = 60
@@ -86,7 +87,7 @@ class PrimaryFlightDisplay(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setMinimumSize(600, 650)
+        self.setMinimumSize(480, 320)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.uiTimer = QTimer(self)
@@ -95,13 +96,14 @@ class PrimaryFlightDisplay(QWidget):
 
     # TODO filter input data?
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
-        print('updateAttitude[{4}]: pitch = {0}, roll = {1}, yaw = {2}, time = {3}'.format(pitch, roll, yaw, timestamp, sourceUAS))
+        # print('updateAttitude[{4}]: pitch = {0}, roll = {1}, yaw = {2}, time = {3}'.format(pitch, roll, yaw, timestamp, sourceUAS))
         self.pitch = pitch# * math.pi / 180
         self.roll = roll# * math.pi / 180
         self.yaw = yaw# * math.pi / 180
 
     def updateAttitudeSpeed(self, sourceUAS, timestamp, rollspeed, pitchspeed, yawspeed):
-        print('updateAttitudeSpeed[{4}]: pitch = {0}, roll = {1}, yaw = {2}, time = {3}'.format(pitchspeed, rollspeed, yawspeed, timestamp, sourceUAS))
+        # print('updateAttitudeSpeed[{4}]: pitch = {0}, roll = {1}, yaw = {2}, time = {3}'.format(pitchspeed, rollspeed, yawspeed, timestamp, sourceUAS))
+        pass
 
     def updateGlobalPosition(self, sourceUAS, timestamp, latitude, longitude, altitude):
         print('updateGlobalPosition[{4}]: latitude = {0}, longitude = {1}, altitude = {2}, time = {3}'.format(latitude, longitude, altitude, timestamp, sourceUAS))
@@ -110,12 +112,12 @@ class PrimaryFlightDisplay(QWidget):
         print('updateGpsSpeed[{4}]: x = {0}, y = {1}, z = {2}, time = {3}'.format(xs, ys, zs, timestamp, sourceUAS))
 
     def updatePrimaryAltitude(self, sourceUAS, timestamp, altitude):
-        print('updatePrimaryAltitude[{0}]: altitude = {1}, time = {2}'.format(sourceUAS, altitude, timestamp))
+        # print('updatePrimaryAltitude[{0}]: altitude = {1}, time = {2}'.format(sourceUAS, altitude, timestamp))
         self.primaryAltitude = altitude
         #didReceivePrimaryAltitude = true;
 
     def updateGPSAltitude(self, sourceUAS, timestamp, altitude):
-        print('updateGPSAltitude[{0}]: altitude = {1}, time = {2}'.format(sourceUAS, altitude, timestamp))
+        # print('updateGPSAltitude[{0}]: altitude = {1}, time = {2}'.format(sourceUAS, altitude, timestamp))
         self.GPSAltitude = altitude
         #if not didReceivePrimaryAltitude:
         #    primaryAltitude = altitude
@@ -834,64 +836,3 @@ class PrimaryFlightDisplay(QWidget):
 
     def shouldDisplayNavigationData(self):
         return True
-
-# test
-class UpdateThread(QThread):
-    updateAttitude = pyqtSignal(int, int, float, float, float)
-    updatePrimaryAltitude = pyqtSignal(int, int, float)
-    updatePrimarySpeed = pyqtSignal(int, int, float)
-
-    interval = 1
-
-    def run(self):
-        spd = 10.0
-        spdStep = 1.0
-        alti = 0.0
-        altiStep = 10
-        pitch = 0.0
-        roll = 10
-        yaw = 0.0
-        while True:
-            time.sleep(self.interval)
-            pitch += 1
-            roll += 1
-            yaw += 5
-            if pitch > 40:
-                pitch = -30.0
-            if roll > 360:
-                roll = -50.0
-            if yaw > 360:
-                yaw = 0.0
-
-            alti += altiStep
-            spd += spdStep
-            if alti > 100:
-                altiStep = -10
-            elif alti < -100:
-                altiStep = 10
-            if spd > 30:
-                spdStep = -1
-            if spd < 10:
-                spdStep = 1
-
-            self.updateAttitude.emit(1, 0, pitch, roll, yaw)
-            self.updatePrimaryAltitude.emit(1, 0, alti)
-            self.updatePrimarySpeed.emit(1, 0, spd)
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-
-    window = QWidget()
-    layout = QVBoxLayout()
-    pfd = PrimaryFlightDisplay(window)
-    layout.addWidget(pfd)
-    window.setLayout(layout)
-    window.show()
-
-    thread = UpdateThread()
-    thread.updateAttitude.connect(pfd.updateAttitude)
-    thread.updatePrimaryAltitude.connect(pfd.updatePrimaryAltitude)
-    thread.updatePrimarySpeed.connect(pfd.updatePrimarySpeed)
-    thread.start()
-
-    sys.exit(app.exec_())

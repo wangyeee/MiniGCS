@@ -129,8 +129,20 @@ class ConnectionEditWindow(QWidget):
         # print('{} -- {}'.format(port, baud))
         connection = mavutil.mavlink_connection(port, int(baud))
         self.connectToMAVLink.emit(self, connection)
+        self.close()
 
 class MAVLinkConnection(QThread):
+
+    gpsRawIntHandler = pyqtSignal(object)
+    localPositionNEDHandler = pyqtSignal(object)
+    navControllerOutputHandler = pyqtSignal(object)
+    radioStatusHandler = pyqtSignal(object)
+    rcChannelRawHandler = pyqtSignal(object)
+    scaledIMUHandler = pyqtSignal(object)
+    scaledPressureHandler = pyqtSignal(object)
+    heartBeatHandler = pyqtSignal(object)
+    altitudeHandler = pyqtSignal(object)
+    systemStatusHandler = pyqtSignal(object)
 
     handlerLookup = {}
 
@@ -149,40 +161,6 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['SCALED_PRESSURE'] = self.scaledPressureHandler
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
 
-    def gpsRawIntHandler(self, msg):
-        print('GPS_RAW_INT:', msg)
-
-    def localPositionNEDHandler(self, msg):
-        print('LOCAL_POSITION_NED:', msg)
-
-    def navControllerOutputHandler(self, msg):
-        print('NAV_CONTROLLER_OUTPUT:', msg)
-
-    def radioStatusHandler(self, msg):
-        print('RADIO_STATUS:', msg)
-
-    def rcChannelRawHandler(self, msg):
-        print('RC_CHANNELS_RAW:', msg)
-
-    def scaledIMUHandler(self, msg):
-        print('SCALED_IMU:', msg)
-
-    def scaledPressureHandler(self, msg):
-        print('SCALED_PRESSURE:', msg)
-
-    def heartBeatHandler(self, msg):
-        mode = mavutil.mode_string_v10(msg)
-        isArmed = msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
-        isEnabled = msg.base_mode & mavutil.mavlink.MAV_MODE_FLAG_GUIDED_ENABLED
-        print('HB event: mode = {}, armed = {}, enabled = {}'.format(mode, isArmed, isEnabled))
-
-    def altitudeHandler(self, msg):
-        # print('roll = {}, pitch = {}, yaw = {}, rollspeed = {}, pitchspeed = {}, yawspeed = {}'.format(msg.roll, msg.pitch, msg.yaw, msg.rollspeed, msg.pitchspeed, msg.yawspeed))
-        print('ALTITUDE:', msg)
-
-    def systemStatusHandler(self, msg):
-        print('SYS_STATUS:', msg)
-
     def requestExit(self):
         print('exit conn thread...')
         self.running = False
@@ -190,20 +168,23 @@ class MAVLinkConnection(QThread):
     def run(self):
         print('waiting for heart beat...')
         self.connection.wait_heartbeat()
-
         while self.running:
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
                 msgType = msg.get_type()
                 if msgType in self.handlerLookup:
-                    self.handlerLookup[msgType](msg)
+                    self.handlerLookup[msgType].emit(msg)
 
 class TestMav(QObject):
 
     def createConnection(self, edit: ConnectionEditWindow, conn):
         self.mav = MAVLinkConnection(conn)
         edit.cancelConnectionSignal.connect(self.mav.requestExit)
+        self.mav.gpsRawIntHandler.connect(self.messageHandler)
         self.mav.start()
+
+    def messageHandler(self, msg):
+        print(msg)
 
 
 if __name__ == "__main__":
