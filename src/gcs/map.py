@@ -164,7 +164,7 @@ class WaypointsModel(QAbstractListModel):
 
 class MapView(QQuickView):
 
-    selectWaypointForAction = pyqtSignal(float, float, float, float)
+    selectWaypointForAction = pyqtSignal(object)
     updateWaypointCoordinateEvent = pyqtSignal(int, object)  # WP row#, new coordinate
     moveHomeEvent = pyqtSignal(object)
 
@@ -221,8 +221,10 @@ class MapView(QQuickView):
             # TODO update home location
             self.map.moveMapToCoordinate(LATITUDE, LONGITUDE)
 
-    def waypointEditEvent(self, x, y, clkLat, clkLng):
-        self.selectWaypointForAction.emit(x, y, clkLat, clkLng)
+    def waypointEditEvent(self, index):
+        if 0 <= index < self.wpModel.rowCount():
+            # print('select WP#', index)
+            self.selectWaypointForAction.emit(self.wpModel.allWaypoints[index])
 
     def mapDragEvent(self, index, lat, lng, actType):
         '''
@@ -269,6 +271,7 @@ class MapWidget(QSplitter):
         self.mapView.wpModel.createWaypointAction.connect(self.createWaypointEvent)
         self.mapView.updateWaypointCoordinateEvent.connect(self.moveWaypointEvent)
         self.mapView.moveHomeEvent.connect(self.updateHomeLocationEvent)
+        self.mapView.selectWaypointForAction.connect(self.waypointList.highlightWaypoint)
         self.waypointList.editWaypoint.connect(self.showEditWaypointWindow)
         self.waypointList.deleteWaypoint.connect(self.removeWaypoint)
         self.waypointList.preDeleteWaypoint.connect(self.markWaypointForRemoval)

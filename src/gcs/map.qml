@@ -8,7 +8,7 @@ MapItem {
     width: 600
     height: 480
 
-    signal waypointSelected(real x, real y, real clat, real clng)
+    signal waypointSelected(int index)
     signal mapDragEvent(int index, real clat, real clng, int type)
     signal updateHomeLocation(real clat, real clng)
 
@@ -70,10 +70,8 @@ MapItem {
                         onClicked: {
                             if (mouse.button == Qt.LeftButton) {
                                 // map the relative position of MapItemView to Map
-                                // TODO var wpIdx = parseInt(wpIdxTxt.text) - 1
-                                var obj = mapToItem(navMap, mouse.x, mouse.y)
-                                var c = navMap.toCoordinate(Qt.point(obj.x, obj.y))
-                                mapItem.waypointSelected(obj.x, obj.y, c.latitude, c.longitude)
+                                var wpIdx = parseInt(wpIdxTxt.text) - 1
+                                mapItem.waypointSelected(wpIdx)
                             }
                         }
                         drag {
@@ -97,7 +95,7 @@ MapItem {
             id: wpLine
             objectName: "wpLine"
             line.width: 3
-            line.color: "red"
+            line.color: "#90FF0000"
             antialiasing: true
             path: [
                 {latitude: 0, longitude: 0}

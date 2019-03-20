@@ -363,6 +363,10 @@ class WaypointList(QTableWidget):
             else:
                 self.cancelDeleteWaypoint.emit(wp)
 
+    def highlightWaypoint(self, wp: Waypoint):
+        self.scrollTo(self.model().index(wp.rowNumber + 1, 0))
+        self.selectRow(wp.rowNumber + 1)
+
     def setHomeLocation(self, h: Waypoint):
         wpIdx = 0
         widget = self.cellWidget(wpIdx, 1)  # Latitude(WPDecimalPanel)
