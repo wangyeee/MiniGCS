@@ -113,10 +113,9 @@ class ConnectionEditWindow(QWidget):
             cnts += 1
         if cnts == 0:
             self.portList['No ports available'] = 'No ports available'
-        print(self.portList)
+        # print(self.portList)
 
     def cancelConnection(self):
-        self.cancelConnectionSignal.emit()
         self.close()
 
     def connectSerialPort(self):
@@ -158,11 +157,11 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
 
     def requestExit(self):
-        print('exit conn thread...')
+        # print('exit conn thread...')
         self.running = False
 
     def run(self):
-        print('waiting for heart beat...')
+        # print('waiting for heart beat...')
         self.connection.wait_heartbeat()
         while self.running:
             msg = self.connection.recv_match(blocking=False)
@@ -171,4 +170,4 @@ class MAVLinkConnection(QThread):
                 if msgType in self.handlerLookup:
                     self.handlerLookup[msgType].emit(msg)
         self.connection.close()
-        print('connection closed')
+        # print('connection closed')

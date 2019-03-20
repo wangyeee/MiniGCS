@@ -4,16 +4,15 @@ The flight map implementation.
 import math
 import os
 import sys
-# import time
 
-from PyQt5.QtCore import Qt, QUrl, pyqtSignal, QAbstractListModel, QModelIndex, QVariant, pyqtSlot, QByteArray, QSize
-from PyQt5.QtGui import QMouseEvent
+from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
+                          Qt, QUrl, QVariant, pyqtSignal, pyqtSlot)
+from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
-from PyQt5.QtPositioning import QGeoCoordinate
-from PyQt5.QtWidgets import QVBoxLayout, QWidget, QApplication
+from PyQt5.QtWidgets import QApplication, QSplitter, QWidget
 
-from waypoint import WaypointList, Waypoint, WaypointEditWindow
+from waypoint import Waypoint, WaypointEditWindow, WaypointList
 
 LATITUDE = -36.88
 LONGITUDE = 174.75
@@ -29,11 +28,11 @@ class MapItem(QQuickItem):
     updateZoomLevel = pyqtSignal(int, arguments=['zoom'])
     updateDroneLocation = pyqtSignal(float, float, float, float, arguments=['lat', 'lng', 'hacc', 'vacc'])
 
-    waypointRemoved = pyqtSignal(int, arguments=['wpNumber'])  # signal sent to qml to remove wp in polyline
+    waypointRemoved = pyqtSignal(int, arguments=['wpNumber'])  # signal sent to qml to remove wp in polyline, wpNumber starts from 1 (0 is resvered for home)
     waypointChanged = pyqtSignal(int, float, float, arguments=['wpNumber', 'latitude', 'longitude'])  # signal sent to qml to update wp in polyline
 
     def __init__(self, parent=None):
-        super(MapItem, self).__init__(parent)
+        super().__init__(parent)
         self.lat = 0.0
         self.lng = 0.0
         self.zoomLevel = 5
@@ -66,8 +65,6 @@ class WaypointsModel(QAbstractListModel):
     createWaypointAction = pyqtSignal(object)
 
     allWaypoints = [] # [Waypoint(0, 0, 0, 0)]
-    wpCoordRev = {}
-    wpSequence = 1
     redWPIdx = -1
 
     def __init__(self, parent = None):
@@ -78,7 +75,7 @@ class WaypointsModel(QAbstractListModel):
 
     def markWaypoint(self, wp: Waypoint):
         idx = self.index(wp.rowNumber)
-        self.redWPIdx = wp.wpID
+        self.redWPIdx = wp.rowNumber
         self.dataChanged.emit(idx, idx)
 
     def unmarkWaypoint(self, wp: Waypoint):
@@ -88,14 +85,10 @@ class WaypointsModel(QAbstractListModel):
 
     @pyqtSlot(float, float)
     def createWaypoint(self, lat, lng):
-        self.beginInsertRows(QModelIndex(), self.rowCount(), self.rowCount())
-        seq = self.wpSequence
-        self.wpSequence += 1
-        mrk = Waypoint(seq, lat, lng, 10.0)
-        mrk.rowNumber = self.rowCount()
-        # print('add marker#{0} on {1}, {2}, row: {3}'.format(mrk.rowNumber, lat, lng, seq))
+        idx = self.rowCount()
+        self.beginInsertRows(QModelIndex(), idx, idx)
+        mrk = Waypoint(idx, lat, lng, 10.0)
         self.allWaypoints.append(mrk)
-        self.wpCoordRev[QGeoCoordinate(lat, lng)] = mrk
         self.endInsertRows()
         self.createWaypointAction.emit(mrk)
 
@@ -109,7 +102,8 @@ class WaypointsModel(QAbstractListModel):
         if role == self.positionRole:
             return QVariant(self.allWaypoints[idx].getCoordinate())
         if role == self.dotColorRole:
-            if self.allWaypoints[idx].wpID == self.redWPIdx:
+            if self.allWaypoints[idx].rowNumber == self.redWPIdx:
+                self.redWPIdx = -1
                 return QVariant('red')
             return QVariant('green')
         if role == self.rowNumberRole:
@@ -128,53 +122,52 @@ class WaypointsModel(QAbstractListModel):
             self.rowNumberRole : QByteArray(b'rowNumber')
         }
 
-    def updateWaypointCoordinate(self, oldCoordinate: QGeoCoordinate, newCoordinate: QGeoCoordinate):
-        wp = self.wpCoordRev[oldCoordinate]
-        if wp != None:
-            print('[MAP] move WP#{4} ({0}, {1}) to ({2}, {3})'.format(oldCoordinate.latitude(), oldCoordinate.longitude(),
-                                                               newCoordinate.latitude(), newCoordinate.longitude(),
-                                                               wp.rowNumber))
+    def updateWaypointCoordinate(self, rowNumber, newCoordinate: QGeoCoordinate):
+        if 0 <= rowNumber < len(self.allWaypoints):
+            # self._debug_dump_wp_list(rowNumber)
+            wp = self.allWaypoints[rowNumber]
+            print('[MAP] move WP#{4} ({0}, {1}) to ({2}, {3})'.format(wp.latitude, wp.longitude,
+                                                            newCoordinate.latitude(), newCoordinate.longitude(),
+                                                            wp.rowNumber))
             wp.latitude = newCoordinate.latitude()
             wp.longitude = newCoordinate.longitude()
-            del self.wpCoordRev[oldCoordinate]
-            self.wpCoordRev[newCoordinate] = wp
-            return wp.rowNumber
-        return -1
+            self.refreshWaypoint(wp)
+            # self._debug_dump_wp_list(rowNumber)
 
     def refreshWaypoint(self, wp: Waypoint):
-        oldWp = self.allWaypoints[wp.rowNumber]
         idx = self.index(wp.rowNumber)
-        oldCord = oldWp.getCoordinate()
-        # remove coordinate -> WP map entry
-        del self.wpCoordRev[oldCord]
-        # replace with new WP
-        self.allWaypoints[oldWp.rowNumber] = wp
-        self.wpCoordRev[wp.getCoordinate()] = wp
         self.dataChanged.emit(idx, idx)
 
     def removeWaypoint(self, wp: Waypoint):
         tgtWp = wp.rowNumber
-        i = tgtWp
+        # self._debug_dump_wp_list(tgtWp)
+        i = tgtWp + 1
         while i < len(self.allWaypoints):
             self.allWaypoints[i].rowNumber -= 1
             i += 1
         self.beginRemoveRows(QModelIndex(), tgtWp, tgtWp)
         del self.allWaypoints[tgtWp]
-        del self.wpCoordRev[wp.getCoordinate()]
         self.endRemoveRows()
-        # send signal to update WP# displayed on the map
-        txtStart = self.index(tgtWp)
-        txtEnd = self.index(len(self.allWaypoints) - 1)
-        self.dataChanged.emit(txtStart, txtEnd)
+        # self._debug_dump_wp_list()
+        # send signal to update WP# displayed on the map unless the last WP is removed
+        if i > tgtWp + 1:
+            txtStart = self.index(tgtWp)
+            txtEnd = self.index(len(self.allWaypoints) - 1)
+            self.dataChanged.emit(txtStart, txtEnd)
+
+    def _debug_dump_wp_list(self, star = -1):
+        for wp in self.allWaypoints:
+            if star == wp.rowNumber:
+                print('*' + str(wp))
+            else:
+                print(str(wp))
 
 class MapView(QQuickView):
 
     selectWaypointForAction = pyqtSignal(float, float, float, float)
-    moveWaypointEvent = pyqtSignal(object, object)
+    updateWaypointCoordinateEvent = pyqtSignal(int, object)  # WP row#, new coordinate
     moveHomeEvent = pyqtSignal(object)
 
-    dragWpLat = 0.0
-    dragWpLng = 0.0
     dragStart = False
     map = None
 
@@ -231,20 +224,17 @@ class MapView(QQuickView):
     def waypointEditEvent(self, x, y, clkLat, clkLng):
         self.selectWaypointForAction.emit(x, y, clkLat, clkLng)
 
-    def mapDragEvent(self, x, y, lat, lng, actType):
+    def mapDragEvent(self, index, lat, lng, actType):
         '''
         actType = 0, start of drag; actType = 1, end of drag
         '''
-        # print('drag ({0}, {1}) on ({2}, {3}), type: {4}'.format(x, y, lat, lng, actType))
         if actType == 0:
-            self.dragWpLat = lat
-            self.dragWpLng = lng
+            # something to do on start of a drag
             self.dragStart = True
         elif actType == 1:
             if self.dragStart:
-                fromWp = QGeoCoordinate(self.dragWpLat, self.dragWpLng)
                 toWp = QGeoCoordinate(lat, lng)
-                self.moveWaypointEvent.emit(fromWp, toWp)
+                self.updateWaypointCoordinateEvent.emit(index, toWp)
                 self.dragStart = False
 
     def updateHomeEvent(self, lat, lng):
@@ -258,10 +248,7 @@ class MapView(QQuickView):
     def minimumSize(self):
         return QSize(600, 480)
 
-    # def maximumSize(self):
-    # return QSize(10000, 10000)
-
-class MapWidget(QWidget):
+class MapWidget(QSplitter):
 
     mapView = None
     waypointList = None
@@ -270,7 +257,7 @@ class MapWidget(QWidget):
     editWPpopup = []
 
     def __init__(self, mapQmlFile, parent = None):
-        super().__init__(parent)
+        super().__init__(Qt.Vertical, parent)
         self.mapView = MapView(QUrl.fromLocalFile(mapQmlFile))
         self.waypointList = WaypointList(self.mapView.wpModel.allWaypoints, parent)
 
@@ -280,39 +267,27 @@ class MapWidget(QWidget):
         container.setFocusPolicy(Qt.TabFocus)
         self.mapView.restorePreviousView()
         self.mapView.wpModel.createWaypointAction.connect(self.createWaypointEvent)
-        self.mapView.moveWaypointEvent.connect(self.moveWaypointEvent)
+        self.mapView.updateWaypointCoordinateEvent.connect(self.moveWaypointEvent)
         self.mapView.moveHomeEvent.connect(self.updateHomeLocationEvent)
         self.waypointList.editWaypoint.connect(self.showEditWaypointWindow)
         self.waypointList.deleteWaypoint.connect(self.removeWaypoint)
         self.waypointList.preDeleteWaypoint.connect(self.markWaypointForRemoval)
         self.waypointList.cancelDeleteWaypoint.connect(self.unmarkWaypointNoRemoval)
-        l = QVBoxLayout()
-        l.addWidget(container)
-        l.addWidget(self.waypointList)
-        self.setLayout(l)
+        self.addWidget(container)
+        self.addWidget(self.waypointList)
 
-    def mouseMoveEvent(self, e: QMouseEvent):
-        super().mouseMoveEvent(e)
-        h = e.pos().y()
-        d = h - self.horizonLine
-        if self.horizonLine > 0:
-            self.mapView.setHeight(self.mapView.height() + d)
-            self.waypointList.resize(self.waypointList.width(), self.waypointList.height() - d)
-            self.waypointList.move(self.waypointList.pos().x(), self.waypointList.pos().y() + d)
-        self.horizonLine = h
-
-    def moveWaypointEvent(self, fromWp: QGeoCoordinate, toWp: QGeoCoordinate):
-        print('[WP] move ({0}, {1}) to ({2}, {3})'.format(fromWp.latitude(), fromWp.longitude(), toWp.latitude(), toWp.longitude()))
-        wpId = self.mapView.wpModel.updateWaypointCoordinate(fromWp, toWp)
-        if wpId >= 0:
-            self.waypointList.moveWaypoint(wpId, toWp)
+    def moveWaypointEvent(self, wpIdx, toWp: QGeoCoordinate):
+        # print('[WP] move {} to ({}, {})'.format(wpIdx, toWp.latitude(), toWp.longitude()))
+        self.mapView.wpModel.updateWaypointCoordinate(wpIdx, toWp)
+        self.mapView.map.waypointChanged.emit(wpIdx, toWp.latitude(), toWp.longitude())
+        self.waypointList.moveWaypoint(wpIdx, toWp)
 
     def updateHomeLocationEvent(self, home: QGeoCoordinate):
         # print('home loc:', home)
         self.waypointList.updateHomeLocation(home)
 
     def showEditWaypointWindow(self, wp: Waypoint):
-        print('edit wp#{0}'.format(wp.wpID))
+        print('edit wp#{0}'.format(wp.rowNumber))
         popup = WaypointEditWindow(wp)
         self.editWPpopup.append(popup)
         popup.updateWaypoint.connect(self.acceptWaypointEdit)
@@ -323,16 +298,15 @@ class MapWidget(QWidget):
         self.waypointList.updateWaypoint(wp)
         # sent new wp to map polyline
         self.mapView.wpModel.refreshWaypoint(wp)
-        self.mapView.map.waypointChanged.emit(wp.rowNumber + 1, wp.latitude, wp.longitude)
+        self.mapView.map.waypointChanged.emit(wp.rowNumber, wp.latitude, wp.longitude)
 
     def removeWaypoint(self, wp: Waypoint):
-        # print('delete wp#{0}'.format(wp.wpID))
-        wpIdx = wp.rowNumber + 1
+        # print('delete wp#{0}'.format(wp.rowNumber))
         self.mapView.wpModel.removeWaypoint(wp)
-        self.mapView.map.waypointRemoved.emit(wpIdx)
+        self.mapView.map.waypointRemoved.emit(wp.rowNumber)
 
     def createWaypointEvent(self, wp: Waypoint):
-        print('[new] create WP: ({0}, {1}) at {2}'.format(wp.latitude, wp.longitude, wp.altitude))
+        # print('[new] create WP: ({0}, {1}) at {2}'.format(wp.latitude, wp.longitude, wp.altitude))
         self.waypointList.addWaypoint(wp)
 
     def markWaypointForRemoval(self, wp: Waypoint):

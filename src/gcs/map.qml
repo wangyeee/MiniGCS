@@ -9,7 +9,7 @@ MapItem {
     height: 480
 
     signal waypointSelected(real x, real y, real clat, real clng)
-    signal mapDragEvent(real x, real y, real clat, real clng, int type)
+    signal mapDragEvent(int index, real clat, real clng, int type)
     signal updateHomeLocation(real clat, real clng)
 
     Map {
@@ -63,12 +63,14 @@ MapItem {
                         font.family: "Arial"
                         anchors.centerIn: parent
                     }
+
                     MouseArea {
                         id: wpArea
                         anchors.fill: parent
                         onClicked: {
                             if (mouse.button == Qt.LeftButton) {
                                 // map the relative position of MapItemView to Map
+                                // TODO var wpIdx = parseInt(wpIdxTxt.text) - 1
                                 var obj = mapToItem(navMap, mouse.x, mouse.y)
                                 var c = navMap.toCoordinate(Qt.point(obj.x, obj.y))
                                 mapItem.waypointSelected(obj.x, obj.y, c.latitude, c.longitude)
@@ -76,15 +78,13 @@ MapItem {
                         }
                         drag {
                             target: marker
+                            axis: Drag.XandYAxis
                             onActiveChanged: {
+                                var wpIdx = parseInt(wpIdxTxt.text) - 1
                                 if (drag.active) {
-                                    // console.log("Drag started: " + drag.target.sourceItem)
-                                    mapItem.mapDragEvent(0, 0, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 0)
+                                    mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 0)
                                 } else {
-                                    // console.log("Drag ended: " + drag.target.sourceItem)
-                                    mapItem.mapDragEvent(0, 0, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 1)
-                                    // console.log('update wp#' + wpIdxTxt.text)
-                                    wpLine.replaceCoordinate(parseInt(wpIdxTxt.text), drag.target.coordinate)
+                                    mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 1)
                                 }
                             }
                         }
@@ -187,10 +187,10 @@ MapItem {
     }
 
     onWaypointRemoved: {
-        wpLine.removeCoordinate(wpNumber)
+        wpLine.removeCoordinate(wpNumber + 1)  // 0 for home
     }
 
     onWaypointChanged: {
-        wpLine.replaceCoordinate(wpNumber, QtPositioning.coordinate(latitude, longitude))
+        wpLine.replaceCoordinate(wpNumber + 1, QtPositioning.coordinate(latitude, longitude))
     }
 }

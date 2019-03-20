@@ -24,7 +24,6 @@ WP_TYPE_NAMES = {
 
 class Waypoint(QObject):
 
-    wpID = 0
     rowNumber = 0
     latitude = 0.0
     longitude = 0.0
@@ -32,15 +31,15 @@ class Waypoint(QObject):
     # default to "navigate to waypoint (16)"
     waypointType = mavlink.MAV_CMD_NAV_WAYPOINT
 
-    def __init__(self, wpID, latitude, longitude, altitude, parent = None):
+    def __init__(self, rowNumber, latitude, longitude, altitude, parent = None):
         super().__init__(parent)
-        self.wpID = wpID
+        self.rowNumber = rowNumber
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
 
     def __str__(self):
-        return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5})'.format(self.wpID,
+        return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5})'.format(self.rowNumber,
                                                                       WP_TYPE_NAMES[self.waypointType],
                                                                       self.waypointType,
                                                                       self.latitude,
@@ -51,9 +50,8 @@ class Waypoint(QObject):
         return QGeoCoordinate(self.latitude, self.longitude)
 
     def copy(self):
-        c = Waypoint(self.wpID, self.latitude, self.longitude, self.altitude, self.parent())
+        c = Waypoint(self.rowNumber, self.latitude, self.longitude, self.altitude, self.parent())
         c.waypointType = self.waypointType
-        c.rowNumber = self.rowNumber
         return c
 
     @staticmethod
@@ -108,22 +106,29 @@ class WaypointEditPanel(QWidget):
 
 class WPDropDownPanel(QWidget):
 
+    dropDownList = None
+
     def __init__(self, dropDownList: dict, currentSelection = 0, parent = None):
         super().__init__(parent)
         self.dropDown = QComboBox(self)
-        i = 0
-        for idVal, idName in dropDownList.items():
-            self.dropDown.addItem(idName, QVariant(idVal))
-            if idVal == currentSelection:
-                self.dropDown.setCurrentIndex(i)
-            i += 1
+        self.dropDownList = dropDownList
+        self.setSelection(currentSelection)
         l = QHBoxLayout()
         l.setContentsMargins(5, 0, 5, 0)
         l.addWidget(self.dropDown)
         self.setLayout(l)
 
     def setSelection(self, idx: QVariant):
-        print('select:', idx)
+        # print('select:', idx)
+        i = 0
+        for idVal, idName in self.dropDownList.items():
+            self.dropDown.addItem(idName, QVariant(idVal))
+            if idVal == idx:
+                self.dropDown.setCurrentIndex(i)
+            i += 1
+
+    def getSelection(self):
+        return self.dropDown.currentIndex()
 
 class WPDegreePanel(QWidget):
 
@@ -335,12 +340,21 @@ class WaypointList(QTableWidget):
     def wpButtonEvent(self, wp: Waypoint, act):
         ''' route event to other components '''
         if act == 0:  # update
+            wpIdx = wp.rowNumber + 1
+            widget = self.cellWidget(wpIdx, 0)  # Type (WPDropDownPanel)
+            wp.waypointType = widget.getSelection()
+            widget = self.cellWidget(wpIdx, 1)  # Latitude(WPDecimalPanel)
+            wp.latitude = widget.getValue()
+            widget = self.cellWidget(wpIdx, 2)  # Longitude(WPDecimalPanel)
+            wp.longitude = widget.getValue()
+            widget = self.cellWidget(wpIdx, 3)  # Altitude(WPDecimalPanel)
+            wp.altitude = widget.getValue()
             self.editWaypoint.emit(wp)
         elif act == 1: # delete
             self.preDeleteWaypoint.emit(wp)
             cfm = QMessageBox.question(self.window(),
                                        'Confirm removal',
-                                       'Are you sure to remove waypoint#{0} at ({1}, {2})?'.format(wp.wpID, wp.latitude, wp.longitude),
+                                       'Are you sure to remove waypoint#{0} at ({1}, {2})?'.format(wp.rowNumber + 1, wp.latitude, wp.longitude),
                                        QMessageBox.Yes, QMessageBox.No)
             if cfm == QMessageBox.Yes:
                 self.removeRow(wp.rowNumber + 1)
@@ -420,7 +434,7 @@ class WaypointEditWindow(QWidget):
         self.lngField.returnPressed.connect(self.okBtn.click)
         self.altField.returnPressed.connect(self.okBtn.click)
         self.waypoint = wp.copy()
-        self.setWindowTitle('Edit Waypoint#{0}'.format(wp.wpID))
+        self.setWindowTitle('Edit Waypoint#{0}'.format(wp.rowNumber))
         self.setLayout(layout)
         self.setGeometry(QRect(100, 100, 400, 200))
 
