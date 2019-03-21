@@ -9,6 +9,7 @@ from map import MapWidget
 from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
+from LocalGPS import GPSConfigurationWindow
 
 class MiniGCS(QMainWindow):
 
@@ -41,6 +42,11 @@ class MiniGCS(QMainWindow):
         self.m.setSizePolicy(spRight)
         mainLayout.addWidget(self.left)
         mainLayout.addWidget(self.m)
+        self.localGPSWindow = GPSConfigurationWindow()
+        # TODO configurable behavior
+        self.localGPSWindow.connection.locationUpdate.connect(self.m.updateHomeLocationEvent)
+        self.sts.connectToLocalGPS.connect(self.localGPSWindow.show)
+        self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
         self.window.setLayout(mainLayout)
         self.setCentralWidget(self.window)
 

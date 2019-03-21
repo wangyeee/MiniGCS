@@ -40,7 +40,7 @@ class NMEAReceiver(QThread):
                 for msg in streamreader.next(data):
                     # print('{}  {}  {}'.format(msg_cnt, type(msg), msg))
                     if type(msg) is GGA:
-                        print('location update: {}, {}'.format(msg.latitude, msg.longitude))
+                        # print('location update: {}, {}'.format(msg.latitude, msg.longitude))
                         self.locationUpdate.emit(QGeoCoordinate(msg.latitude, msg.longitude))
         if self.serialPort.isOpen():
             self.serialPort.close()
@@ -54,17 +54,10 @@ class GPSConfigurationWindow(ConnectionEditWindow):
         self.setWindowTitle('GPS Configuration')
 
     def connectSerialPort(self):
-        print('connect to gps...')
         port = self.portsDropDown.currentData()
         baud = self.baudDropDown.currentData()
-        print('{} -- {}'.format(port, baud))
         self.connection.configureSerialPort(port, int(baud))
         self.connection.connect()
-        # self.close()
-
-    # test only
-    def cancelConnection(self):
-        self.connection.disconnect()
         self.close()
 
 # test only

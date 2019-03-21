@@ -25,6 +25,7 @@ TILE_SIZE = 256
 class MapItem(QQuickItem):
 
     updateCoordinate = pyqtSignal(float, float, arguments=['lat', 'lng'])
+    updateHomeCoordinate = pyqtSignal(float, float, arguments=['lat', 'lng'])
     updateZoomLevel = pyqtSignal(int, arguments=['zoom'])
     updateDroneLocation = pyqtSignal(float, float, float, float, arguments=['lat', 'lng', 'hacc', 'vacc'])
 
@@ -41,6 +42,9 @@ class MapItem(QQuickItem):
         self.lat = lat
         self.lng = lng
         self.updateCoordinate.emit(lat, lng)
+
+    def moveHomeToCoordinate(self, lat, lng):
+        self.updateHomeCoordinate.emit(lat, lng)
 
     def getZoomLevel(self):
         return self.zoomLevel
@@ -286,7 +290,8 @@ class MapWidget(QSplitter):
         self.waypointList.moveWaypoint(wpIdx, toWp)
 
     def updateHomeLocationEvent(self, home: QGeoCoordinate):
-        # print('home loc:', home)
+        # print('update home loc: {}, {}'.format(home.latitude(), home.longitude()))
+        self.mapView.map.moveHomeToCoordinate(home.latitude(), home.longitude())
         self.waypointList.updateHomeLocation(home)
 
     def showEditWaypointWindow(self, wp: Waypoint):

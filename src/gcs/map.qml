@@ -5,8 +5,6 @@ import QtPositioning 5.2
 
 MapItem {
     id: mapItem
-    width: 600
-    height: 480
 
     signal waypointSelected(int index)
     signal mapDragEvent(int index, real clat, real clng, int type)
@@ -182,6 +180,12 @@ MapItem {
             wpLine.replaceCoordinate(0, homeMarker.coordinate)
             homeMarker.firstRun = false
         }
+    }
+
+    onUpdateHomeCoordinate: {
+        homeMarker.coordinate.latitude = lat
+        homeMarker.coordinate.longitude = lng
+        wpLine.replaceCoordinate(0, homeMarker.coordinate)
     }
 
     onWaypointRemoved: {

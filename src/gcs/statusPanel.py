@@ -23,6 +23,8 @@ class SystemStatusPanel(QWidget):
 
     connectToMAVLink = pyqtSignal()
     disconnectFromMAVLink = pyqtSignal()
+    connectToLocalGPS = pyqtSignal()
+    disconnectFromLocalGPS = pyqtSignal()
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -56,7 +58,12 @@ class SystemStatusPanel(QWidget):
         self.connectButton = QPushButton('Connect')
         self.connectLabelShown = True
         self.connectButton.clicked.connect(self.toggleButtonLabel)
-        l.addWidget(self.connectButton, row, 2, 1, 1, Qt.AlignLeft)
+        l.addWidget(self.connectButton, row, 1, 1, 1, Qt.AlignLeft)
+
+        self.localGPSButton = QPushButton('Local GPS')
+        self.gpsLabelShown = True
+        self.localGPSButton.clicked.connect(self.toggleGPSButtonLabel)
+        l.addWidget(self.localGPSButton, row, 2, 1, 1, Qt.AlignLeft)
 
         self.setLayout(l)
 
@@ -86,6 +93,15 @@ class SystemStatusPanel(QWidget):
             self.connectLabelShown = True
             self.connectButton.setText('Connect')
 
+    def toggleGPSButtonLabel(self):
+        if self.gpsLabelShown:
+            self.connectToLocalGPS.emit()
+            self.gpsLabelShown = False
+            self.localGPSButton.setText('Disconnect GPS')
+        else:
+            self.disconnectFromLocalGPS.emit()
+            self.gpsLabelShown = True
+            self.localGPSButton.setText('Local GPS')
 
 # test
 if __name__ == "__main__":
