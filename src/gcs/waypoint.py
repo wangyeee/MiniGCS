@@ -128,7 +128,7 @@ class WPDropDownPanel(QWidget):
             i += 1
 
     def getSelection(self):
-        return self.dropDown.currentIndex()
+        return self.dropDown.currentData()
 
 class WPDegreePanel(QWidget):
 
@@ -409,17 +409,10 @@ class WaypointEditWindow(QWidget):
     def __init__(self, wp: Waypoint, parent = None):
         super().__init__(parent)
         layout = QFormLayout()
-        self.latField = QLineEdit(str(wp.latitude))
-        self.lngField = QLineEdit(str(wp.longitude))
-        self.altField = QLineEdit(str(wp.altitude))
-        self.typeSel = QComboBox(self)
-        # for key, value in d.items():
-        i = 0
-        for wpType, wpName in WP_TYPE_NAMES.items():
-            self.typeSel.addItem(wpName, QVariant(wpType))
-            if wpType == wp.waypointType:
-                self.typeSel.setCurrentIndex(i)
-            i += 1
+        self.latField = WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE) # QLineEdit(str(wp.latitude))
+        self.lngField = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE) # QLineEdit(str(wp.longitude))
+        self.altField = WPDecimalPanel(wp.altitude, 'M')
+        self.typeSel = WPDropDownPanel(WP_TYPE_NAMES, wp.waypointType)
         layout.addRow(QLabel('Latitude'), self.latField)
         layout.addRow(QLabel('Longitude'), self.lngField)
         layout.addRow(QLabel('Altitude'), self.altField)
@@ -434,9 +427,9 @@ class WaypointEditWindow(QWidget):
         layout.addRow(self.actPanel)
         self.cnlBtn.clicked.connect(self.close)
         self.okBtn.clicked.connect(self.updateWaypointEvent)
-        self.latField.returnPressed.connect(self.okBtn.click)
-        self.lngField.returnPressed.connect(self.okBtn.click)
-        self.altField.returnPressed.connect(self.okBtn.click)
+        # self.latField.returnPressed.connect(self.okBtn.click)
+        # self.lngField.returnPressed.connect(self.okBtn.click)
+        self.altField.valueChanged.connect(self.okBtn.click)
         self.waypoint = wp.copy()
         self.setWindowTitle('Edit Waypoint#{0}'.format(wp.rowNumber))
         self.setLayout(layout)
@@ -444,10 +437,10 @@ class WaypointEditWindow(QWidget):
 
     def updateWaypointEvent(self):
         # TODO data validation
-        self.waypoint.latitude = float(self.latField.text())
-        self.waypoint.longitude = float(self.lngField.text())
-        self.waypoint.altitude = float(self.altField.text())
-        self.waypoint.waypointType = self.typeSel.currentData()
+        self.waypoint.latitude = self.latField.getValue()
+        self.waypoint.longitude = self.lngField.getValue()
+        self.waypoint.altitude = self.altField.getValue()
+        self.waypoint.waypointType = self.typeSel.getSelection()
         # print('new WP:', self.waypoint)
         self.updateWaypoint.emit(self.waypoint)
         self.close()
