@@ -430,7 +430,7 @@ class WaypointEditWindow(QWidget):
         # self.latField.returnPressed.connect(self.okBtn.click)
         # self.lngField.returnPressed.connect(self.okBtn.click)
         self.altField.valueChanged.connect(self.okBtn.click)
-        self.waypoint = wp.copy()
+        self.waypoint = wp
         self.setWindowTitle('Edit Waypoint#{0}'.format(wp.rowNumber))
         self.setLayout(layout)
         self.setGeometry(QRect(100, 100, 400, 200))
