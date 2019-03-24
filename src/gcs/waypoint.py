@@ -189,9 +189,9 @@ class WPDegreePanel(QWidget):
         m = int(self.minutesField.text())
         s = float(self.secondsField.text())
         decimal = Waypoint.decimalFromDMS(d, m, s)
-        sym = self._getDirLabel(d, self.dirLabel)
-        if sym != self.dirLabel.text():
-            decimal = 0.0 - decimal
+        sym = self.dirLabel.text()
+        if sym == 'S' or sym == 'W':
+            decimal = 0 - decimal
         return decimal
 
     def setValue(self, val: float):
