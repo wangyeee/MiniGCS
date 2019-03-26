@@ -130,6 +130,15 @@ class WPDropDownPanel(QWidget):
     def getSelection(self):
         return self.dropDown.currentData()
 
+class FocusLineEdit(QLineEdit):
+
+    focusLostSignal = pyqtSignal(object)
+
+    def focusOutEvent(self, e):
+        super().focusOutEvent(e)
+        self.focusLostSignal.emit(self)
+
+
 class WPDegreePanel(QWidget):
 
     LATITUDE_TYPE = 'LAT'
@@ -139,14 +148,16 @@ class WPDegreePanel(QWidget):
 
     valueChanged = pyqtSignal(object)
     dirType = None
+    cachedWP = None
 
-    def __init__(self, decimalValue, ctype, parent = None):
+    def __init__(self, decimalValue, ctype, cachedWP = None, parent = None):
         '''
         ctype=LAT/LNG
         [deg][min][sec][EW/NS]
         '''
         super().__init__(parent)
         self.decimalValue = decimalValue
+        self.cachedWP = cachedWP
         # Degrees Minutes Seconds
         d, m, s = Waypoint.decimalToDMS(self.decimalValue)
 
@@ -154,19 +165,19 @@ class WPDegreePanel(QWidget):
         self.dirLabel = QLabel(self._getDirLabel(d, self.dirType))
         self.dirLabel.adjustSize()
 
-        self.degreesField = QLineEdit('%3d' % (d if d > 0 else -d))
+        self.degreesField = FocusLineEdit('%3d' % (d if d > 0 else -d))
         self.degreesField.setFrame(False)
         self._setFieldWidth(self.degreesField, 3)
         self.degreesLabel = QLabel(u'\N{DEGREE SIGN}')
         self.degreesLabel.adjustSize()
 
-        self.minutesField = QLineEdit('%2d' % m)
+        self.minutesField = FocusLineEdit('%2d' % m)
         self.minutesField.setFrame(False)
         self._setFieldWidth(self.minutesField, 2)
         self.minutesLabel = QLabel(chr(0x2019))
         self.minutesLabel.adjustSize()
 
-        self.secondsField = QLineEdit('%.4f' % s)
+        self.secondsField = FocusLineEdit('%.4f' % s)
         self.secondsField.setFrame(False)
         self._setFieldWidth(self.secondsField, 7)
         self.secondsLabel = QLabel(chr(0x201D))
@@ -174,6 +185,9 @@ class WPDegreePanel(QWidget):
 
         l = QHBoxLayout()
         l.setContentsMargins(5, 0, 5, 0)
+        self.degreesField.focusLostSignal.connect(self.valueChangedEvent)
+        self.minutesField.focusLostSignal.connect(self.valueChangedEvent)
+        self.secondsField.focusLostSignal.connect(self.valueChangedEvent)
         l.addWidget(self.degreesField)
         l.addWidget(self.degreesLabel)
         l.addWidget(self.minutesField)
@@ -201,6 +215,15 @@ class WPDegreePanel(QWidget):
         self.minutesField.setText('%2d' % m)
         self.secondsField.setText('%.4f' % s)
         self.dirLabel.setText(self._getDirLabel(d, self.dirType))
+
+    def valueChangedEvent(self):
+        val = self.getValue()
+        if self.cachedWP != None:
+            if self.dirType == self.LATITUDE_TYPE:
+                self.cachedWP.latitude  = val
+            elif self.dirType == self.LONGITUDE_TYPE:
+                self.cachedWP.longitude = val
+        self.valueChanged.emit(self)
 
     def _getDirLabel(self, deg, ctype):
         if ctype == 'LAT':
@@ -231,8 +254,9 @@ class WPDecimalPanel(QWidget):
     def __init__(self, value, uom = None, validator: QValidator = None, parent = None):
         super().__init__(parent)
         self.value = value
-        self.editField = QLineEdit(str(value))
+        self.editField = FocusLineEdit(str(value))
         self.editField.returnPressed.connect(self.valueChangedEvent)
+        self.editField.focusLostSignal.connect(self.valueChangedEvent)
         if validator == None:
             self.editField.setValidator(QDoubleValidator())
         else:
@@ -266,6 +290,7 @@ class WaypointList(QTableWidget):
     deleteWaypoint = pyqtSignal(object)  # remove a waypoint
     preDeleteWaypoint = pyqtSignal(object)  # signal sent before removing a waypoint
     cancelDeleteWaypoint = pyqtSignal(object)  # signal sent for cancelled waypoint removal
+    afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
 
     def __init__(self, wpList, parent = None):
         super().__init__(parent)
@@ -328,14 +353,23 @@ class WaypointList(QTableWidget):
             return
         data = []
         data.append(WPDropDownPanel(WP_TYPE_NAMES, wp.waypointType))
-        data.append(WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE))
-        data.append(WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE))
+        latpanel = WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE, wp)
+        latpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
+        data.append(latpanel)
+        lngpanel = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE, wp)
+        lngpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
+        data.append(lngpanel)
         data.append(WPDecimalPanel(wp.altitude, 'M'))
         pnl = WaypointEditPanel(wp, 'Edit', 'Remove', self.wpButtonEvent, self.wpButtonEvent)
         data.append(pnl)
         self.setRowCount(len(self.wpList) + 1)
         self._setRowData(wp.rowNumber + 1, data)
         self.scrollToBottom()
+
+    def processWaypointOutfocusUpdate(self, panel):
+        wp = panel.cachedWP
+        if wp != None:
+            self.afterWaypointEdited.emit(wp)
 
     def wpButtonEvent(self, wp: Waypoint, act):
         ''' route event to other components '''

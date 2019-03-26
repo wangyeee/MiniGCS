@@ -280,6 +280,7 @@ class MapWidget(QSplitter):
         self.waypointList.deleteWaypoint.connect(self.removeWaypoint)
         self.waypointList.preDeleteWaypoint.connect(self.markWaypointForRemoval)
         self.waypointList.cancelDeleteWaypoint.connect(self.unmarkWaypointNoRemoval)
+        self.waypointList.afterWaypointEdited.connect(self.acceptWaypointEdit)
         self.addWidget(container)
         self.addWidget(self.waypointList)
 
