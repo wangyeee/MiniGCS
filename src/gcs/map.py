@@ -10,7 +10,7 @@ from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
-from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout
+from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox
 
 from waypoint import Waypoint, WaypointEditWindow, WaypointList
 
@@ -262,6 +262,8 @@ class MapWidget(QSplitter):
     defaultLatitude = 30.0
     editWPpopup = []
 
+    uploadWaypointsToUAVEvent = pyqtSignal(object)  # pass the waypoint list as parameter
+
     def __init__(self, mapQmlFile, parent = None):
         super().__init__(Qt.Vertical, parent)
         self.mapView = MapView(QUrl.fromLocalFile(mapQmlFile))
@@ -283,12 +285,14 @@ class MapWidget(QSplitter):
         self.waypointList.afterWaypointEdited.connect(self.acceptWaypointEdit)
 
         self.actionPanel = QWidget(self)  # Upload/Refresh buttons
-        self.loadWaypointsFromUAV = QPushButton('Load from UAV')
+        self.loadWaypoints = QPushButton('Load from UAV')
         self.uploadWaypoints = QPushButton('Upload to UAV')
         panelLayput = QHBoxLayout()
         panelLayput.setSpacing(0)
         panelLayput.addStretch(1)
-        panelLayput.addWidget(self.loadWaypointsFromUAV, 0, Qt.AlignRight)
+        self.loadWaypoints.clicked.connect(self.loadWaypointsFromUAV)
+        self.uploadWaypoints.clicked.connect(self.uploadWaypointsToUAV)
+        panelLayput.addWidget(self.loadWaypoints, 0, Qt.AlignRight)
         panelLayput.addWidget(self.uploadWaypoints, 0, Qt.AlignRight)
         self.actionPanel.setLayout(panelLayput)
 
@@ -301,6 +305,23 @@ class MapWidget(QSplitter):
 
         self.addWidget(container)
         self.addWidget(self.lowerPanel)
+
+    def uploadWaypointsToUAV(self):
+        cfm = QMessageBox.question(self.window(),
+                                   'Confirm upload',
+                                   'Are you sure to send waypoints to UAV? All onboard waypoints will be replaced.',
+                                   QMessageBox.Yes, QMessageBox.No)
+        if cfm == QMessageBox.Yes:
+            print('wp list:', self.mapView.wpModel.allWaypoints)
+            self.uploadWaypointsToUAVEvent.emit(self.mapView.wpModel.allWaypoints)
+
+    def loadWaypointsFromUAV(self):
+        cfm = QMessageBox.question(self.window(),
+                                   'Confirm reload',
+                                   'Are you sure to reload waypoints from UAV? All current waypoints will be replaced.',
+                                   QMessageBox.Yes, QMessageBox.No)
+        if cfm == QMessageBox.Yes:
+            print('load WP from UAV')
 
     def moveWaypointEvent(self, wpIdx, toWp: QGeoCoordinate):
         # print('[WP] move {} to ({}, {})'.format(wpIdx, toWp.latitude(), toWp.longitude()))
