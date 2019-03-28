@@ -3,7 +3,7 @@ from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
                              QLabel, QLineEdit, QMessageBox, QPushButton,
                              QTableWidget, QTableWidgetItem, QWidget)
-from PyQt5.QtGui import QValidator, QDoubleValidator
+from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator
 
 from pymavlink.dialects.v10 import common as mavlink
 
@@ -132,12 +132,27 @@ class WPDropDownPanel(QWidget):
 
 class FocusLineEdit(QLineEdit):
 
+    start = 0
+    end = 0
+    valueValidator = None
+
     focusLostSignal = pyqtSignal(object)
+
+    def setValueRange(self, start, end, decimals = 0):
+        self.start = start
+        self.end = end
+        if self.valueValidator == None:
+            self.valueValidator = QIntValidator(self.start, self.end) if decimals < 1 else QDoubleValidator(self.start, self.end, decimals)
+        else:
+            if decimals > 0:
+                self.valueValidator.setRange(self.start, self.end, decimals)
+            else:
+                self.valueValidator.setRange(self.start, self.end)
+        self.setValidator(self.valueValidator)
 
     def focusOutEvent(self, e):
         super().focusOutEvent(e)
         self.focusLostSignal.emit(self)
-
 
 class WPDegreePanel(QWidget):
 
@@ -167,18 +182,22 @@ class WPDegreePanel(QWidget):
 
         self.degreesField = FocusLineEdit('%3d' % (d if d > 0 else -d))
         self.degreesField.setFrame(False)
+        delta = 0 if ctype == self.LATITUDE_TYPE else 90
+        self.degreesField.setValueRange(-90 + delta, 90 + delta)
         self._setFieldWidth(self.degreesField, 3)
         self.degreesLabel = QLabel(u'\N{DEGREE SIGN}')
         self.degreesLabel.adjustSize()
 
         self.minutesField = FocusLineEdit('%2d' % m)
         self.minutesField.setFrame(False)
+        self.minutesField.setValueRange(0, 60)
         self._setFieldWidth(self.minutesField, 2)
         self.minutesLabel = QLabel(chr(0x2019))
         self.minutesLabel.adjustSize()
 
         self.secondsField = FocusLineEdit('%.4f' % s)
         self.secondsField.setFrame(False)
+        self.secondsField.setValueRange(0.0, 60.0, 4)
         self._setFieldWidth(self.secondsField, 7)
         self.secondsLabel = QLabel(chr(0x201D))
         self.secondsLabel.adjustSize()
