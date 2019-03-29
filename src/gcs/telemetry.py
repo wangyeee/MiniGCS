@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
                              QSizePolicy, QWidget)
 from serial.tools.list_ports import comports
+from waypoint import Waypoint
 
 BAUD_RATES = {
     110 : '110',
@@ -171,3 +172,7 @@ class MAVLinkConnection(QThread):
                     self.handlerLookup[msgType].emit(msg)
         self.connection.close()
         # print('connection closed')
+
+    def navigateToWaypoint(self, wp: Waypoint):
+        print('Goto', wp)
+        # TODO sent MAV_CMD_NAV_WAYPOINT message to UAV

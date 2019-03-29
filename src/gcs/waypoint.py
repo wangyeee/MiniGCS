@@ -451,7 +451,13 @@ class WaypointList(QTableWidget):
 
     def requestReturnHome(self):
         print('RTL started: {0}, {1} at {2}'.format(self.homeLocation.latitude, self.homeLocation.longitude, self.homeLocation.altitude))
-        self.requestReturnToHome.emit(self.homeLocation)
+        # TODO set status in GCS
+        cfm = QMessageBox.question(self.window(),
+                                   'Confirm RTH',
+                                   'Start return to home ({}, {})?'.format(self.homeLocation.latitude, self.homeLocation.longitude),
+                                   QMessageBox.Yes, QMessageBox.No)
+        if cfm == QMessageBox.Yes:
+            self.requestReturnToHome.emit(self.homeLocation)
 
 class WaypointEditWindow(QWidget):
 

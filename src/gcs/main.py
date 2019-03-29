@@ -52,6 +52,7 @@ class MiniGCS(QMainWindow):
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn)
+        self.m.waypointList.requestReturnToHome.connect(self.mav.navigateToWaypoint)
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
         self.mav.systemStatusHandler.connect(self.droneStatusHandler)
