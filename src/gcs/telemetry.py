@@ -134,6 +134,7 @@ class ConnectionEditWindow(QWidget):
         port = self.portsDropDown.currentData()
         baud = self.baudDropDown.currentData()
         # print('{} -- {}'.format(port, baud))
+        mavutil.set_dialect('autoquad')  # test
         connection = mavutil.mavlink_connection(port, int(baud))
         self.connectToMAVLink.emit(connection)
         self.close()
@@ -150,9 +151,11 @@ class MAVLinkConnection(QThread):
     heartBeatHandler = pyqtSignal(object)
     altitudeHandler = pyqtSignal(object)
     systemStatusHandler = pyqtSignal(object)
+    parameterValueHandler = pyqtSignal(object)
 
     handlerLookup = {}
     mavStatus = {MavStsKeys.AP_SYS_ID : 1}
+    isConnected = False
 
     def __init__(self, connection):
         super().__init__()
@@ -168,6 +171,8 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['SCALED_IMU'] = self.scaledIMUHandler
         self.handlerLookup['SCALED_PRESSURE'] = self.scaledPressureHandler
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
+        self.handlerLookup['PARAM_VALUE'] = self.parameterValueHandler
+        self.parameterValueHandler.connect(self.receiveOnboardParameter)
 
     def requestExit(self):
         # print('exit conn thread...')
@@ -177,11 +182,18 @@ class MAVLinkConnection(QThread):
         # print('waiting for heart beat...')
         self._establishConnection()
         while self.running:
-            msg = self.connection.recv_match(blocking=False)
-            if msg != None:
-                msgType = msg.get_type()
-                if msgType in self.handlerLookup:
-                    self.handlerLookup[msgType].emit(msg)
+            try:
+                msg = self.connection.recv_match(blocking=False)
+                if msg != None:
+                    msgType = msg.get_type()
+                    if msgType in self.handlerLookup:
+                        self.handlerLookup[msgType].emit(msg)
+                    else:
+                        print('UNKNOWN MSG:', msg)
+            except UnicodeDecodeError as e:
+                # print(e)
+                raise e
+
         self.connection.close()
         # print('connection closed')
 
@@ -193,6 +205,14 @@ class MAVLinkConnection(QThread):
         self.mavStatus[MavStsKeys.CUSTOM_AP_MODE] = hb.custom_mode
         self.mavStatus[MavStsKeys.AP_SYS_STS] = hb.system_status
         self.mavStatus[MavStsKeys.MAVLINK_VER] = hb.mavlink_version
+        # request all parameters
+        self.connection.param_fetch_all()
+
+    def receiveOnboardParameter(self, msg):
+        print(msg)
+        if msg.param_index + 1 == msg.param_count:
+            self.isConnected = True
+            print('connection established.')
 
     def navigateToWaypoint(self, wp: Waypoint):
         print('Goto', wp)
