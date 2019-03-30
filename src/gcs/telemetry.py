@@ -1,9 +1,11 @@
 from pymavlink import mavutil
+from enum import Enum
 from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
                              QSizePolicy, QWidget)
 from serial.tools.list_ports import comports
 from waypoint import Waypoint
+
 
 BAUD_RATES = {
     110 : '110',
@@ -49,6 +51,15 @@ STOP_BITS = {
     1 : '1',
     2 : '2'
 }
+
+class MavStsKeys(Enum):
+    AP_SYS_ID = 0
+    VEHICLE_TYPE = 1
+    AP_TYPE = 2
+    AP_MODE = 3
+    CUSTOM_AP_MODE = 4
+    AP_SYS_STS = 5
+    MAVLINK_VER = 6
 
 class ConnectionEditWindow(QWidget):
 
@@ -141,6 +152,7 @@ class MAVLinkConnection(QThread):
     systemStatusHandler = pyqtSignal(object)
 
     handlerLookup = {}
+    mavStatus = {MavStsKeys.AP_SYS_ID : 1}
 
     def __init__(self, connection):
         super().__init__()
@@ -163,7 +175,7 @@ class MAVLinkConnection(QThread):
 
     def run(self):
         # print('waiting for heart beat...')
-        self.connection.wait_heartbeat()
+        self._establishConnection()
         while self.running:
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
@@ -173,6 +185,22 @@ class MAVLinkConnection(QThread):
         self.connection.close()
         # print('connection closed')
 
+    def _establishConnection(self):
+        hb = self.connection.wait_heartbeat()
+        self.mavStatus[MavStsKeys.VEHICLE_TYPE] = hb.type
+        self.mavStatus[MavStsKeys.AP_TYPE] = hb.autopilot
+        self.mavStatus[MavStsKeys.AP_MODE] = hb.base_mode
+        self.mavStatus[MavStsKeys.CUSTOM_AP_MODE] = hb.custom_mode
+        self.mavStatus[MavStsKeys.AP_SYS_STS] = hb.system_status
+        self.mavStatus[MavStsKeys.MAVLINK_VER] = hb.mavlink_version
+
     def navigateToWaypoint(self, wp: Waypoint):
         print('Goto', wp)
         # TODO sent MAV_CMD_NAV_WAYPOINT message to UAV
+        # mavlink.mission_item_send(self.target_system,
+        #                           self.target_component,
+        #                           0,
+        #                           self.get_default_frame(),
+        #                           mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+        #                           2, 0, 0, 0, 0, 0,
+        #                           wp.latitude, wp.longitude, wp.altitude)
