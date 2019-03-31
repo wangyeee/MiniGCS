@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
                              QSizePolicy, QWidget)
 from serial.tools.list_ports import comports
 from waypoint import Waypoint
-
+from parameters import ParameterPanel
 
 BAUD_RATES = {
     110 : '110',
@@ -156,6 +156,7 @@ class MAVLinkConnection(QThread):
     handlerLookup = {}
     mavStatus = {MavStsKeys.AP_SYS_ID : 1}
     isConnected = False
+    paramList = []
 
     def __init__(self, connection):
         super().__init__()
@@ -210,9 +211,11 @@ class MAVLinkConnection(QThread):
 
     def receiveOnboardParameter(self, msg):
         print(msg)
+        self.paramList.append(msg)
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
             print('connection established.')
+            self.paramPanel = ParameterPanel(self.paramList)
 
     def navigateToWaypoint(self, wp: Waypoint):
         print('Goto', wp)
