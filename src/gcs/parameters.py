@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QTableWidget, QVBoxLayout, QHeaderView, QTableWidgetItem, QHBoxLayout, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QTableWidget, QVBoxLayout, QHeaderView, QTableWidgetItem, QHBoxLayout, QPushButton, QMessageBox, QFileDialog
 from pymavlink.dialects.v10 import common as mavlink
 
 PARAM_VALUE_TYPE_NAMES = {
@@ -124,6 +124,7 @@ class ParameterPanel(QWidget):
         pLayout = QHBoxLayout()
         self.saveToFileButton = QPushButton('Save to file')
         pLayout.addWidget(self.saveToFileButton)
+        self.saveToFileButton.clicked.connect(self.saveToFile)
         self.uploadButton = QPushButton('Upload to UAV >')
         pLayout.addWidget(self.uploadButton)
         self.uploadButton.clicked.connect(self.uploadToUAV)
@@ -151,3 +152,12 @@ class ParameterPanel(QWidget):
                 newVals[p[0]] = p[1]
             self.uploadNewParametersSignal.emit(newVals)
             self.close()
+
+    def saveToFile(self):
+        fileName = QFileDialog.getSaveFileName(self, 'Save Parameters', 'config.txt')
+        self.paramList.collectTableBody()
+        txt = open(fileName[0], 'w')
+        for param, value in self.paramList.allParams.items():
+            txt.write('{} = {}\n'.format(param, value))
+        txt.close()
+        self.close()
