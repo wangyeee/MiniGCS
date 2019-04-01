@@ -95,6 +95,7 @@ class SystemStatusPanel(QWidget):
         else:
             self.disconnectFromMAVLink.emit()
             self.connectLabelShown = True
+            self.editParameterButton.setEnabled(False)
             self.connectButton.setText('Connect')
 
     def toggleGPSButtonLabel(self):
