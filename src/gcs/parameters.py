@@ -4,6 +4,20 @@
 #                              QTableWidget, QTableWidgetItem, QWidget)
 
 from PyQt5.QtWidgets import QWidget, QTableWidget, QVBoxLayout, QHeaderView, QTableWidgetItem
+from pymavlink.dialects.v10 import common as mavlink
+
+PARAM_VALUE_TYPE_NAMES = {
+    mavlink.MAV_PARAM_TYPE_UINT8 : '8-bit unsigned integer',
+    mavlink.MAV_PARAM_TYPE_INT8 : '8-bit signed integer',
+    mavlink.MAV_PARAM_TYPE_UINT16 : '16-bit unsigned integer',
+    mavlink.MAV_PARAM_TYPE_INT16 : '16-bit signed integer',
+    mavlink.MAV_PARAM_TYPE_UINT32 : '32-bit unsigned integer',
+    mavlink.MAV_PARAM_TYPE_INT32 : '32-bit signed integer',
+    mavlink.MAV_PARAM_TYPE_UINT64 : '64-bit unsigned integer',
+    mavlink.MAV_PARAM_TYPE_INT64 : '64-bit signed integer',
+    mavlink.MAV_PARAM_TYPE_REAL32 : '32-bit floating-point',
+    mavlink.MAV_PARAM_TYPE_REAL64 : '64-bit floating-point'
+}
 
 class ParameterList(QTableWidget):
 
@@ -23,22 +37,25 @@ class ParameterList(QTableWidget):
         hdr = ['Name', 'Value', 'Type']
         self.setColumnCount(len(hdr))
         self.setHorizontalHeaderLabels(hdr)
-        self.resizeRowsToContents()
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def createTableBody(self):
         rowNumber = 0
         self.setRowCount(len(self.paramList))
         for param in self.paramList:
-            # print(param)
             name = QTableWidgetItem(param.param_id)
             value = QTableWidgetItem(str(param.param_value))
-            ptype = QTableWidgetItem(str(param.param_type))
-            print('create row#{}: {} = {} ({})'.format(rowNumber, name.text(), value.text(), ptype.text()))
+            pstr = None
+            if param.param_type in PARAM_VALUE_TYPE_NAMES:
+                pstr = PARAM_VALUE_TYPE_NAMES[param.param_type]
+            else:
+                pstr = 'UNKNOWN TYPE: {}'.format(param.param_type)
+            ptype = QTableWidgetItem(pstr)
             self.setItem(rowNumber, 0, name)
             self.setItem(rowNumber, 1, value)
             self.setItem(rowNumber, 2, ptype)
             rowNumber += 1
+        self.resizeRowsToContents()
 
 class ParameterPanel(QWidget):
 
