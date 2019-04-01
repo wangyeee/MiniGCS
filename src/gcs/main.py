@@ -56,6 +56,8 @@ class MiniGCS(QMainWindow):
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
         self.mav.systemStatusHandler.connect(self.droneStatusHandler)
+        self.sts.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
+        self.mav.connectionEstablishedSignal.connect(lambda: self.sts.editParameterButton.setEnabled(True))
         self.mav.start()
 
     def droneStatusHandler(self, msg):

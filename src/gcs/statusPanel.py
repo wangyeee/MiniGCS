@@ -55,6 +55,10 @@ class SystemStatusPanel(QWidget):
         l.addWidget(self.radioBar, row, 1, 1, 2, Qt.AlignLeft)
         row += 1
 
+        self.editParameterButton = QPushButton('Edit Parameters')
+        self.editParameterButton.setEnabled(False)
+        l.addWidget(self.editParameterButton, row, 0, 1, 1, Qt.AlignLeft)
+
         self.connectButton = QPushButton('Connect')
         self.connectLabelShown = True
         self.connectButton.clicked.connect(self.toggleButtonLabel)

@@ -152,11 +152,15 @@ class MAVLinkConnection(QThread):
     altitudeHandler = pyqtSignal(object)
     systemStatusHandler = pyqtSignal(object)
     parameterValueHandler = pyqtSignal(object)
+    statusTextHandler = pyqtSignal(object)
+
+    connectionEstablishedSignal = pyqtSignal()
 
     handlerLookup = {}
     mavStatus = {MavStsKeys.AP_SYS_ID : 1}
     isConnected = False
     paramList = []
+    paramPanel = None
 
     def __init__(self, connection):
         super().__init__()
@@ -173,6 +177,7 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['SCALED_PRESSURE'] = self.scaledPressureHandler
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
         self.handlerLookup['PARAM_VALUE'] = self.parameterValueHandler
+        self.handlerLookup['STATUSTEXT'] = self.statusTextHandler
         self.parameterValueHandler.connect(self.receiveOnboardParameter)
 
     def requestExit(self):
@@ -210,12 +215,17 @@ class MAVLinkConnection(QThread):
         self.connection.param_fetch_all()
 
     def receiveOnboardParameter(self, msg):
-        print(msg)
+        # print(msg)
         self.paramList.append(msg)
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
             print('connection established.')
             self.paramPanel = ParameterPanel(self.paramList)
+            self.connectionEstablishedSignal.emit()
+
+    def showParameterEditWindow(self):
+        if self.paramPanel != None and self.isConnected:
+            self.paramPanel.show()
 
     def navigateToWaypoint(self, wp: Waypoint):
         print('Goto', wp)
