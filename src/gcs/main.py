@@ -36,15 +36,15 @@ class MiniGCS(QMainWindow):
         spLeft = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         spLeft.setHorizontalStretch(1)
         self.left.setSizePolicy(spLeft)
-        self.m = MapWidget(qmlFile)
+        self.map = MapWidget(qmlFile)
         spRight = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         spRight.setHorizontalStretch(2)
-        self.m.setSizePolicy(spRight)
+        self.map.setSizePolicy(spRight)
         mainLayout.addWidget(self.left)
-        mainLayout.addWidget(self.m)
+        mainLayout.addWidget(self.map)
         self.localGPSWindow = GPSConfigurationWindow()
         # TODO configurable behavior
-        self.localGPSWindow.connection.locationUpdate.connect(self.m.updateHomeLocationEvent)
+        self.localGPSWindow.connection.locationUpdate.connect(self.map.updateHomeLocationEvent)
         self.sts.connectToLocalGPS.connect(self.localGPSWindow.show)
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
         self.window.setLayout(mainLayout)
@@ -52,7 +52,8 @@ class MiniGCS(QMainWindow):
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn)
-        self.m.waypointList.requestReturnToHome.connect(self.mav.navigateToWaypoint)
+        self.map.waypointList.requestReturnToHome.connect(self.mav.navigateToWaypoint)
+        self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
         self.mav.systemStatusHandler.connect(self.droneStatusHandler)
@@ -66,7 +67,7 @@ class MiniGCS(QMainWindow):
 
     def droneLocationHandler(self, msg):
         scale = 1E7
-        self.m.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
+        self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
         self.sts.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
 

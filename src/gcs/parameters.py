@@ -1,6 +1,8 @@
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QWidget, QTableWidget, QVBoxLayout, QHeaderView, QTableWidgetItem, QHBoxLayout, QPushButton, QMessageBox, QFileDialog
 from pymavlink.dialects.v10 import common as mavlink
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (QFileDialog, QHBoxLayout, QHeaderView,
+                             QMessageBox, QPushButton, QTableWidget,
+                             QTableWidgetItem, QVBoxLayout, QWidget)
 
 PARAM_VALUE_TYPE_NAMES = {
     mavlink.MAV_PARAM_TYPE_UINT8 : '8-bit unsigned integer',

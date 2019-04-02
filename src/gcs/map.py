@@ -312,7 +312,6 @@ class MapWidget(QSplitter):
                                    'Are you sure to send waypoints to UAV? All onboard waypoints will be replaced.',
                                    QMessageBox.Yes, QMessageBox.No)
         if cfm == QMessageBox.Yes:
-            print('wp list:', self.mapView.wpModel.allWaypoints)
             self.uploadWaypointsToUAVEvent.emit(self.mapView.wpModel.allWaypoints)
 
     def loadWaypointsFromUAV(self):

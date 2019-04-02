@@ -1,6 +1,6 @@
 from pymavlink import mavutil
 from enum import Enum
-from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal
+from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal, QMutex, QTimer, QWaitCondition
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
                              QSizePolicy, QWidget)
 from serial.tools.list_ports import comports
@@ -153,6 +153,7 @@ class MAVLinkConnection(QThread):
     systemStatusHandler = pyqtSignal(object)
     parameterValueHandler = pyqtSignal(object)
     statusTextHandler = pyqtSignal(object)
+    missionRequestIntHandler = pyqtSignal(object)
 
     connectionEstablishedSignal = pyqtSignal()
 
@@ -161,6 +162,12 @@ class MAVLinkConnection(QThread):
     isConnected = False
     paramList = []
     paramPanel = None
+
+    txLock = QMutex()  # uplink lock
+    txResponseCond = QWaitCondition()
+    txResponseMsg = None  # MAVlink message
+    txTimeoutTimer = QTimer()
+    txTimeoutmsec = 2000  # 2 seconds
 
     def __init__(self, connection):
         super().__init__()
@@ -178,7 +185,11 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
         self.handlerLookup['PARAM_VALUE'] = self.parameterValueHandler
         self.handlerLookup['STATUSTEXT'] = self.statusTextHandler
+        self.handlerLookup['MISSION_REQUEST_INT'] = self.missionRequestIntHandler
         self.parameterValueHandler.connect(self.receiveOnboardParameter)
+        self.missionRequestIntHandler.connect(self.receiveMissionRequestInt)
+        self.txTimeoutTimer.timeout.connect(self._timerTimeout)
+        self.txTimeoutTimer.setSingleShot(True)
 
     def requestExit(self):
         # print('exit conn thread...')
@@ -188,17 +199,13 @@ class MAVLinkConnection(QThread):
         # print('waiting for heart beat...')
         self._establishConnection()
         while self.running:
-            try:
-                msg = self.connection.recv_match(blocking=False)
-                if msg != None:
-                    msgType = msg.get_type()
-                    if msgType in self.handlerLookup:
-                        self.handlerLookup[msgType].emit(msg)
-                    else:
-                        print('UNKNOWN MSG:', msg)
-            except UnicodeDecodeError as e:
-                # print(e)
-                raise e
+            msg = self.connection.recv_match(blocking=False)
+            if msg != None:
+                msgType = msg.get_type()
+                if msgType in self.handlerLookup:
+                    self.handlerLookup[msgType].emit(msg)
+                else:
+                    print('UNKNOWN MSG:', msg)
 
         self.connection.close()
         # print('connection closed')
@@ -223,9 +230,37 @@ class MAVLinkConnection(QThread):
             self.paramPanel = ParameterPanel(self.paramList)
             self.connectionEstablishedSignal.emit()
 
+    def receiveMissionRequestInt(self, msg):
+        print('missionRequestInt:', msg)
+        self.txResponseMsg = msg
+        self.txResponseCond.wakeAll()
+
     def showParameterEditWindow(self):
         if self.paramPanel != None and self.isConnected:
             self.paramPanel.show()
+
+    def uploadWaypoints(self, wpList):
+        self._sendMissionCount(len(wpList))
+        print('MISSION_REQUEST_INT received:', self.txResponseMsg)
+        while self.txResponseMsg.seq + 1 < len(wpList):
+            self._sendOneWaypoint(wpList[self.txResponseMsg.seq])
+
+    def _sendMissionCount(self, cnt):
+        print('{} waypoints to be sent'.format(cnt))
+        # self.txTimeoutTimer.timeout.disconnect()
+        self.txTimeoutTimer.start(self.txTimeoutmsec)
+        self.txLock.lock()
+        self.connection.waypoint_count_send(cnt)
+        print('wait for response...')
+        self.txResponseCond.wait(self.txLock)
+        print('Got response!')
+        self.txLock.unlock()
+
+    def _sendOneWaypoint(self, wp: Waypoint):
+        pass
+
+    def _timerTimeout(self):
+        print('Timeout')
 
     def navigateToWaypoint(self, wp: Waypoint):
         print('Goto', wp)
