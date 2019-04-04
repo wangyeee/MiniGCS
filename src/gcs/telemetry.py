@@ -1,4 +1,6 @@
 from pymavlink import mavutil
+from pymavlink.mavwp import MAVWPLoader
+from pymavlink.dialects.v10 import common as mavlink
 from enum import Enum
 from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal, QMutex, QTimer, QWaitCondition
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
@@ -151,13 +153,12 @@ class MAVLinkConnection(QThread):
     heartBeatHandler = pyqtSignal(object)
     altitudeHandler = pyqtSignal(object)
     systemStatusHandler = pyqtSignal(object)
-    parameterValueHandler = pyqtSignal(object)
     statusTextHandler = pyqtSignal(object)
-    missionRequestIntHandler = pyqtSignal(object)
 
     connectionEstablishedSignal = pyqtSignal()
 
     handlerLookup = {}
+    internalHandlerLookup = {}
     mavStatus = {MavStsKeys.AP_SYS_ID : 1}
     isConnected = False
     paramList = []
@@ -165,9 +166,11 @@ class MAVLinkConnection(QThread):
 
     txLock = QMutex()  # uplink lock
     txResponseCond = QWaitCondition()
-    txResponseMsg = None  # MAVlink message
     txTimeoutTimer = QTimer()
-    txTimeoutmsec = 2000  # 2 seconds
+    txTimeoutmsec = 200000000  # 2 seconds
+    finalWPSent = False
+
+    wpLoader = MAVWPLoader()
 
     def __init__(self, connection):
         super().__init__()
@@ -183,11 +186,12 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['SCALED_IMU'] = self.scaledIMUHandler
         self.handlerLookup['SCALED_PRESSURE'] = self.scaledPressureHandler
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
-        self.handlerLookup['PARAM_VALUE'] = self.parameterValueHandler
         self.handlerLookup['STATUSTEXT'] = self.statusTextHandler
-        self.handlerLookup['MISSION_REQUEST_INT'] = self.missionRequestIntHandler
-        self.parameterValueHandler.connect(self.receiveOnboardParameter)
-        self.missionRequestIntHandler.connect(self.receiveMissionRequestInt)
+
+        self.internalHandlerLookup['PARAM_VALUE'] = self.receiveOnboardParameter
+        self.internalHandlerLookup['MISSION_REQUEST'] = self.receiveMissionRequest
+        self.internalHandlerLookup['MISSION_ACK'] = self.receiveMissionAcknowledge
+
         self.txTimeoutTimer.timeout.connect(self._timerTimeout)
         self.txTimeoutTimer.setSingleShot(True)
 
@@ -202,13 +206,19 @@ class MAVLinkConnection(QThread):
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
                 msgType = msg.get_type()
-                if msgType in self.handlerLookup:
-                    self.handlerLookup[msgType].emit(msg)
+                if msgType in self.internalHandlerLookup:
+                    self.internalHandlerLookup[msgType](msg)
                 else:
-                    print('UNKNOWN MSG:', msg)
-
+                    self._msgDispatcher(msg)
         self.connection.close()
         # print('connection closed')
+
+    def _msgDispatcher(self, msg):
+        msgType = msg.get_type()
+        if msgType in self.handlerLookup:
+            self.handlerLookup[msgType].emit(msg)
+        else:
+            print('UNKNOWN MSG:', msg)
 
     def _establishConnection(self):
         hb = self.connection.wait_heartbeat()
@@ -226,13 +236,15 @@ class MAVLinkConnection(QThread):
         self.paramList.append(msg)
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
-            print('connection established.')
             self.paramPanel = ParameterPanel(self.paramList)
             self.connectionEstablishedSignal.emit()
 
-    def receiveMissionRequestInt(self, msg):
-        print('missionRequestInt:', msg)
-        self.txResponseMsg = msg
+    def receiveMissionRequest(self, msg):
+        print('missionRequest:', msg)
+        self._sendOneWaypoint(self.wpLoader.wp(msg.seq))
+
+    def receiveMissionAcknowledge(self, msg):
+        print('missionRequestAck:', msg)
         self.txResponseCond.wakeAll()
 
     def showParameterEditWindow(self):
@@ -240,27 +252,38 @@ class MAVLinkConnection(QThread):
             self.paramPanel.show()
 
     def uploadWaypoints(self, wpList):
+        seq = 0
+        for wp in wpList:
+            item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system,
+                                                                self.connection.target_component,
+                                                                seq, mavlink.MAV_FRAME_GLOBAL,
+                                                                mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+                                                                0, 1, 0, 0, 0, 0,
+                                                                wp.latitude, wp.longitude, wp.altitude)
+            seq += 1
+            self.wpLoader.add(item)
+        print('all wp queued!')
         self._sendMissionCount(len(wpList))
-        print('MISSION_REQUEST_INT received:', self.txResponseMsg)
-        while self.txResponseMsg.seq + 1 < len(wpList):
-            self._sendOneWaypoint(wpList[self.txResponseMsg.seq])
 
     def _sendMissionCount(self, cnt):
         print('{} waypoints to be sent'.format(cnt))
-        # self.txTimeoutTimer.timeout.disconnect()
-        self.txTimeoutTimer.start(self.txTimeoutmsec)
+        # self.txTimeoutTimer.start(self.txTimeoutmsec)
         self.txLock.lock()
+        # self.connection.waypoint_clear_all_send()
         self.connection.waypoint_count_send(cnt)
-        print('wait for response...')
+        print('[CNT] wait for response...')
         self.txResponseCond.wait(self.txLock)
-        print('Got response!')
         self.txLock.unlock()
+        print('[CNT] Got response!')
 
-    def _sendOneWaypoint(self, wp: Waypoint):
-        pass
+    def _sendOneWaypoint(self, wp):
+        print('sending wp: {}'.format(wp))
+        # self.txTimeoutTimer.start(self.txTimeoutmsec)
+        self.connection.mav.send(wp)
 
     def _timerTimeout(self):
         print('Timeout')
+        self.txResponseCond.wakeAll()
 
     def navigateToWaypoint(self, wp: Waypoint):
         print('Goto', wp)
