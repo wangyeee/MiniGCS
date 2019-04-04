@@ -31,6 +31,8 @@ class MapItem(QQuickItem):
 
     waypointRemoved = pyqtSignal(int, arguments=['wpNumber'])  # signal sent to qml to remove wp in polyline, wpNumber starts from 1 (0 is resvered for home)
     waypointChanged = pyqtSignal(int, float, float, arguments=['wpNumber', 'latitude', 'longitude'])  # signal sent to qml to update wp in polyline
+    waypointCreated = pyqtSignal(float, float, arguments=['lat', 'lng'])
+    allPolylineRemoved = pyqtSignal()  # signal to remove existing polyline
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -158,6 +160,11 @@ class WaypointsModel(QAbstractListModel):
             txtStart = self.index(tgtWp)
             txtEnd = self.index(len(self.allWaypoints) - 1)
             self.dataChanged.emit(txtStart, txtEnd)
+
+    def removeAllWaypoint(self):
+        self.beginRemoveRows(QModelIndex(), 0, self.rowCount())
+        self.allWaypoints.clear()
+        self.endRemoveRows()
 
     def _debug_dump_wp_list(self, star = -1):
         for wp in self.allWaypoints:
@@ -363,9 +370,12 @@ class MapWidget(QSplitter):
         self.mapView.wpModel.unmarkWaypoint(wp)
 
     def setAllWaypoints(self, wpList):
-        print('[MAP] Set all WP:')
-        for w in wpList:
-            print(str(w))
+        self.mapView.map.allPolylineRemoved.emit()
+        self.waypointList.removeAllRows()
+        self.mapView.wpModel.removeAllWaypoint()
+        for wp in wpList:
+            self.mapView.wpModel.createWaypoint(wp.latitude, wp.longitude)
+            self.mapView.map.waypointCreated.emit(wp.latitude, wp.longitude)
 
 #test only
 if __name__ == "__main__":

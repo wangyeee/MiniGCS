@@ -195,4 +195,14 @@ MapItem {
     onWaypointChanged: {
         wpLine.replaceCoordinate(wpNumber + 1, QtPositioning.coordinate(latitude, longitude))
     }
+
+    onWaypointCreated: {
+        wpLine.addCoordinate(QtPositioning.coordinate(lat, lng))
+    }
+
+    onAllPolylineRemoved: {
+        for (var i = wpLine.path.length - 1; i > 0; i--) {
+            wpLine.removeCoordinate(i)
+        }
+    }
 }

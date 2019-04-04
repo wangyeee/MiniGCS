@@ -459,6 +459,10 @@ class WaypointList(QTableWidget):
         if cfm == QMessageBox.Yes:
             self.requestReturnToHome.emit(self.homeLocation)
 
+    def removeAllRows(self):
+        while self.rowCount() > 1:  # the first row is home, which will be kept
+            self.removeRow(1)
+
 class WaypointEditWindow(QWidget):
 
     waypoint = None
