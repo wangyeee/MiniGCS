@@ -362,6 +362,11 @@ class MapWidget(QSplitter):
     def unmarkWaypointNoRemoval(self, wp: Waypoint):
         self.mapView.wpModel.unmarkWaypoint(wp)
 
+    def setAllWaypoints(self, wpList):
+        print('[MAP] Set all WP:')
+        for w in wpList:
+            print(str(w))
+
 #test only
 if __name__ == "__main__":
     app = QApplication(sys.argv)

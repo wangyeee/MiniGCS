@@ -156,6 +156,7 @@ class MAVLinkConnection(QThread):
     statusTextHandler = pyqtSignal(object)
 
     connectionEstablishedSignal = pyqtSignal()
+    onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
 
     handlerLookup = {}
     internalHandlerLookup = {}
@@ -171,6 +172,9 @@ class MAVLinkConnection(QThread):
     finalWPSent = False
 
     wpLoader = MAVWPLoader()
+    onboardWPCount = 0
+    numberOfonboardWP = 0
+    onboardWP = []
 
     def __init__(self, connection):
         super().__init__()
@@ -191,6 +195,8 @@ class MAVLinkConnection(QThread):
         self.internalHandlerLookup['PARAM_VALUE'] = self.receiveOnboardParameter
         self.internalHandlerLookup['MISSION_REQUEST'] = self.receiveMissionRequest
         self.internalHandlerLookup['MISSION_ACK'] = self.receiveMissionAcknowledge
+        self.internalHandlerLookup['MISSION_COUNT'] = self.receiveMissionItemCount
+        self.internalHandlerLookup['MISSION_ITEM'] = self.receiveMissionItem
 
         self.txTimeoutTimer.timeout.connect(self._timerTimeout)
         self.txTimeoutTimer.setSingleShot(True)
@@ -237,10 +243,27 @@ class MAVLinkConnection(QThread):
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
             self.paramPanel = ParameterPanel(self.paramList)
+            self.downloadWaypoints()  # request to read all onboard waypoints
             self.connectionEstablishedSignal.emit()
 
+    def receiveMissionItem(self, msg):
+        self.numberOfonboardWP += 1
+        wp = Waypoint(msg.seq, msg.x, msg.y, msg.z)
+        wp.waypointType = msg.command
+        self.onboardWP.append(wp)
+        if self.numberOfonboardWP < self.onboardWPCount:
+            self.connection.waypoint_request_send(self.numberOfonboardWP)  # read next one
+        else:
+            print('Total {} waypoint(s) onboard'.format(len(self.onboardWP)))
+            self.onboardWaypointsReceivedSignal.emit(self.onboardWP)  # all done, send signal
+
+    def receiveMissionItemCount(self, msg):
+        self.onboardWPCount = msg.count
+        if self.onboardWPCount > 0:
+            self.connection.waypoint_request_send(0)  # start reading onboard waypoints
+
     def receiveMissionRequest(self, msg):
-        print('missionRequest:', msg)
+        # print('missionRequest:', msg)
         self._sendOneWaypoint(self.wpLoader.wp(msg.seq))
 
     def receiveMissionAcknowledge(self, msg):
@@ -250,6 +273,9 @@ class MAVLinkConnection(QThread):
     def showParameterEditWindow(self):
         if self.paramPanel != None and self.isConnected:
             self.paramPanel.show()
+
+    def downloadWaypoints(self):
+        self.connection.waypoint_request_list_send()
 
     def uploadWaypoints(self, wpList):
         seq = 0
