@@ -471,6 +471,7 @@ class WaypointEditWindow(QWidget):
 
     def __init__(self, wp: Waypoint, parent = None):
         super().__init__(parent)
+        self.waypoint = wp
         layout = QFormLayout()
         self.latField = WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE) # QLineEdit(str(wp.latitude))
         self.lngField = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE) # QLineEdit(str(wp.longitude))
@@ -480,6 +481,7 @@ class WaypointEditWindow(QWidget):
         layout.addRow(QLabel('Longitude'), self.lngField)
         layout.addRow(QLabel('Altitude'), self.altField)
         layout.addRow(QLabel('Type'), self.typeSel)
+        self.addAdditionalFields(layout)
         self.actPanel = QWidget(self)
         self.okBtn = QPushButton('OK')
         self.cnlBtn = QPushButton('Cancel')
@@ -493,10 +495,12 @@ class WaypointEditWindow(QWidget):
         # self.latField.returnPressed.connect(self.okBtn.click)
         # self.lngField.returnPressed.connect(self.okBtn.click)
         self.altField.valueChanged.connect(self.okBtn.click)
-        self.waypoint = wp
         self.setWindowTitle('Edit Waypoint#{0}'.format(wp.rowNumber))
         self.setLayout(layout)
         self.setGeometry(QRect(100, 100, 400, 200))
+
+    def addAdditionalFields(self, layout):
+        pass
 
     def updateWaypointEvent(self):
         # TODO data validation
@@ -512,3 +516,22 @@ class WaypointEditWindow(QWidget):
         key = event.key()
         if key == Qt.Key_Escape:
             self.close()
+
+
+class LoiterWaypointEditWindow(WaypointEditWindow):
+
+    defaultLoiterRadius = 5.0
+
+    def __init__(self, wp: Waypoint, parent = None):
+        super().__init__(wp, parent)
+        self.setWindowTitle('Edit Loiter Waypoint#{0}'.format(wp.rowNumber))
+
+    def addAdditionalFields(self, layout):
+        self.loiterRadiusField = WPDecimalPanel(self.defaultLoiterRadius, 'M')
+        layout.addRow(QLabel('Radius'), self.loiterRadiusField)
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TIME:
+            self.loiterTimeField = WPDecimalPanel(0, 'S')
+            layout.addRow(QLabel('Time'), self.loiterTimeField)
+        elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TURNS:
+            self.loiterTurnsField = WPDecimalPanel(1, 'turn')
+            layout.addRow(QLabel('Turns'), self.loiterTurnsField)
