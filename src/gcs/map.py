@@ -12,7 +12,7 @@ from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
 from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox
 
-from waypoint import Waypoint, WaypointEditWindow, WaypointList
+from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList
 
 LATITUDE = -36.88
 LONGITUDE = 174.75
@@ -341,8 +341,8 @@ class MapWidget(QSplitter):
         self.waypointList.updateHomeLocation(home)
 
     def showEditWaypointWindow(self, wp: Waypoint):
-        print('edit wp#{0}'.format(wp.rowNumber))
-        popup = WaypointEditWindow(wp)
+        # print('edit wp#{0}'.format(wp.rowNumber))
+        popup = WaypointEditWindowFactory.createWaypointEditWindow(wp)
         self.editWPpopup.append(popup)
         popup.updateWaypoint.connect(self.acceptWaypointEdit)
         popup.show()

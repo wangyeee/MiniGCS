@@ -463,6 +463,14 @@ class WaypointList(QTableWidget):
         while self.rowCount() > 1:  # the first row is home, which will be kept
             self.removeRow(1)
 
+class WaypointEditWindowFactory:
+
+    @staticmethod
+    def createWaypointEditWindow(wp: Waypoint):
+        if wp.waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS, mavlink.MAV_CMD_NAV_LOITER_UNLIM):
+            return LoiterWaypointEditWindow(wp)
+        return WaypointEditWindow(wp)
+
 class WaypointEditWindow(QWidget):
 
     waypoint = None
