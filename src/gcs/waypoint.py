@@ -467,9 +467,16 @@ class WaypointEditWindowFactory:
 
     @staticmethod
     def createWaypointEditWindow(wp: Waypoint):
-        if wp.waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS, mavlink.MAV_CMD_NAV_LOITER_UNLIM):
+        if wp.waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS, mavlink.MAV_CMD_NAV_LOITER_UNLIM, mavlink.MAV_CMD_NAV_LOITER_TO_ALT):
             return LoiterWaypointEditWindow(wp)
         return WaypointEditWindow(wp)
+
+    def createYesNoDropdown(options = {0 : 'No', 1 : 'Yes'}, parent = None):
+        dropDown = QComboBox(parent)
+        for data, label in options.items():
+            dropDown.addItem(label, QVariant(data))
+        return dropDown
+
 
 class WaypointEditWindow(QWidget):
 
@@ -543,3 +550,8 @@ class LoiterWaypointEditWindow(WaypointEditWindow):
         elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TURNS:
             self.loiterTurnsField = WPDecimalPanel(1, 'turn')
             layout.addRow(QLabel('Turns'), self.loiterTurnsField)
+        elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TO_ALT:
+            self.headingRequiredDropDown = WaypointEditWindowFactory.createYesNoDropdown(parent=self)
+            layout.addRow(QLabel('Heading Required'), self.headingRequiredDropDown)
+            self.xtrackLocationDropDown = WaypointEditWindowFactory.createYesNoDropdown({0 : 'Center', 1 : 'Exit'}, self)
+            layout.addRow(QLabel('Xtrack Location'), self.xtrackLocationDropDown)
