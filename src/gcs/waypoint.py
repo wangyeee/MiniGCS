@@ -264,9 +264,10 @@ class WPDegreePanel(QWidget):
         w = length * fm.width('0') + m.left() + m.right() + c.left() + c.right()
         field.setMaximumWidth(w + 8)
 
-class WPDecimalPanel(QWidget):
+class WPNumberPanel(QWidget):
 
     value = 0.0
+    isInteger = False
 
     valueChanged = pyqtSignal(object)
 
@@ -289,14 +290,17 @@ class WPDecimalPanel(QWidget):
         self.setLayout(l)
 
     def valueChangedEvent(self):
-        self.value = float(self.editField.text())
+        if self.isInteger:
+            self.value = int(self.editField.text())
+        else:
+            self.value = float(self.editField.text())
         # print('new value:', self.value)
         self.valueChanged.emit(self)
 
     def getValue(self):
-        return float(self.editField.text())
+        return int(self.editField.text()) if self.isInteger else float(self.editField.text())
 
-    def setValue(self, val: float):
+    def setValue(self, val):
         self.value = val
         self.editField.setText(str(self.value))
 
@@ -343,11 +347,11 @@ class WaypointList(QTableWidget):
         wpIdx = newWp.rowNumber + 1
         widget = self.cellWidget(wpIdx, 0)  # Type (WPDropDownPanel)
         widget.setSelection(QVariant(newWp.waypointType))
-        widget = self.cellWidget(wpIdx, 1)  # Latitude(WPDecimalPanel)
+        widget = self.cellWidget(wpIdx, 1)  # Latitude(WPNumberPanel)
         widget.setValue(newWp.latitude)
-        widget = self.cellWidget(wpIdx, 2)  # Longitude(WPDecimalPanel)
+        widget = self.cellWidget(wpIdx, 2)  # Longitude(WPNumberPanel)
         widget.setValue(newWp.longitude)
-        widget = self.cellWidget(wpIdx, 3)  # Altitude(WPDecimalPanel)
+        widget = self.cellWidget(wpIdx, 3)  # Altitude(WPNumberPanel)
         widget.setValue(newWp.altitude)
         widget = self.cellWidget(wpIdx, 4)  # WaypointEditPanel
         widget.editBtn.clicked.disconnect()
@@ -378,7 +382,7 @@ class WaypointList(QTableWidget):
         lngpanel = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE, wp)
         lngpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
         data.append(lngpanel)
-        data.append(WPDecimalPanel(wp.altitude, 'M'))
+        data.append(WPNumberPanel(wp.altitude, 'M'))
         pnl = WaypointEditPanel(wp, 'Edit', 'Remove', self.wpButtonEvent, self.wpButtonEvent)
         data.append(pnl)
         self.setRowCount(len(self.wpList) + 1)
@@ -396,11 +400,11 @@ class WaypointList(QTableWidget):
             wpIdx = wp.rowNumber + 1
             widget = self.cellWidget(wpIdx, 0)  # Type (WPDropDownPanel)
             wp.waypointType = widget.getSelection()
-            widget = self.cellWidget(wpIdx, 1)  # Latitude(WPDecimalPanel)
+            widget = self.cellWidget(wpIdx, 1)  # Latitude(WPNumberPanel)
             wp.latitude = widget.getValue()
-            widget = self.cellWidget(wpIdx, 2)  # Longitude(WPDecimalPanel)
+            widget = self.cellWidget(wpIdx, 2)  # Longitude(WPNumberPanel)
             wp.longitude = widget.getValue()
-            widget = self.cellWidget(wpIdx, 3)  # Altitude(WPDecimalPanel)
+            widget = self.cellWidget(wpIdx, 3)  # Altitude(WPNumberPanel)
             wp.altitude = widget.getValue()
             self.editWaypoint.emit(wp)
         elif act == 1: # delete
@@ -422,11 +426,11 @@ class WaypointList(QTableWidget):
 
     def setHomeLocation(self, h: Waypoint):
         wpIdx = 0
-        widget = self.cellWidget(wpIdx, 1)  # Latitude(WPDecimalPanel)
+        widget = self.cellWidget(wpIdx, 1)  # Latitude(WPNumberPanel)
         widget.setValue(h.latitude)
-        widget = self.cellWidget(wpIdx, 2)  # Longitude(WPDecimalPanel)
+        widget = self.cellWidget(wpIdx, 2)  # Longitude(WPNumberPanel)
         widget.setValue(h.longitude)
-        widget = self.cellWidget(wpIdx, 3)  # Altitude(WPDecimalPanel)
+        widget = self.cellWidget(wpIdx, 3)  # Altitude(WPNumberPanel)
         widget.setValue(h.altitude)
 
     def createHomeWaypointRow(self):
@@ -438,7 +442,7 @@ class WaypointList(QTableWidget):
         data.append(s)
         data.append(WPDegreePanel(self.homeLocation.latitude, WPDegreePanel.LATITUDE_TYPE))
         data.append(WPDegreePanel(self.homeLocation.longitude, WPDegreePanel.LONGITUDE_TYPE))
-        data.append(WPDecimalPanel(self.homeLocation.altitude, 'M'))
+        data.append(WPNumberPanel(self.homeLocation.altitude, 'M'))
         pnl = WaypointEditPanel(self.homeLocation, 'Edit', 'Return')
         pnl.editBtn.clicked.connect(self.editHomeLocation)
         pnl.delBtn.clicked.connect(self.requestReturnHome)
@@ -490,7 +494,7 @@ class WaypointEditWindow(QWidget):
         layout = QFormLayout()
         self.latField = WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE) # QLineEdit(str(wp.latitude))
         self.lngField = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE) # QLineEdit(str(wp.longitude))
-        self.altField = WPDecimalPanel(wp.altitude, 'M')
+        self.altField = WPNumberPanel(wp.altitude, 'M')
         self.typeSel = WPDropDownPanel(WP_TYPE_NAMES, wp.waypointType)
         layout.addRow(QLabel('Latitude'), self.latField)
         layout.addRow(QLabel('Longitude'), self.lngField)
@@ -515,7 +519,7 @@ class WaypointEditWindow(QWidget):
         self.setGeometry(QRect(100, 100, 400, 200))
 
     def addAdditionalFields(self, layout):
-        pass
+        self.holdTimeField = WPNumberPanel(0, 'S')
 
     def updateWaypointEvent(self):
         # TODO data validation
@@ -542,13 +546,13 @@ class LoiterWaypointEditWindow(WaypointEditWindow):
         self.setWindowTitle('Edit Loiter Waypoint#{0}'.format(wp.rowNumber))
 
     def addAdditionalFields(self, layout):
-        self.loiterRadiusField = WPDecimalPanel(self.defaultLoiterRadius, 'M')
+        self.loiterRadiusField = WPNumberPanel(self.defaultLoiterRadius, 'M')
         layout.addRow(QLabel('Radius'), self.loiterRadiusField)
         if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TIME:
-            self.loiterTimeField = WPDecimalPanel(0, 'S')
+            self.loiterTimeField = WPNumberPanel(0, 'S')
             layout.addRow(QLabel('Time'), self.loiterTimeField)
         elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TURNS:
-            self.loiterTurnsField = WPDecimalPanel(1, 'turn')
+            self.loiterTurnsField = WPNumberPanel(1, 'turn')
             layout.addRow(QLabel('Turns'), self.loiterTurnsField)
         elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TO_ALT:
             self.headingRequiredDropDown = WaypointEditWindowFactory.createYesNoDropdown(parent=self)
