@@ -31,7 +31,7 @@ class Waypoint(QObject):
     altitude = 0.0
     # default to "navigate to waypoint (16)"
     waypointType = mavlink.MAV_CMD_NAV_WAYPOINT
-    mavlinkParameters = {}  # used to store different parameters based of waypoint type
+    mavlinkParameters = None  # used to store different parameters based of waypoint type
 
     def __init__(self, rowNumber, latitude, longitude, altitude, parent = None):
         super().__init__(parent)
@@ -39,6 +39,7 @@ class Waypoint(QObject):
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
+        self.mavlinkParameters = {}
 
     def __str__(self):
         return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5}) -- {6}'.format(self.rowNumber,
@@ -132,6 +133,9 @@ class WPDropDownPanel(QWidget):
 
     def getSelection(self):
         return self.dropDown.currentData()
+
+    def getSelectionIndex(self):
+        return self.dropDown.currentIndex()
 
 class FocusLineEdit(QLineEdit):
 
@@ -564,6 +568,16 @@ class WaypointEditWindow(QWidget):
     def getFieldValue(self, param):
         if param in self.waypoint.mavlinkParameters:
             return self.waypoint.mavlinkParameters[param]
+        return self.getDefaultParameterValue(param)
+
+    def getDefaultParameterValue(self, param):
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_WAYPOINT:
+            if param == MAVWaypointParameter.PARAM1:
+                return 0
+            if param in (MAVWaypointParameter.PARAM2, MAVWaypointParameter.PARAM3):
+                return 2.0
+            if param == MAVWaypointParameter.PARAM4:
+                return 0.0
         return 0
 
     def updateWaypointEvent(self):
@@ -596,6 +610,11 @@ class ContinueAndChangeAltitudeWaypointEditWindow(WaypointEditWindow):
         self.desiredAltitudeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), 'm')  # Param7
         layout.addRow(QLabel('Altitude'), self.desiredAltitudeField)
 
+    def updateAdditionalFieldValues(self):
+        pass
+
+    # def getDefaultParameterValue(self, param):
+
 class FollowWaypointEditWindow(WaypointEditWindow):
     def __init__(self, wp: Waypoint, parent = None):
         super().__init__(wp, parent)
@@ -611,6 +630,11 @@ class FollowWaypointEditWindow(WaypointEditWindow):
         layout.addRow(QLabel('Radius'), self.radiusField)
         self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), u'\N{DEGREE SIGN}')  # Param4
         layout.addRow(QLabel('Yaw'), self.yawAngleField)
+
+    def updateAdditionalFieldValues(self):
+        pass
+
+    # def getDefaultParameterValue(self, param):
 
 class TakeoffWaypointEditWindow(WaypointEditWindow):
 
@@ -632,6 +656,11 @@ class TakeoffWaypointEditWindow(WaypointEditWindow):
             layout.addRow(QLabel('Y Position'), self.yPositionField)
             self.zPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), 'm') # Param7
             layout.addRow(QLabel('Z Position'), self.zPositionField)
+
+    def updateAdditionalFieldValues(self):
+        pass
+
+    # def getDefaultParameterValue(self, param):
 
 class LandWaypointEditWindow(WaypointEditWindow):
 
@@ -665,6 +694,11 @@ class LandWaypointEditWindow(WaypointEditWindow):
             self.zPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), 'm') # Param7
             layout.addRow(QLabel('Z Position'), self.zPositionField)
 
+    def updateAdditionalFieldValues(self):
+        pass
+
+    # def getDefaultParameterValue(self, param):
+
 class LoiterWaypointEditWindow(WaypointEditWindow):
 
     def __init__(self, wp: Waypoint, parent = None):
@@ -687,3 +721,8 @@ class LoiterWaypointEditWindow(WaypointEditWindow):
             self.xtrackLocationDropDown = WaypointEditWindowFactory.createYesNoDropdown({0 : 'Center', 1 : 'Exit'}, self)
             self.xtrackLocationDropDown.setCurrentIndex(self.getFieldValue(MAVWaypointParameter.PARAM4))
             layout.addRow(QLabel('Xtrack Location'), self.xtrackLocationDropDown)
+
+    def updateAdditionalFieldValues(self):
+        pass
+
+    # def getDefaultParameterValue(self, param):
