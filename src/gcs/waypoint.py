@@ -481,6 +481,8 @@ class WaypointEditWindowFactory:
             return TakeoffWaypointEditWindow(wp)
         if wp.waypointType == mavlink.MAV_CMD_NAV_FOLLOW:
             return FollowWaypointEditWindow(wp)
+        if wp.waypointType == mavlink.MAV_CMD_NAV_CONTINUE_AND_CHANGE_ALT:
+            return ContinueAndChangeAltitudeWaypointEditWindow(wp)
         return WaypointEditWindow(wp)
 
     @staticmethod
@@ -555,6 +557,20 @@ class WaypointEditWindow(QWidget):
         key = event.key()
         if key == Qt.Key_Escape:
             self.close()
+
+class ContinueAndChangeAltitudeWaypointEditWindow(WaypointEditWindow):
+    def __init__(self, wp: Waypoint, parent = None):
+        super().__init__(wp, parent)
+        self.setWindowTitle('Edit Continue and Change Altitude Waypoint#{}'.format(wp.rowNumber))
+
+    def addAdditionalFields(self, layout):
+        self.actionDropdown = WPDropDownPanel({
+            0 : 'Neutral',
+            1 : 'Climbing',
+            2 : 'Descending'}, 0, self)  # Param1
+        layout.addRow(QLabel('Action'), self.actionDropdown)
+        self.desiredAltitudeField = WPNumberPanel(0.0, 'm')  # Param7
+        layout.addRow(QLabel('Altitude'), self.desiredAltitudeField)
 
 class FollowWaypointEditWindow(WaypointEditWindow):
     def __init__(self, wp: Waypoint, parent = None):
