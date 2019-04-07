@@ -479,6 +479,8 @@ class WaypointEditWindowFactory:
             return LandWaypointEditWindow(wp)
         if wp.waypointType in (mavlink.MAV_CMD_NAV_TAKEOFF, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL):
             return TakeoffWaypointEditWindow(wp)
+        if wp.waypointType == mavlink.MAV_CMD_NAV_FOLLOW:
+            return FollowWaypointEditWindow(wp)
         return WaypointEditWindow(wp)
 
     @staticmethod
@@ -553,6 +555,22 @@ class WaypointEditWindow(QWidget):
         key = event.key()
         if key == Qt.Key_Escape:
             self.close()
+
+class FollowWaypointEditWindow(WaypointEditWindow):
+    def __init__(self, wp: Waypoint, parent = None):
+        super().__init__(wp, parent)
+        self.setWindowTitle('Edit Follow Waypoint#{}'.format(wp.rowNumber))
+
+    def addAdditionalFields(self, layout):
+        self.followingLogicField = WPNumberPanel(0)  # Param1
+        self.followingLogicField.isInteger = True
+        layout.addRow(QLabel('Following'), self.followingLogicField)
+        self.groundSpeedField = WPNumberPanel(0.0, 'm/s')  # Param2
+        layout.addRow(QLabel('Ground Speed'), self.groundSpeedField)
+        self.radiusField = WPNumberPanel(0.0, 'm')  # Param3
+        layout.addRow(QLabel('Radius'), self.radiusField)
+        self.yawAngleField = WPNumberPanel(0, u'\N{DEGREE SIGN}')  # Param4
+        layout.addRow(QLabel('Yaw'), self.yawAngleField)
 
 class TakeoffWaypointEditWindow(WaypointEditWindow):
 
