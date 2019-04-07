@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
                              QLabel, QLineEdit, QMessageBox, QPushButton,
                              QTableWidget, QTableWidgetItem, QWidget)
 from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator
+from enum import Enum
 
 from pymavlink.dialects.v10 import common as mavlink
 
@@ -40,12 +41,13 @@ class Waypoint(QObject):
         self.altitude = altitude
 
     def __str__(self):
-        return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5})'.format(self.rowNumber,
+        return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5}) -- {6}'.format(self.rowNumber,
                                                                       WP_TYPE_NAMES[self.waypointType],
                                                                       self.waypointType,
                                                                       self.latitude,
                                                                       self.longitude,
-                                                                      self.altitude)
+                                                                      self.altitude,
+                                                                      str(self.mavlinkParameters))
 
     def getCoordinate(self):
         return QGeoCoordinate(self.latitude, self.longitude)
@@ -468,6 +470,15 @@ class WaypointList(QTableWidget):
         while self.rowCount() > 1:  # the first row is home, which will be kept
             self.removeRow(1)
 
+class MAVWaypointParameter(Enum):
+    PARAM1 = 0
+    PARAM2 = 1
+    PARAM3 = 2
+    PARAM4 = 3
+    PARAM5 = 4
+    PARAM6 = 5
+    PARAM7 = 6
+
 class WaypointEditWindowFactory:
 
     @staticmethod
@@ -533,15 +544,27 @@ class WaypointEditWindow(QWidget):
 
     def addAdditionalFields(self, layout):
         if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_WAYPOINT:
-            self.holdTimeField = WPNumberPanel(0, 's')
+            self.holdTimeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), 's')
             self.holdTimeField.isInteger = True
             layout.addRow(QLabel('Hold'), self.holdTimeField)
-            self.acceptanceRadiusField = WPNumberPanel(0, 'm')
+            self.acceptanceRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), 'm')
             layout.addRow(QLabel('Accept Radius'), self.acceptanceRadiusField)
-            self.passRadiusField = WPNumberPanel(0.0, 'm')
+            self.passRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), 'm')
             layout.addRow(QLabel('Pass Radius'), self.passRadiusField)
-            self.yawAngleField = WPNumberPanel(0, u'\N{DEGREE SIGN}')
+            self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), u'\N{DEGREE SIGN}')
             layout.addRow(QLabel('Yaw'), self.yawAngleField)
+
+    def updateAdditionalFieldValues(self):
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_WAYPOINT:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.holdTimeField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM2] = self.acceptanceRadiusField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM3] = self.passRadiusField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM4] = self.yawAngleField.getValue()
+
+    def getFieldValue(self, param):
+        if param in self.waypoint.mavlinkParameters:
+            return self.waypoint.mavlinkParameters[param]
+        return ''
 
     def updateWaypointEvent(self):
         # TODO data validation
@@ -549,7 +572,8 @@ class WaypointEditWindow(QWidget):
         self.waypoint.longitude = self.lngField.getValue()
         self.waypoint.altitude = self.altField.getValue()
         self.waypoint.waypointType = self.typeSel.getSelection()
-        # print('new WP:', self.waypoint)
+        self.updateAdditionalFieldValues()
+        print('new WP:', self.waypoint)
         self.updateWaypoint.emit(self.waypoint)
         self.close()
 
