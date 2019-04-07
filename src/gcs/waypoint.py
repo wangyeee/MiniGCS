@@ -472,10 +472,13 @@ class WaypointEditWindowFactory:
 
     @staticmethod
     def createWaypointEditWindow(wp: Waypoint):
-        if wp.waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS, mavlink.MAV_CMD_NAV_LOITER_UNLIM, mavlink.MAV_CMD_NAV_LOITER_TO_ALT):
+        if wp.waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS,
+                               mavlink.MAV_CMD_NAV_LOITER_UNLIM, mavlink.MAV_CMD_NAV_LOITER_TO_ALT):
             return LoiterWaypointEditWindow(wp)
-        elif wp.waypointType in (mavlink.MAV_CMD_NAV_LAND, mavlink.MAV_CMD_NAV_LAND_LOCAL):
+        if wp.waypointType in (mavlink.MAV_CMD_NAV_LAND, mavlink.MAV_CMD_NAV_LAND_LOCAL):
             return LandWaypointEditWindow(wp)
+        if wp.waypointType in (mavlink.MAV_CMD_NAV_TAKEOFF, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL):
+            return TakeoffWaypointEditWindow(wp)
         return WaypointEditWindow(wp)
 
     @staticmethod
@@ -550,6 +553,27 @@ class WaypointEditWindow(QWidget):
         key = event.key()
         if key == Qt.Key_Escape:
             self.close()
+
+class TakeoffWaypointEditWindow(WaypointEditWindow):
+
+    def __init__(self, wp: Waypoint, parent = None):
+        super().__init__(wp, parent)
+        self.setWindowTitle('Edit Takeoff Waypoint#{}'.format(wp.rowNumber))
+
+    def addAdditionalFields(self, layout):
+        self.minPitchField = WPNumberPanel(0.0, u'\N{DEGREE SIGN}')  # Param1
+        layout.addRow(QLabel('Pitch'), self.minPitchField)
+        self.yawAngleField = WPNumberPanel(0, u'\N{DEGREE SIGN}')  # Param4
+        layout.addRow(QLabel('Yaw'), self.yawAngleField)
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL:
+            self.ascendRateField = WPNumberPanel(0.0, 'm/s')  # Param3
+            layout.addRow(QLabel('Ascend Rate'), self.ascendRateField)
+            self.xPositionField = WPNumberPanel(0, 'm') # Param6
+            layout.addRow(QLabel('X Position'), self.xPositionField)
+            self.yPositionField = WPNumberPanel(0, 'm') # Param5
+            layout.addRow(QLabel('Y Position'), self.yPositionField)
+            self.zPositionField = WPNumberPanel(0, 'm') # Param7
+            layout.addRow(QLabel('Z Position'), self.zPositionField)
 
 class LandWaypointEditWindow(WaypointEditWindow):
 
