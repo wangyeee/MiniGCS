@@ -611,7 +611,8 @@ class ContinueAndChangeAltitudeWaypointEditWindow(WaypointEditWindow):
         layout.addRow(QLabel('Altitude'), self.desiredAltitudeField)
 
     def updateAdditionalFieldValues(self):
-        pass
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.actionDropdown.getSelectionIndex()
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM7] = self.desiredAltitudeField.getValue()
 
     # def getDefaultParameterValue(self, param):
 
@@ -632,7 +633,10 @@ class FollowWaypointEditWindow(WaypointEditWindow):
         layout.addRow(QLabel('Yaw'), self.yawAngleField)
 
     def updateAdditionalFieldValues(self):
-        pass
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.followingLogicField.getValue()
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM2] = self.groundSpeedField.getValue()
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM3] = self.radiusField.getValue()
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM4] = self.yawAngleField.getValue()
 
     # def getDefaultParameterValue(self, param):
 
@@ -658,7 +662,13 @@ class TakeoffWaypointEditWindow(WaypointEditWindow):
             layout.addRow(QLabel('Z Position'), self.zPositionField)
 
     def updateAdditionalFieldValues(self):
-        pass
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.minPitchField.getValue()
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM4] = self.yawAngleField.getValue()
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM3] = self.ascendRateField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM6] = self.xPositionField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM5] = self.yPositionField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM7] = self.zPositionField.getValue()
 
     # def getDefaultParameterValue(self, param):
 
@@ -695,7 +705,17 @@ class LandWaypointEditWindow(WaypointEditWindow):
             layout.addRow(QLabel('Z Position'), self.zPositionField)
 
     def updateAdditionalFieldValues(self):
-        pass
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM4] = self.yawAngleField.getValue()
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LAND:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.abortAltitudeField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM2] = self.landModeDropdown.getSelectionIndex()
+        elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LAND_LOCAL:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.targetNumberField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM2] = self.offsetField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM3] = self.descendRateField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM6] = self.xPositionField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM5] = self.yPositionField.getValue()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM7] = self.zPositionField.getValue()
 
     # def getDefaultParameterValue(self, param):
 
@@ -723,6 +743,13 @@ class LoiterWaypointEditWindow(WaypointEditWindow):
             layout.addRow(QLabel('Xtrack Location'), self.xtrackLocationDropDown)
 
     def updateAdditionalFieldValues(self):
-        pass
+        self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM3] = self.loiterRadiusField.getValue()
+        if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TIME:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.loiterTimeField.getValue()
+        elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TURNS:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.loiterTurnsField.getValue()
+        elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TO_ALT:
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM1] = self.headingRequiredDropDown.currentIndex()
+            self.waypoint.mavlinkParameters[MAVWaypointParameter.PARAM4] = self.xtrackLocationDropDown.currentIndex()
 
     # def getDefaultParameterValue(self, param):
