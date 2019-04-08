@@ -49,6 +49,7 @@ class Waypoint(QObject):
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
+        self.waypointType = waypointType
         self.mavlinkParameters = {}
         if self.waypointType in (mavlink.MAV_CMD_NAV_LAND_LOCAL, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL):
             self.mavlinkParameters[MAVWaypointParameter.PARAM5] = 0.0
@@ -61,12 +62,12 @@ class Waypoint(QObject):
 
     def __str__(self):
         return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5}) -- {6}'.format(self.rowNumber,
-                                                                      WP_TYPE_NAMES[self.waypointType],
-                                                                      self.waypointType,
-                                                                      self.latitude,
-                                                                      self.longitude,
-                                                                      self.altitude,
-                                                                      str(self.mavlinkParameters))
+                                                                             WP_TYPE_NAMES[self.waypointType],
+                                                                             self.waypointType,
+                                                                             self.latitude,
+                                                                             self.longitude,
+                                                                             self.altitude,
+                                                                             str(self.mavlinkParameters))
 
     def getCoordinate(self):
         return QGeoCoordinate(self.latitude, self.longitude)
@@ -344,7 +345,7 @@ class WPNumberPanel(QWidget):
 
 class WaypointList(QTableWidget):
 
-    homeLocation = Waypoint(0, 0, 0, 0)
+    homeLocation = Waypoint(0, 0, 0, 0, mavlink.MAV_CMD_DO_SET_HOME)
     wpList = None
     requestReturnToHome = pyqtSignal(object)  # pass current home location
     editWaypoint = pyqtSignal(object)  # show popup window to edit the waypoint
@@ -360,6 +361,9 @@ class WaypointList(QTableWidget):
         self.wpList = wpList
         self.setRowCount(len(self.wpList) + 1)
         self.createHomeWaypointRow()
+        # 1 -> use current drone location
+        # 0 -> use the location of home icon on map
+        self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1] = 0
 
     def createTableHeader(self):
         '''

@@ -280,17 +280,15 @@ class MAVLinkConnection(QThread):
     def uploadWaypoints(self, wpList):
         seq = 0
         for wp in wpList:
-            # item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system,
-            #                                                     self.connection.target_component,
-            #                                                     seq, mavlink.MAV_FRAME_GLOBAL,
-            #                                                     mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-            #                                                     0, 1, 0, 0, 0, 0,
-            #                                                     wp.latitude, wp.longitude, wp.altitude)
             item = wp.toMavlinkMessage(self.connection.target_system, self.connection.target_component, seq, 0, 1)
             seq += 1
             self.wpLoader.add(item)
         print('all wp queued!')
         self._sendMissionCount(len(wpList))
+
+    def setHomePosition(self, wp):
+        item = wp.toMavlinkMessage(self.connection.target_system, self.connection.target_component, 0)
+        self._sendOneWaypoint(item)
 
     def _sendMissionCount(self, cnt):
         print('{} waypoints to be sent'.format(cnt))
