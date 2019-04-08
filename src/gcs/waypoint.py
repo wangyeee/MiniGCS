@@ -7,6 +7,7 @@ from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator
 from enum import Enum
 
 from pymavlink.dialects.v10 import common as mavlink
+from pymavlink import mavutil
 
 WP_TYPE_NAMES = {
     mavlink.MAV_CMD_NAV_WAYPOINT : 'Waypoint',
@@ -23,6 +24,15 @@ WP_TYPE_NAMES = {
     mavlink.MAV_CMD_NAV_LOITER_TO_ALT : 'Loiter to Altitude',
 }
 
+class MAVWaypointParameter(Enum):
+    PARAM1 = 0
+    PARAM2 = 1
+    PARAM3 = 2
+    PARAM4 = 3
+    PARAM5 = 4
+    PARAM6 = 5
+    PARAM7 = 6
+
 class Waypoint(QObject):
 
     rowNumber = 0
@@ -30,16 +40,24 @@ class Waypoint(QObject):
     longitude = 0.0
     altitude = 0.0
     # default to "navigate to waypoint (16)"
-    waypointType = mavlink.MAV_CMD_NAV_WAYPOINT
+    waypointType = -1
     mavlinkParameters = None  # used to store different parameters based of waypoint type
 
-    def __init__(self, rowNumber, latitude, longitude, altitude, parent = None):
+    def __init__(self, rowNumber, latitude, longitude, altitude, waypointType = mavlink.MAV_CMD_NAV_WAYPOINT, parent = None):
         super().__init__(parent)
         self.rowNumber = rowNumber
         self.latitude = latitude
         self.longitude = longitude
         self.altitude = altitude
         self.mavlinkParameters = {}
+        if self.waypointType in (mavlink.MAV_CMD_NAV_LAND_LOCAL, mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL):
+            self.mavlinkParameters[MAVWaypointParameter.PARAM5] = 0.0
+            self.mavlinkParameters[MAVWaypointParameter.PARAM6] = 0.0
+            self.mavlinkParameters[MAVWaypointParameter.PARAM7] = 0.0
+        else:
+            self.mavlinkParameters[MAVWaypointParameter.PARAM5] = self.latitude
+            self.mavlinkParameters[MAVWaypointParameter.PARAM6] = self.longitude
+            self.mavlinkParameters[MAVWaypointParameter.PARAM7] = self.altitude
 
     def __str__(self):
         return 'Waypoint#{0} type: {1}({2}) @ ({3}, {4}, {5}) -- {6}'.format(self.rowNumber,
@@ -57,6 +75,19 @@ class Waypoint(QObject):
         c = Waypoint(self.rowNumber, self.latitude, self.longitude, self.altitude, self.parent())
         c.waypointType = self.waypointType
         return c
+
+    def toMavlinkMessage(self, sysId, compId, seq, current = 0, autocontinue = 0):
+        item = mavutil.mavlink.MAVLink_mission_item_message(sysId, compId, seq, mavlink.MAV_FRAME_GLOBAL,
+                                                            self.waypointType, current, autocontinue,
+                                                            None if MAVWaypointParameter.PARAM1 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM1],
+                                                            None if MAVWaypointParameter.PARAM2 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM2],
+                                                            None if MAVWaypointParameter.PARAM3 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM3],
+                                                            None if MAVWaypointParameter.PARAM4 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM4],
+                                                            self.mavlinkParameters[MAVWaypointParameter.PARAM5],
+                                                            self.mavlinkParameters[MAVWaypointParameter.PARAM6],
+                                                            self.mavlinkParameters[MAVWaypointParameter.PARAM7])
+        print(item)
+        return item
 
     @staticmethod
     def decimalToDMS(decimal):
@@ -473,15 +504,6 @@ class WaypointList(QTableWidget):
     def removeAllRows(self):
         while self.rowCount() > 1:  # the first row is home, which will be kept
             self.removeRow(1)
-
-class MAVWaypointParameter(Enum):
-    PARAM1 = 0
-    PARAM2 = 1
-    PARAM3 = 2
-    PARAM4 = 3
-    PARAM5 = 4
-    PARAM6 = 5
-    PARAM7 = 6
 
 class WaypointEditWindowFactory:
 
