@@ -148,17 +148,17 @@ class WPDropDownPanel(QWidget):
         super().__init__(parent)
         self.dropDown = QComboBox(self)
         self.dropDownList = dropDownList
-        self.setSelection(currentSelection)
+        self.setSelection(currentSelection, True)
         l = QHBoxLayout()
         l.setContentsMargins(5, 0, 5, 0)
         l.addWidget(self.dropDown)
         self.setLayout(l)
 
-    def setSelection(self, idx: QVariant):
-        # print('select:', idx)
+    def setSelection(self, idx: QVariant, createOption = False):
         i = 0
         for idVal, idName in self.dropDownList.items():
-            self.dropDown.addItem(idName, QVariant(idVal))
+            if createOption:
+                self.dropDown.addItem(idName, QVariant(idVal))
             if idVal == idx:
                 self.dropDown.setCurrentIndex(i)
             i += 1
