@@ -1,7 +1,7 @@
 import QtQuick 2.5
-import QtLocation 5.6
+import QtLocation 5.9
 import MapItem 1.0
-import QtPositioning 5.2
+import QtPositioning 5.6
 
 MapItem {
     id: mapItem
@@ -41,50 +41,61 @@ MapItem {
         // list of navigation waypoints
         MapItemView {
             model: markerModel
-            delegate: MapQuickItem {
-                id: marker
-                anchorPoint.x: navDot.width / 2
-                anchorPoint.y: navDot.height / 2
-                coordinate: position
-                property int radius: 8
-                sourceItem: Rectangle {
-                    id: navDot
-                    width: marker.radius * 2
-                    height: marker.radius * 2
-                    color: dotColor
-                    radius: marker.radius
-                    antialiasing: true
-                    opacity: 1
-                    Text {
-                        id: wpIdxTxt
-                        text: (rowNumber + 1).toString()
-                        font.family: "Arial"
-                        anchors.centerIn: parent
-                    }
-
-                    MouseArea {
-                        id: wpArea
-                        anchors.fill: parent
-                        onClicked: {
-                            if (mouse.button == Qt.LeftButton) {
-                                // map the relative position of MapItemView to Map
-                                var wpIdx = parseInt(wpIdxTxt.text) - 1
-                                mapItem.waypointSelected(wpIdx)
-                            }
+            delegate: MapItemGroup {
+                MapQuickItem {
+                    id: marker
+                    anchorPoint.x: navDot.width / 2
+                    anchorPoint.y: navDot.height / 2
+                    coordinate: position
+                    property int radius: 8
+                    sourceItem: Rectangle {
+                        id: navDot
+                        width: marker.radius * 2
+                        height: marker.radius * 2
+                        color: dotColor
+                        radius: marker.radius
+                        antialiasing: true
+                        opacity: 1
+                        Text {
+                            id: wpIdxTxt
+                            text: (rowNumber + 1).toString()
+                            font.family: "Arial"
+                            anchors.centerIn: parent
                         }
-                        drag {
-                            target: marker
-                            axis: Drag.XandYAxis
-                            onActiveChanged: {
-                                var wpIdx = parseInt(wpIdxTxt.text) - 1
-                                if (drag.active) {
-                                    mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 0)
-                                } else {
-                                    mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 1)
+
+                        MouseArea {
+                            id: wpArea
+                            anchors.fill: parent
+                            onClicked: {
+                                if (mouse.button == Qt.LeftButton) {
+                                    // map the relative position of MapItemView to Map
+                                    var wpIdx = parseInt(wpIdxTxt.text) - 1
+                                    mapItem.waypointSelected(wpIdx)
                                 }
                             }
-                        }
-                    }
+                            drag {
+                                target: marker
+                                axis: Drag.XandYAxis
+                                onActiveChanged: {
+                                    var wpIdx = parseInt(wpIdxTxt.text) - 1
+                                    if (drag.active) {
+                                        mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 0)
+                                    } else {
+                                        mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 1)
+                                    }
+                                }
+                            }
+                        } // end MouseArea
+                    } // end Rectangle
+                } // end MapQuickItem
+                MapCircle {
+                    id: loiterRadiusCircle
+                    visible: true
+                    center: marker.coordinate
+                    radius: loiterRadius
+                    color: '#00000000'
+                    border.width: 3
+                    border.color: 'red'
                 }
             }
         }

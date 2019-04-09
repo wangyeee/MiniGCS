@@ -12,7 +12,8 @@ from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
 from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox
 
-from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList
+from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
+from pymavlink.dialects.v10 import common as mavlink
 
 LATITUDE = -36.88
 LONGITUDE = 174.75
@@ -78,6 +79,7 @@ class WaypointsModel(QAbstractListModel):
         self.positionRole = Qt.UserRole + 1
         self.dotColorRole = Qt.UserRole + 2
         self.rowNumberRole = Qt.UserRole + 3
+        self.loiterRadiusRole = Qt.UserRole + 4
 
     def markWaypoint(self, wp: Waypoint):
         idx = self.index(wp.rowNumber)
@@ -114,6 +116,11 @@ class WaypointsModel(QAbstractListModel):
             return QVariant('green')
         if role == self.rowNumberRole:
             return QVariant(self.allWaypoints[idx].rowNumber)
+        if role == self.loiterRadiusRole:
+            if self.allWaypoints[idx].waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS,
+                                                       mavlink.MAV_CMD_NAV_LOITER_UNLIM, mavlink.MAV_CMD_NAV_LOITER_TO_ALT):
+                return QVariant(self.allWaypoints[idx].mavlinkParameters[MAVWaypointParameter.PARAM3])
+            return QVariant(0.0)
         return QVariant()
 
     def flags(self, index):
@@ -125,7 +132,8 @@ class WaypointsModel(QAbstractListModel):
         return {
             self.positionRole : QByteArray(b'position'),
             self.dotColorRole : QByteArray(b'dotColor'),
-            self.rowNumberRole : QByteArray(b'rowNumber')
+            self.rowNumberRole : QByteArray(b'rowNumber'),
+            self.loiterRadiusRole : QByteArray(b'loiterRadius')
         }
 
     def updateWaypointCoordinate(self, rowNumber, newCoordinate: QGeoCoordinate):
