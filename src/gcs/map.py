@@ -278,6 +278,7 @@ class MapWidget(QSplitter):
     editWPpopup = []
 
     uploadWaypointsToUAVEvent = pyqtSignal(object)  # pass the waypoint list as parameter
+    downloadWaypointsFromUAVSignal = pyqtSignal()
 
     def __init__(self, mapQmlFile, parent = None):
         super().__init__(Qt.Vertical, parent)
@@ -336,6 +337,7 @@ class MapWidget(QSplitter):
                                    QMessageBox.Yes, QMessageBox.No)
         if cfm == QMessageBox.Yes:
             print('load WP from UAV')
+            self.downloadWaypointsFromUAVSignal.emit()
 
     def moveWaypointEvent(self, wpIdx, toWp: QGeoCoordinate):
         # print('[WP] move {} to ({}, {})'.format(wpIdx, toWp.latitude(), toWp.longitude()))

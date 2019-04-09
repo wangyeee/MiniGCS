@@ -320,3 +320,6 @@ class MAVLinkConnection(QThread):
         #                           mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
         #                           2, 0, 0, 0, 0, 0,
         #                           wp.latitude, wp.longitude, wp.altitude)
+
+    def initializeReturnToHome(self, home: Waypoint):
+        print('RTH started:', home)
