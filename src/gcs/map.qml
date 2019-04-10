@@ -81,7 +81,7 @@ MapItem {
                                     if (drag.active) {
                                         mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 0)
                                     } else {
-                                        mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 1)
+                                        mapItem.mapDragEvent(wpIdx, drag.target.coordinate.latitude, drag.target.coordinate.longitude, 2)
                                     }
                                 }
                             }
@@ -205,6 +205,12 @@ MapItem {
 
     onWaypointChanged: {
         wpLine.replaceCoordinate(wpNumber + 1, QtPositioning.coordinate(latitude, longitude))
+    }
+
+    onWaypointChangedInt: {
+        var c = navMap.toCoordinate(navMap.mapFromGlobal(x, y))
+        wpLine.replaceCoordinate(wpNumber + 1, c)
+        mapItem.mapDragEvent(wpNumber, c.latitude, c.longitude, 1)
     }
 
     onWaypointCreated: {

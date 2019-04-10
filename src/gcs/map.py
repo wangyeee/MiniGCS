@@ -34,6 +34,7 @@ class MapItem(QQuickItem):
 
     waypointRemoved = pyqtSignal(int, arguments=['wpNumber'])  # signal sent to qml to remove wp in polyline, wpNumber starts from 1 (0 is resvered for home)
     waypointChanged = pyqtSignal(int, float, float, arguments=['wpNumber', 'latitude', 'longitude'])  # signal sent to qml to update wp in polyline
+    waypointChangedInt = pyqtSignal(int, int, int, arguments=['wpNumber', 'x', 'y'])  # signal sent to qml to update wp by cursor position in polyline
     waypointCreated = pyqtSignal(float, float, arguments=['lat', 'lng'])
     allPolylineRemoved = pyqtSignal()  # signal to remove existing polyline
 
@@ -142,9 +143,9 @@ class WaypointsModel(QAbstractListModel):
         if 0 <= rowNumber < len(self.allWaypoints):
             # self._debug_dump_wp_list(rowNumber)
             wp = self.allWaypoints[rowNumber]
-            print('[MAP] move WP#{4} ({0}, {1}) to ({2}, {3})'.format(wp.latitude, wp.longitude,
-                                                            newCoordinate.latitude(), newCoordinate.longitude(),
-                                                            wp.rowNumber))
+            # print('[MAP] move WP#{4} ({0}, {1}) to ({2}, {3})'.format(wp.latitude, wp.longitude,
+            #                                                 newCoordinate.latitude(), newCoordinate.longitude(),
+            #                                                 wp.rowNumber))
             wp.latitude = newCoordinate.latitude()
             wp.longitude = newCoordinate.longitude()
             self.refreshWaypoint(wp)
@@ -185,12 +186,11 @@ class WaypointsModel(QAbstractListModel):
 
 class WaypointDragTracking(QThread):
 
-    updateRealtimeCursorPositionSignal = pyqtSignal(int, object)  # pass wpindex, PyQt5.QtCore.QPoint as parameter
     mapView = None
     delay = 0.0
     wpIndex = 0
 
-    def __init__(self, mapView, hertz = 10, parent = None):
+    def __init__(self, mapView, hertz = 50, parent = None):
         super().__init__(parent)
         self.mapView = mapView
         self.delay = 1 / hertz
@@ -202,17 +202,14 @@ class WaypointDragTracking(QThread):
     def run(self):
         while self.mapView.isBeingDragged():
             currentPos = QCursor.pos()
-            # print(str(currentPos))
-            self.updateRealtimeCursorPositionSignal.emit(self.wpIndex, currentPos)
+            self.mapView.map.waypointChangedInt.emit(self.wpIndex, currentPos.x(), currentPos.y())  # Update ploylines in the map and the list
             time.sleep(self.delay)
-        print('[WaypointDragTracker] exit')
 
 class MapView(QQuickView):
 
     selectWaypointForAction = pyqtSignal(object)
     updateWaypointCoordinateEvent = pyqtSignal(int, object)  # WP row#, new coordinate
     moveHomeEvent = pyqtSignal(object)
-    wpDragStartSignal = pyqtSignal()
 
     dragStart = False
     dragTracker = None
@@ -233,7 +230,6 @@ class MapView(QQuickView):
             self.map.mapDragEvent.connect(self.mapDragEvent)
             self.map.updateHomeLocation.connect(self.updateHomeEvent)
             self.dragTracker = WaypointDragTracking(self)
-            self.dragTracker.updateRealtimeCursorPositionSignal.connect(self.realtimeWPDragEvent)
 
     def restorePreviousView(self):
         if self.map is not None:
@@ -249,9 +245,6 @@ class MapView(QQuickView):
         em = math.pow(math.e, m)
         lat = math.asin((em - 1) / (em + 1)) * 180 / math.pi
         return lng, lat
-
-    def realtimeWPDragEvent(self, index, pos: QPoint):
-        print('cursor#{} pos: ({}, {})'.format(index, pos.x(), pos.y()))
 
     def wheelEvent(self, event):
         # quicker response compared to MapGestureArea.FlickGesture
@@ -280,15 +273,17 @@ class MapView(QQuickView):
 
     def mapDragEvent(self, index, lat, lng, actType):
         '''
-        actType = 0, start of drag; actType = 1, end of drag
+        actType = 0, start of drag
+        actType = 1, during drag
+        actType = 2, end of drag
         '''
         if actType == 0:
-            # something to do on start of a drag
             self.dragStart = True
-            print('drag start: {}, {}'.format(lat, lng))
             self.dragTracker.startTrackingWaypoint(index)
-            # self.wpDragStartSignal.emit()
         elif actType == 1:
+            toWp = QGeoCoordinate(lat, lng)
+            self.updateWaypointCoordinateEvent.emit(index, toWp)
+        elif actType == 2:
             if self.dragStart:
                 toWp = QGeoCoordinate(lat, lng)
                 self.updateWaypointCoordinateEvent.emit(index, toWp)
@@ -333,7 +328,6 @@ class MapWidget(QSplitter):
         self.mapView.updateWaypointCoordinateEvent.connect(self.moveWaypointEvent)
         self.mapView.moveHomeEvent.connect(self.updateHomeLocationEvent)
         self.mapView.selectWaypointForAction.connect(self.waypointList.highlightWaypoint)
-        self.mapView.wpDragStartSignal.connect(self.dragPolylineTrackingEvent)
         self.waypointList.editWaypoint.connect(self.showEditWaypointWindow)
         self.waypointList.deleteWaypoint.connect(self.removeWaypoint)
         self.waypointList.preDeleteWaypoint.connect(self.markWaypointForRemoval)
@@ -378,12 +372,6 @@ class MapWidget(QSplitter):
         if cfm == QMessageBox.Yes:
             print('load WP from UAV')
             self.downloadWaypointsFromUAVSignal.emit()
-
-    def dragPolylineTrackingEvent(self):
-        ##########################################
-        while self.mapView.isBeingDragged():
-            currentPos = QCursor.pos()
-            print(str(currentPos))
 
     def moveWaypointEvent(self, wpIdx, toWp: QGeoCoordinate):
         # print('[WP] move {} to ({}, {})'.format(wpIdx, toWp.latitude(), toWp.longitude()))
