@@ -189,11 +189,15 @@ class WaypointDragTracking(QThread):
     mapView = None
     delay = 0.0
     wpIndex = 0
+    prevX = 0
+    prevY = 0
+    threshold = 0
 
-    def __init__(self, mapView, hertz = 50, parent = None):
+    def __init__(self, mapView, hertz = 50, threshold = 2, parent = None):
         super().__init__(parent)
         self.mapView = mapView
         self.delay = 1 / hertz
+        self.threshold = threshold
 
     def startTrackingWaypoint(self, index):
         self.wpIndex = index
@@ -202,7 +206,10 @@ class WaypointDragTracking(QThread):
     def run(self):
         while self.mapView.isBeingDragged():
             currentPos = QCursor.pos()
-            self.mapView.map.waypointChangedInt.emit(self.wpIndex, currentPos.x(), currentPos.y())  # Update ploylines in the map and the list
+            if abs(currentPos.x() - self.prevX) > self.threshold or abs(currentPos.y() - self.prevY) > self.threshold:
+                self.prevX = currentPos.x()
+                self.prevY = currentPos.y()
+                self.mapView.map.waypointChangedInt.emit(self.wpIndex, currentPos.x(), currentPos.y())  # Update ploylines in the map and the list
             time.sleep(self.delay)
 
 class MapView(QQuickView):
