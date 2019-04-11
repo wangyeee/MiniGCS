@@ -1,8 +1,9 @@
-from PyQt5.QtWidgets import QWidget, QGridLayout, QLabel, QApplication, QProgressBar, QPushButton
-from PyQt5.QtCore import Qt, pyqtSignal
-from pymavlink.dialects.v10 import common as mavlink
-
 import sys
+
+from pymavlink.dialects.v10 import common as mavlink
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
+                             QPushButton, QWidget)
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',

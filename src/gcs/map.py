@@ -6,7 +6,7 @@ import os
 import sys
 import time
 
-from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize, QPoint,
+from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
                           Qt, QUrl, QVariant, pyqtSignal, pyqtSlot, QThread)
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtQml import qmlRegisterType

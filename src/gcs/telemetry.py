@@ -1,13 +1,15 @@
+from enum import Enum
+
 from pymavlink import mavutil
 from pymavlink.mavwp import MAVWPLoader
-from pymavlink.dialects.v10 import common as mavlink
-from enum import Enum
-from PyQt5.QtCore import Qt, QThread, QVariant, pyqtSignal, QMutex, QTimer, QWaitCondition
+from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
+                          QWaitCondition, pyqtSignal)
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
                              QSizePolicy, QWidget)
 from serial.tools.list_ports import comports
-from waypoint import Waypoint
+
 from parameters import ParameterPanel
+from waypoint import Waypoint
 
 BAUD_RATES = {
     110 : '110',
