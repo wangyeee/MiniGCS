@@ -9,6 +9,8 @@ MapItem {
     signal waypointSelected(int index)
     signal mapDragEvent(int index, real clat, real clng, int type)
     signal updateHomeLocation(real clat, real clng)
+    signal mapCenterChangedEvent(real clat, real clng)
+    signal mapZoomLevelChangedEvent(int zoom)
 
     Map {
         id: navMap
@@ -36,6 +38,14 @@ MapItem {
                 markerModel.createWaypoint(c.latitude, c.longitude)  // create WP
                 wpLine.addCoordinate(c)
             }
+        }
+
+        onCenterChanged: {
+            mapItem.mapCenterChangedEvent(navMap.center.latitude, navMap.center.longitude)
+        }
+
+        onZoomLevelChanged: {
+            mapItem.mapZoomLevelChangedEvent(navMap.zoomLevel)
         }
 
         // list of navigation waypoints

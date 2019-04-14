@@ -49,7 +49,7 @@ class MapItem(QQuickItem):
         super().__init__(parent)
         self.lat = 0.0
         self.lng = 0.0
-        self.zoomLevel = 5
+        self.zoomLevel = DEFAULT_ZOOM
 
     def moveMapToCoordinate(self, lat, lng):
         self.lat = lat
@@ -62,10 +62,12 @@ class MapItem(QQuickItem):
     def getZoomLevel(self):
         return self.zoomLevel
 
-    def zoomMap(self, delta):
-        zoom = self.zoomLevel + delta
-        if MIN_ZOOM <= zoom <= MAX_ZOOM:
-            self.zoomLevel = zoom
+    def zoomMapDelta(self, delta):
+        self.zoomMap(self.zoomLevel + delta)
+
+    def zoomMap(self, absZoom):
+        if MIN_ZOOM <= absZoom <= MAX_ZOOM:
+            self.zoomLevel = absZoom
             self.updateZoomLevel.emit(self.zoomLevel)
 
     def moveMap(self, deltaLat, deltaLng):
@@ -228,6 +230,7 @@ class MapView(QQuickView):
     dragStart = False
     dragTracker = None
     map = None
+    mapConf = {}
 
     def __init__(self, qml):
         super().__init__()
@@ -242,6 +245,8 @@ class MapView(QQuickView):
             self.map = self.rootObject()
             self.map.waypointSelected.connect(self.waypointEditEvent)
             self.map.mapDragEvent.connect(self.mapDragEvent)
+            self.map.mapCenterChangedEvent.connect(self.mapCenterChangedEvent)
+            self.map.mapZoomLevelChangedEvent.connect(self.mapZoomLevelChangedEvent)
             self.map.updateHomeLocation.connect(self.updateHomeEvent)
             self.dragTracker = WaypointDragTracking(self)
 
@@ -251,10 +256,10 @@ class MapView(QQuickView):
             lng0 = DEFAULT_LONGITUDE
             zoom0 = DEFAULT_ZOOM
             try:
-                mapConf = UserData.getInstance().getUserDataEntry(UD_MAP_KEY)
-                lat0 = float(mapConf[UD_MAP_INIT_LATITUDE_KEY])
-                lng0 = float(mapConf[UD_MAP_INIT_LONGITUDE_KEY])
-                zoom0 = int(mapConf[UD_MAP_INIT_ZOOM_KEY])
+                self.mapConf = UserData.getInstance().getUserDataEntry(UD_MAP_KEY)
+                lat0 = float(self.mapConf[UD_MAP_INIT_LATITUDE_KEY])
+                lng0 = float(self.mapConf[UD_MAP_INIT_LONGITUDE_KEY])
+                zoom0 = int(self.mapConf[UD_MAP_INIT_ZOOM_KEY])
             except ValueError:
                 pass
             except TypeError:
@@ -273,7 +278,7 @@ class MapView(QQuickView):
 
     def wheelEvent(self, event):
         # quicker response compared to MapGestureArea.FlickGesture
-        self.map.zoomMap(event.angleDelta().y() / 120)
+        self.map.zoomMapDelta(event.angleDelta().y() / 120)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -288,13 +293,19 @@ class MapView(QQuickView):
         elif key == Qt.Key_Down:
             self.map.moveMap(-deltaX, 0)
         # elif key == Qt.Key_Home:
-        # TODO update home location
         # self.map.moveMapToCoordinate(LATITUDE, LONGITUDE)
 
     def waypointEditEvent(self, index):
         if 0 <= index < self.wpModel.rowCount():
             # print('select WP#', index)
             self.selectWaypointForAction.emit(self.wpModel.allWaypoints[index])
+
+    def mapCenterChangedEvent(self, lat, lng):
+        self.mapConf[UD_MAP_INIT_LATITUDE_KEY] = str(lat)
+        self.mapConf[UD_MAP_INIT_LONGITUDE_KEY] = str(lng)
+
+    def mapZoomLevelChangedEvent(self, zoom):
+        self.mapConf[UD_MAP_INIT_ZOOM_KEY] = str(zoom)
 
     def mapDragEvent(self, index, lat, lng, actType):
         '''
@@ -445,6 +456,9 @@ class MapWidget(QSplitter):
         for wp in wpList:
             self.mapView.wpModel.createWaypoint(wp.latitude, wp.longitude)
             self.mapView.map.waypointCreated.emit(wp.latitude, wp.longitude)
+
+    def getParametersToSave(self):
+        return [(UD_MAP_KEY, self.mapView.mapConf)]
 
 #test only
 if __name__ == "__main__":

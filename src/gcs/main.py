@@ -84,6 +84,16 @@ class MiniGCS(QMainWindow):
 
     def closeEvent(self, event):
         print('[MAIN] closeEvent')
+        ud = UserData.getInstance()
+        if self.map != None:
+            ps = self.map.getParametersToSave()
+            for p in ps:
+                ud.setUserDataEntry(p[0], p[1])
+        try:
+            ud.saveGCSConfiguration()
+            print('GCS Conf saved.')
+        except IOError:
+            pass
         super().closeEvent(event)
 
 if __name__ == "__main__":
