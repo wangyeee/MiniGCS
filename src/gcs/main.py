@@ -10,6 +10,7 @@ from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 from LocalGPS import GPSConfigurationWindow
+from UserData import UserData
 
 class MiniGCS(QMainWindow):
 
@@ -81,8 +82,16 @@ class MiniGCS(QMainWindow):
     def disconnect(self):
         self.mav.requestExit()
 
+    def closeEvent(self, event):
+        print('[MAIN] closeEvent')
+        super().closeEvent(event)
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    try:
+        UserData.getInstance().loadGCSConfiguration()
+    except IOError:
+        sys.exit(1)
     frame = MiniGCS()
     frame.show()
     sys.exit(app.exec_())

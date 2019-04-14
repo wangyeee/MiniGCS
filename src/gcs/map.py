@@ -14,16 +14,23 @@ from PyQt5.QtQuick import QQuickItem, QQuickView
 from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox
 from PyQt5.QtGui import QCursor
 
+from UserData import UserData
 from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
 from pymavlink.dialects.v10 import common as mavlink
 
-LATITUDE = -36.88
-LONGITUDE = 174.75
-ZOOM = 15
+DEFAULT_LATITUDE = 0.0
+DEFAULT_LONGITUDE = 0.0
+DEFAULT_ZOOM = 8
+
 MIN_ZOOM = 0
 MAX_ZOOM = 19
 MIN_DRAG_TIME = 0.1
 TILE_SIZE = 256
+
+UD_MAP_KEY = 'MAP'
+UD_MAP_INIT_LATITUDE_KEY = 'INIT_LATITUDE'
+UD_MAP_INIT_LONGITUDE_KEY = 'INIT_LONGITUDE'
+UD_MAP_INIT_ZOOM_KEY = 'INIT_ZOOM'
 
 class MapItem(QQuickItem):
 
@@ -239,10 +246,21 @@ class MapView(QQuickView):
             self.dragTracker = WaypointDragTracking(self)
 
     def restorePreviousView(self):
-        if self.map is not None:
-            # TODO load previous coordinate  and zoom level from user configuration file
-            self.map.moveMapToCoordinate(LATITUDE, LONGITUDE)
-            self.map.zoomMap(6)
+        if self.map != None:
+            lat0 = DEFAULT_LATITUDE
+            lng0 = DEFAULT_LONGITUDE
+            zoom0 = DEFAULT_ZOOM
+            try:
+                mapConf = UserData.getInstance().getUserDataEntry(UD_MAP_KEY)
+                lat0 = float(mapConf[UD_MAP_INIT_LATITUDE_KEY])
+                lng0 = float(mapConf[UD_MAP_INIT_LONGITUDE_KEY])
+                zoom0 = int(mapConf[UD_MAP_INIT_ZOOM_KEY])
+            except ValueError:
+                pass
+            except TypeError:
+                pass
+            self.map.moveMapToCoordinate(lat0, lng0)
+            self.map.zoomMap(zoom0)
 
     def pix2lat(self, pix, piy):
         scale = 1 << int(self.map.getZoomLevel())
@@ -269,9 +287,9 @@ class MapView(QQuickView):
             self.map.moveMap(deltaX, 0)
         elif key == Qt.Key_Down:
             self.map.moveMap(-deltaX, 0)
-        elif key == Qt.Key_Home:
-            # TODO update home location
-            self.map.moveMapToCoordinate(LATITUDE, LONGITUDE)
+        # elif key == Qt.Key_Home:
+        # TODO update home location
+        # self.map.moveMapToCoordinate(LATITUDE, LONGITUDE)
 
     def waypointEditEvent(self, index):
         if 0 <= index < self.wpModel.rowCount():
@@ -433,6 +451,10 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     current_path = os.path.abspath(os.path.dirname(__file__))
     qmlFile = os.path.join(current_path, 'map.qml')
+    try:
+        UserData.getInstance().loadGCSConfiguration()
+    except IOError:
+        sys.exit(1)
     w = MapWidget(qmlFile)
     w.show()
     sys.exit(app.exec_())

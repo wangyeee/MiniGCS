@@ -55,6 +55,7 @@ def test_write():
     ud.userData['test'] = 'str'
     ud.userData['test_array'] = ['a', 'b', 'c']
     ud.userData['test_dict'] = {'name' : 'name_str', 'num' : 123}
+    ud.userData['MAP'] = {'INIT_LATITUDE' : '40.1', 'INIT_LONGITUDE' : '50.2', 'INIT_ZOOM' : '7'}
     ud.saveGCSConfiguration()
 
 def test_read():
