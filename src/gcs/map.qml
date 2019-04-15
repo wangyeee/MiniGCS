@@ -107,8 +107,27 @@ MapItem {
                     border.width: 3
                     border.color: 'red'
                 }
-            }
-        }
+            } // end MapItemGroup
+        } // end MapItemView
+
+        MapItemView {
+            model: adsbModel
+            delegate: MapQuickItem {
+                id: aircrafts
+                anchorPoint.x: aircraftImage.width / 2
+                anchorPoint.y: aircraftImage.height / 2
+                coordinate: position
+                sourceItem: Image {
+                    id: aircraftImage
+                    source: "res/aircraft.png"
+                    transform: Rotation {
+                        origin.x: aircraftImage.width / 2
+                        origin.y: aircraftImage.height / 2
+                        angle: heading
+                    }
+                }
+            } // end MapQuickItem
+        } // end MapItemView
 
         MapPolyline {
             id: wpLine

@@ -15,7 +15,7 @@ class Aircraft:
     callsign = None
     altitude = -1.0
     groundSpeed = -1.0
-    track = None
+    track = 0
     latitude = 0.0
     longitude = 0.0
     verticalRate = 0.0
@@ -138,7 +138,7 @@ class AircraftsModel(QAbstractListModel):
         if role == self.positionRole:
             return QVariant(self.allAircrafts[idx].getCoordinate())
         if role == self.headingRole:
-            return QVariant('green')
+            return QVariant(self.allAircrafts[idx].track)
         if role == self.callsignRole:
             if self.allAircrafts[idx].callsign != None:
                 return QVariant(self.allAircrafts[idx].callsign)
@@ -151,8 +151,8 @@ class AircraftsModel(QAbstractListModel):
     def roleNames(self):
         return {
             self.positionRole : QByteArray(b'position'),
-            self.headingRole : QByteArray(b'headingRole'),
-            self.callsignRole : QByteArray(b'callsignRole')
+            self.headingRole : QByteArray(b'heading'),
+            self.callsignRole : QByteArray(b'callsign')
         }
 
 # test codes
@@ -174,7 +174,7 @@ if __name__ == '__main__':
         if msg0.isValid:
             # msg.dump()
             if msg0.icao24 not in aircrafts:
-                aircrafts[msg.icao24] = Aircraft(msg0.icao24)
+                aircrafts[msg0.icao24] = Aircraft(msg0.icao24)
             aircrafts[msg0.icao24].update(msg0)
 
         dbg_cnt += 1

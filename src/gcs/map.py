@@ -15,6 +15,7 @@ from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBox
 from PyQt5.QtGui import QCursor
 
 from UserData import UserData
+from adsb import AircraftsModel
 from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
 from pymavlink.dialects.v10 import common as mavlink
 
@@ -237,7 +238,9 @@ class MapView(QQuickView):
         qmlRegisterType(MapItem, 'MapItem', 1, 0, 'MapItem')
         self.setResizeMode(QQuickView.SizeRootObjectToView)
         self.wpModel = WaypointsModel()
+        self.adsbModel = AircraftsModel()
         self.rootContext().setContextProperty('markerModel', self.wpModel)
+        self.rootContext().setContextProperty('adsbModel', self.adsbModel)
         self.setSource(qml)
         if self.status() == QQuickView.Error:
             print('error loading qml file')
