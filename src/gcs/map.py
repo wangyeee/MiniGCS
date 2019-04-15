@@ -15,7 +15,7 @@ from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBox
 from PyQt5.QtGui import QCursor
 
 from UserData import UserData
-from adsb import AircraftsModel
+from adsb import AircraftsModel, ADSBSource
 from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
 from pymavlink.dialects.v10 import common as mavlink
 
@@ -252,6 +252,16 @@ class MapView(QQuickView):
             self.map.mapZoomLevelChangedEvent.connect(self.mapZoomLevelChangedEvent)
             self.map.updateHomeLocation.connect(self.updateHomeEvent)
             self.dragTracker = WaypointDragTracking(self)
+            self.adsbSources = ADSBSource.getAvailableADSBSources()
+            for src in self.adsbSources:
+                ud = UserData.getInstance()
+                param = ud.getUserDataEntry(src.getConfigurationParameterKey())
+                if param != None:
+                    src.lazyInit(param)
+                    src.aircraftCreateSignal.connect(self.adsbModel.addAircraft)
+                    src.aircraftUpdateSignal.connect(self.adsbModel.updateAircraft)
+                    src.aircraftDeleteSignal.connect(self.adsbModel.removeAircraft)
+                    src.start()
 
     def restorePreviousView(self):
         if self.map != None:

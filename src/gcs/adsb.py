@@ -8,8 +8,8 @@ from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
 # https://github.com/kanflo/ADS-B-funhouse
 from sbs1 import SBS1Message
 
+# TODO remove this class
 class Aircraft:
-
     icao24 = None
     loggedDate = None
     callsign = None
@@ -111,20 +111,20 @@ class AircraftsModel(QAbstractListModel):
                 return i
         return -1
 
-    def updateAircraft(self, msg: SBS1Message):
-        i = self.__findByICAO(msg.icao24)
+    def updateAircraft(self, aircraft: SBS1Message):
+        i = self.__findByICAO(aircraft.icao24)
         if i > 0:
             idx = self.index(i)
-            self.allAircrafts[i].update(msg)
+            self.allAircrafts[i] = aircraft
             self.dataChanged.emit(idx, idx)
 
-    def addAircraft(self, aircraft: Aircraft):
+    def addAircraft(self, aircraft: SBS1Message):
         idx = self.rowCount()
         self.beginInsertRows(QModelIndex(), idx, idx)
         self.allAircrafts.append(aircraft)
         self.endInsertRows()
 
-    def removeAircraft(self, aircraft: Aircraft):
+    def removeAircraft(self, aircraft: SBS1Message):
         i = self.__findByICAO(aircraft.icao24)
         if i > 0:
             self.beginRemoveRows(QModelIndex(), i, i)
@@ -136,13 +136,21 @@ class AircraftsModel(QAbstractListModel):
         if idx < 0 or idx > len(self.allAircrafts) - 1:
             return QVariant()
         if role == self.positionRole:
-            return QVariant(self.allAircrafts[idx].getCoordinate())
+            if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
+                # print('Position update#{} => {}, {}'.format(idx, self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
+                return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
+            return QVariant(QGeoCoordinate(1000, 1000))
         if role == self.headingRole:
-            return QVariant(self.allAircrafts[idx].track)
+            if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
+                if self.allAircrafts[idx].track:
+                    # print('Heading update#{} => {}'.format(idx, self.allAircrafts[idx].track))
+                    return QVariant(self.allAircrafts[idx].track)
+            return QVariant(0)
         if role == self.callsignRole:
-            if self.allAircrafts[idx].callsign != None:
-                return QVariant(self.allAircrafts[idx].callsign)
-            return QVariant('x{}'.format(self.allAircrafts[idx].icao24))
+            if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
+                if self.allAircrafts[idx].callsign:
+                    return QVariant(self.allAircrafts[idx].callsign)
+                return QVariant('x{}'.format(self.allAircrafts[idx].icao24))
         return QVariant()
 
     def flags(self, index):
@@ -155,6 +163,101 @@ class AircraftsModel(QAbstractListModel):
             self.callsignRole : QByteArray(b'callsign')
         }
 
+class ADSBSource(QThread):
+
+    aircraftCreateSignal = pyqtSignal(object)
+    aircraftUpdateSignal = pyqtSignal(object)
+    aircraftDeleteSignal = pyqtSignal(object)
+
+    running = True
+
+    def run(self):
+        while self.running:
+            self.periodicalTask()
+        self.cleanupTask()
+
+    def stopADSB(self):
+        self.running = False
+
+    def periodicalTask(self):
+        pass
+
+    def cleanupTask(self):
+        pass
+
+    def getConfigurationParameterKey(self):
+        return ''
+
+    @staticmethod
+    def getAvailableADSBSources():
+        return [Dump1090NetClient()]
+
+class Dump1090NetClient(ADSBSource):
+
+    aircrafts = {}
+    sckt = None
+
+    def __init__ (self, host = None, port = 0, parent = None):
+        super().__init__(parent)
+        self.lazyInit({'HOST' : host, 'PORT' : port})
+
+    def lazyInit(self, param):
+        host = param['HOST']
+        port = int(param['PORT'])
+        if host != None and 0 < port < 65536:
+            self.sckt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.sckt.connect((host, port))
+
+    def periodicalTask(self):
+        self.__receiveLatestData()
+        self.__removeInactiveData()
+
+    def __receiveLatestData(self):
+        if self.sckt == None:
+            return
+        line = self.sckt.recv(1024)
+        if line == b'':
+            raise RuntimeError('socket connection broken')
+        msg = SBS1Message(line)
+        if msg.isValid:
+            if msg.icao24 not in self.aircrafts:
+                self.aircrafts[msg.icao24] = msg
+                self.aircraftCreateSignal.emit(self.aircrafts[msg.icao24])
+            else:
+                self.__updateMessageFields(self.aircrafts[msg.icao24], msg)
+                self.aircraftUpdateSignal.emit(self.aircrafts[msg.icao24])
+
+    def __removeInactiveData(self):
+        pass
+
+    def __updateMessageFields(self, currMsg, newMsg):
+        currMsg.messageType = currMsg.messageType if newMsg.messageType == None else newMsg.messageType
+        currMsg.transmissionType = currMsg.transmissionType if newMsg.transmissionType == None else newMsg.transmissionType
+        currMsg.sessionID = currMsg.sessionID if newMsg.sessionID == None else newMsg.sessionID
+        currMsg.aircraftID = currMsg.aircraftID if newMsg.aircraftID == None else newMsg.aircraftID
+        currMsg.flightID = currMsg.flightID if newMsg.flightID == None else newMsg.flightID
+        currMsg.generatedDate = currMsg.generatedDate if newMsg.generatedDate == None else newMsg.generatedDate
+        currMsg.loggedDate = currMsg.loggedDate if newMsg.loggedDate == None else newMsg.loggedDate
+        currMsg.callsign = currMsg.callsign if newMsg.callsign == None else newMsg.callsign
+        currMsg.altitude = currMsg.altitude if newMsg.altitude == None else newMsg.altitude
+        currMsg.groundSpeed = currMsg.groundSpeed if newMsg.groundSpeed == None else newMsg.groundSpeed
+        currMsg.track = currMsg.track if newMsg.track == None else newMsg.track
+        currMsg.lat = currMsg.lat if newMsg.lat == None else newMsg.lat
+        currMsg.lon = currMsg.lon if newMsg.lon == None else newMsg.lon
+        currMsg.verticalRate = currMsg.verticalRate if newMsg.verticalRate == None else newMsg.verticalRate
+        currMsg.squawk = currMsg.squawk if newMsg.squawk == None else newMsg.squawk
+        currMsg.alert = currMsg.alert if newMsg.alert == None else newMsg.alert
+        currMsg.emergency = currMsg.emergency if newMsg.emergency == None else newMsg.emergency
+        currMsg.spi = currMsg.spi if newMsg.spi == None else newMsg.spi
+        currMsg.onGround = currMsg.onGround if newMsg.onGround == None else newMsg.onGround
+
+    def cleanupTask(self):
+        self.sckt.close()
+
+    def getConfigurationParameterKey(self):
+        return 'DUMP1090SBS1'
+
+
 # test codes
 if __name__ == '__main__':
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -162,15 +265,15 @@ if __name__ == '__main__':
 
     MSGLEN = 100
     dbg_cnt = 0
-    running = True
+    running = False
     aircrafts = {}
 
     while running:
-        line = s.recv(1024)
-        if line == b'':
+        line0 = s.recv(1024)
+        if line0 == b'':
             raise RuntimeError('socket connection broken')
-        # print(line.decode('ascii'), end='')
-        msg0 = SBS1Message(line)
+        # print(line0.decode('ascii'), end='')
+        msg0 = SBS1Message(line0)
         if msg0.isValid:
             # msg.dump()
             if msg0.icao24 not in aircrafts:
