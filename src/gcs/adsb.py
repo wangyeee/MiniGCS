@@ -1,96 +1,12 @@
 import socket
 import time
 
+from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, Qt,
+                          QThread, QVariant, pyqtSignal)
 from PyQt5.QtPositioning import QGeoCoordinate
-from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
-                          Qt, QUrl, QVariant, pyqtSignal, pyqtSlot, QThread)
 
 # https://github.com/kanflo/ADS-B-funhouse
 from sbs1 import SBS1Message
-
-# TODO remove this class
-class Aircraft0:
-    icao24 = None
-    loggedDate = None
-    callsign = None
-    altitude = -1.0
-    groundSpeed = -1.0
-    track = 0
-    latitude = 0.0
-    longitude = 0.0
-    verticalRate = 0.0
-
-    fieldUpdates = {}
-
-    def __init__(self, icao24):
-        self.icao24 = icao24
-        self.fieldUpdates['CALLSIGN'] = False
-        self.fieldUpdates['ALT'] = False
-        self.fieldUpdates['GS'] = False
-        self.fieldUpdates['VS'] = False
-        self.fieldUpdates['TRK'] = False
-        self.fieldUpdates['LAT'] = False
-        self.fieldUpdates['LNG'] = False
-        self.fieldUpdates['LUT'] = time.time()
-
-    def has3DPositionUpdate(self):
-        return self.__anyFields(['LAT', 'LNG', 'ALT'])
-
-    def has2DPositionUpdate(self):
-        return self.__anyFields(['LAT', 'LNG'])
-
-    def has2DVelocityUpdate(self):
-        return self.__anyFields(['GS', 'TRK'])
-
-    def has3DVelocityUpdate(self):
-        return self.__anyFields(['VS', 'GS', 'TRK'])
-
-    def __anyFields(self, fields):
-        for f in fields:
-            if self.fieldUpdates[f] == False:
-                return False
-        return True
-
-    def getCoordinate(self):
-        if self.has2DPositionUpdate():
-            return QGeoCoordinate(self.latitude, self.longitude)
-        return None
-
-    def update(self, msg: SBS1Message):
-        if msg.icao24 and self.icao24 == msg.icao24:
-            if msg.callsign:
-                self.callsign = msg.callsign
-                self.fieldUpdates['CALLSIGN'] = True
-            if msg.altitude:
-                self.altitude = msg.altitude
-                self.fieldUpdates['ALT'] = True
-            if msg.groundSpeed:
-                self.groundSpeed = msg.groundSpeed
-                self.fieldUpdates['GS'] = True
-            if msg.track:
-                self.track = msg.track
-                self.fieldUpdates['TRK'] = True
-            if msg.lat:
-                self.latitude = msg.lat
-                self.fieldUpdates['LAT'] = True
-            if msg.lon:
-                self.longitude = msg.lon
-                self.fieldUpdates['LNG'] = True
-            if msg.verticalRate:
-                self.verticalRate = msg.verticalRate
-                self.fieldUpdates['VS'] = True
-            self.fieldUpdates['LUT'] = time.time()
-            # if self.has2DPositionUpdate():
-            print(str({
-                'ICAO' : self.icao24,
-                'CALLSIGN' : self.callsign,
-                'ALT' : self.altitude,
-                'GS' : self.groundSpeed,
-                'VS' : self.verticalRate,
-                'LAT' : self.latitude,
-                'LNG' : self.longitude,
-                'TRK' : self.track,
-            }))
 
 class AircraftsModel(QAbstractListModel):
 
@@ -194,9 +110,11 @@ class ADSBSource(QThread):
 
 class Dump1090NetClient(ADSBSource):
 
+    DEFAULT_TIMEOUT = 10
+
     aircrafts = {}
     sckt = None
-    timeout = 10  # default timeout, 10 seconds
+    timeout = DEFAULT_TIMEOUT  # default timeout, 10 seconds
 
     def __init__ (self, host = None, port = 0, parent = None):
         super().__init__(parent)
@@ -209,7 +127,10 @@ class Dump1090NetClient(ADSBSource):
             self.sckt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sckt.connect((host, port))
             try:
+                # The TIMEOUT parameter is optional
                 self.timeout = int(param['TIMEOUT'])
+                if self.timeout <= 0:
+                    self.timeout = self.DEFAULT_TIMEOUT
             except ValueError:
                 pass
 
@@ -269,33 +190,3 @@ class Dump1090NetClient(ADSBSource):
 
     def getConfigurationParameterKey(self):
         return 'DUMP1090SBS1'
-
-
-# test codes
-if __name__ == '__main__':
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect(('localhost', 30003))
-
-    MSGLEN = 100
-    dbg_cnt = 0
-    running = False
-    aircrafts = {}
-
-    while running:
-        line0 = s.recv(1024)
-        if line0 == b'':
-            raise RuntimeError('socket connection broken')
-        # print(line0.decode('ascii'), end='')
-        msg0 = SBS1Message(line0)
-        if msg0.isValid:
-            # msg.dump()
-            if msg0.icao24 not in aircrafts:
-                aircrafts[msg0.icao24] = Aircraft(msg0.icao24)
-            aircrafts[msg0.icao24].update(msg0)
-
-        dbg_cnt += 1
-        if dbg_cnt == MSGLEN:
-            print('{} msg received, exit.'.format(MSGLEN))
-            running = False
-
-    s.close()
