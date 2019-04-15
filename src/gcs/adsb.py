@@ -13,7 +13,7 @@ class Aircraft:
     icao24 = None
     loggedDate = None
     callsign = None
-    altitude = -123.0
+    altitude = -1.0
     groundSpeed = -1.0
     track = None
     latitude = 0.0
@@ -80,17 +80,17 @@ class Aircraft:
                 self.verticalRate = msg.verticalRate
                 self.fieldUpdates['VS'] = True
             self.fieldUpdates['LUT'] = time.time()
-            if self.has3DPositionUpdate():
-                print(str({
-                    'ICAO' : self.icao24,
-                    'CALLSIGN' : self.callsign,
-                    'ALT' : self.altitude,
-                    'GS' : self.groundSpeed,
-                    'VS' : self.verticalRate,
-                    'LAT' : self.latitude,
-                    'LNG' : self.longitude,
-                    'TRK' : self.track,
-                }))
+            # if self.has2DPositionUpdate():
+            print(str({
+                'ICAO' : self.icao24,
+                'CALLSIGN' : self.callsign,
+                'ALT' : self.altitude,
+                'GS' : self.groundSpeed,
+                'VS' : self.verticalRate,
+                'LAT' : self.latitude,
+                'LNG' : self.longitude,
+                'TRK' : self.track,
+            }))
 
 class AircraftsModel(QAbstractListModel):
 
@@ -104,6 +104,32 @@ class AircraftsModel(QAbstractListModel):
 
     def rowCount(self, parent=QModelIndex()):
         return len(self.allAircrafts)
+
+    def __findByICAO(self, icao):
+        for i in range(self.rowCount()):
+            if self.allAircrafts[i].icao24 == icao:
+                return i
+        return -1
+
+    def updateAircraft(self, msg: SBS1Message):
+        i = self.__findByICAO(msg.icao24)
+        if i > 0:
+            idx = self.index(i)
+            self.allAircrafts[i].update(msg)
+            self.dataChanged.emit(idx, idx)
+
+    def addAircraft(self, aircraft: Aircraft):
+        idx = self.rowCount()
+        self.beginInsertRows(QModelIndex(), idx, idx)
+        self.allAircrafts.append(aircraft)
+        self.endInsertRows()
+
+    def removeAircraft(self, aircraft: Aircraft):
+        i = self.__findByICAO(aircraft.icao24)
+        if i > 0:
+            self.beginRemoveRows(QModelIndex(), i, i)
+            del self.allAircrafts[i]
+            self.endRemoveRows()
 
     def data(self, index, role=Qt.DisplayRole):
         idx = index.row()
@@ -144,12 +170,12 @@ if __name__ == '__main__':
         if line == b'':
             raise RuntimeError('socket connection broken')
         # print(line.decode('ascii'), end='')
-        msg = SBS1Message(line)
-        if msg.isValid:
+        msg0 = SBS1Message(line)
+        if msg0.isValid:
             # msg.dump()
-            if msg.icao24 not in aircrafts:
-                aircrafts[msg.icao24] = Aircraft(msg.icao24)
-            aircrafts[msg.icao24].update(msg)
+            if msg0.icao24 not in aircrafts:
+                aircrafts[msg.icao24] = Aircraft(msg0.icao24)
+            aircrafts[msg0.icao24].update(msg0)
 
         dbg_cnt += 1
         if dbg_cnt == MSGLEN:
