@@ -9,7 +9,7 @@ from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
 from sbs1 import SBS1Message
 
 # TODO remove this class
-class Aircraft:
+class Aircraft0:
     icao24 = None
     loggedDate = None
     callsign = None
@@ -137,7 +137,7 @@ class AircraftsModel(QAbstractListModel):
             return QVariant()
         if role == self.positionRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
-                # print('Position update#{} => {}, {}'.format(idx, self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
+                # print('Position update#{} at {} => {}, {}'.format(idx, self.allAircrafts[idx].loggedDate, self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
                 return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
             return QVariant(QGeoCoordinate(1000, 1000))
         if role == self.headingRole:
@@ -196,6 +196,7 @@ class Dump1090NetClient(ADSBSource):
 
     aircrafts = {}
     sckt = None
+    timeout = 10  # default timeout, 10 seconds
 
     def __init__ (self, host = None, port = 0, parent = None):
         super().__init__(parent)
@@ -207,6 +208,10 @@ class Dump1090NetClient(ADSBSource):
         if host != None and 0 < port < 65536:
             self.sckt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sckt.connect((host, port))
+            try:
+                self.timeout = int(param['TIMEOUT'])
+            except ValueError:
+                pass
 
     def periodicalTask(self):
         self.__receiveLatestData()
@@ -220,6 +225,7 @@ class Dump1090NetClient(ADSBSource):
             raise RuntimeError('socket connection broken')
         msg = SBS1Message(line)
         if msg.isValid:
+            msg.loggedDate = time.time()  # re-use loggedDate field
             if msg.icao24 not in self.aircrafts:
                 self.aircrafts[msg.icao24] = msg
                 self.aircraftCreateSignal.emit(self.aircrafts[msg.icao24])
@@ -228,7 +234,14 @@ class Dump1090NetClient(ADSBSource):
                 self.aircraftUpdateSignal.emit(self.aircrafts[msg.icao24])
 
     def __removeInactiveData(self):
-        pass
+        timeNow = time.time()
+        toRemove = []
+        for icao, aircraft in self.aircrafts.items():
+            if timeNow - self.timeout > aircraft.loggedDate:
+                toRemove.append(icao)
+                self.aircraftDeleteSignal.emit(aircraft)
+        for rm in toRemove:
+            del self.aircrafts[rm]
 
     def __updateMessageFields(self, currMsg, newMsg):
         currMsg.messageType = currMsg.messageType if newMsg.messageType == None else newMsg.messageType
