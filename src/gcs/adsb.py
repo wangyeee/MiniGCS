@@ -86,14 +86,22 @@ class ADSBSource(QThread):
     aircraftDeleteSignal = pyqtSignal(object)
 
     running = True
+    param = None
 
     def run(self):
+        self.doLazyInit()
         while self.running:
             self.periodicalTask()
         self.cleanupTask()
 
     def stopADSB(self):
         self.running = False
+
+    def lazyInit(self, param):
+        self.param = param
+
+    def doLazyInit(self):
+        pass
 
     def periodicalTask(self):
         pass
@@ -118,41 +126,42 @@ class Dump1090NetClient(ADSBSource):
 
     def __init__ (self, host = None, port = 0, parent = None):
         super().__init__(parent)
-        self.lazyInit({'HOST' : host, 'PORT' : port})
+        self.lazyInit({'HOST' : host, 'PORT' : port, 'TIMEOUT' : self.DEFAULT_TIMEOUT})
 
-    def lazyInit(self, param):
-        host = param['HOST']
-        port = int(param['PORT'])
+    def doLazyInit(self):
+        host = self.param['HOST']
+        port = int(self.param['PORT'])
         if host != None and 0 < port < 65536:
-            self.sckt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sckt.connect((host, port))
             try:
+                self.sckt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sckt.connect((host, port))
                 # The TIMEOUT parameter is optional
-                self.timeout = int(param['TIMEOUT'])
+                self.timeout = int(self.param['TIMEOUT'])
                 if self.timeout <= 0:
                     self.timeout = self.DEFAULT_TIMEOUT
+            except ConnectionRefusedError:
+                self.sckt = None
+                print('Failed to connect to Dump1090 {}:{}'.format(host, port))
             except ValueError:
                 pass
 
     def periodicalTask(self):
-        self.__receiveLatestData()
-        self.__removeInactiveData()
+        if self.sckt != None:
+            self.__receiveLatestData()
+            self.__removeInactiveData()
 
     def __receiveLatestData(self):
-        if self.sckt == None:
-            return
         line = self.sckt.recv(1024)
-        if line == b'':
-            raise RuntimeError('socket connection broken')
-        msg = SBS1Message(line)
-        if msg.isValid:
-            msg.loggedDate = time.time()  # re-use loggedDate field
-            if msg.icao24 not in self.aircrafts:
-                self.aircrafts[msg.icao24] = msg
-                self.aircraftCreateSignal.emit(self.aircrafts[msg.icao24])
-            else:
-                self.__updateMessageFields(self.aircrafts[msg.icao24], msg)
-                self.aircraftUpdateSignal.emit(self.aircrafts[msg.icao24])
+        if line != b'':
+            msg = SBS1Message(line)
+            if msg.isValid:
+                msg.loggedDate = time.time()  # re-use loggedDate field
+                if msg.icao24 not in self.aircrafts:
+                    self.aircrafts[msg.icao24] = msg
+                    self.aircraftCreateSignal.emit(self.aircrafts[msg.icao24])
+                else:
+                    self.__updateMessageFields(self.aircrafts[msg.icao24], msg)
+                    self.aircraftUpdateSignal.emit(self.aircrafts[msg.icao24])
 
     def __removeInactiveData(self):
         timeNow = time.time()
