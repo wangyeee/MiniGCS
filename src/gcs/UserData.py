@@ -48,21 +48,3 @@ class UserData:
 
     def getUserDataEntry(self, key):
         return None if key not in self.userData else self.userData[key]
-
-# test only
-def test_write():
-    ud = UserData.getInstance()
-    ud.userData['test'] = 'str'
-    ud.userData['test_array'] = ['a', 'b', 'c']
-    ud.userData['test_dict'] = {'name' : 'name_str', 'num' : 123}
-    ud.userData['MAP'] = {'INIT_LATITUDE' : '40.1', 'INIT_LONGITUDE' : '50.2', 'INIT_ZOOM' : '7'}
-    ud.saveGCSConfiguration()
-
-def test_read():
-    ud = UserData.getInstance()
-    ud.loadGCSConfiguration()
-    print(ud.userData)
-
-if __name__ == '__main__':
-    test_write()
-    test_read()
