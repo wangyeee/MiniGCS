@@ -19,15 +19,19 @@ class UserData:
     def __init__(self):
         if UserData.__singleton == None:
             self.confDir = self.defaultConfigurationFileDirectory()
-            print('Conf Dir:', self.confDir)
             UserData.__singleton = self
         else:
             raise Exception('Call UserData.getInstance() instead.')
 
     def loadGCSConfiguration(self):
-        dataFile = open(os.path.join(self.confDir, CONFIGURATION_FILE_NAME), 'r')
-        self.userData = json.load(dataFile)
-        dataFile.close()
+        fullPath = os.path.join(self.confDir, CONFIGURATION_FILE_NAME)
+        if os.path.isfile(fullPath):
+            dataFile = open(fullPath, 'r')
+            self.userData = json.load(dataFile)
+            dataFile.close()
+        else:
+            # Load empty configuration
+            self.userData = {}
 
     def saveGCSConfiguration(self):
         dataFile = open(os.path.join(self.confDir, CONFIGURATION_FILE_NAME), 'w')

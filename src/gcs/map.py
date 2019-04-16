@@ -246,6 +246,7 @@ class MapView(QQuickView):
             print('error loading qml file')
         else:
             self.map = self.rootObject()
+            # self.restorePreviousView()
             self.map.waypointSelected.connect(self.waypointEditEvent)
             self.map.mapDragEvent.connect(self.mapDragEvent)
             self.map.mapCenterChangedEvent.connect(self.mapCenterChangedEvent)
@@ -270,9 +271,12 @@ class MapView(QQuickView):
             zoom0 = DEFAULT_ZOOM
             try:
                 self.mapConf = UserData.getInstance().getUserDataEntry(UD_MAP_KEY)
-                lat0 = float(self.mapConf[UD_MAP_INIT_LATITUDE_KEY])
-                lng0 = float(self.mapConf[UD_MAP_INIT_LONGITUDE_KEY])
-                zoom0 = int(self.mapConf[UD_MAP_INIT_ZOOM_KEY])
+                if self.mapConf != None:
+                    lat0 = float(self.mapConf[UD_MAP_INIT_LATITUDE_KEY])
+                    lng0 = float(self.mapConf[UD_MAP_INIT_LONGITUDE_KEY])
+                    zoom0 = int(self.mapConf[UD_MAP_INIT_ZOOM_KEY])
+                else:
+                    self.mapConf = {}
             except ValueError:
                 pass
             except TypeError:
@@ -372,7 +376,7 @@ class MapWidget(QSplitter):
         container.setMinimumSize(self.mapView.minimumSize())
         container.setMaximumSize(self.mapView.maximumSize())
         container.setFocusPolicy(Qt.TabFocus)
-        self.mapView.restorePreviousView()
+        # self.mapView.restorePreviousView()
         self.mapView.wpModel.createWaypointAction.connect(self.createWaypointEvent)
         self.mapView.updateWaypointCoordinateEvent.connect(self.moveWaypointEvent)
         self.mapView.moveHomeEvent.connect(self.updateHomeLocationEvent)
