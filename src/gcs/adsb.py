@@ -1,5 +1,7 @@
 import socket
 import time
+import subprocess
+import io
 
 from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, Qt,
                           QThread, QVariant, pyqtSignal)
@@ -72,6 +74,7 @@ class AircraftsModel(QAbstractListModel):
     def flags(self, index):
         return Qt.NoItemFlags
 
+    # TODO display callsign on map
     def roleNames(self):
         return {
             self.positionRole : QByteArray(b'position'),
@@ -114,7 +117,10 @@ class ADSBSource(QThread):
 
     @staticmethod
     def getAvailableADSBSources():
-        return [Dump1090NetClient()]
+        return [
+            Dump1090NetClient(),
+            Dump1090NetLocal()
+        ]
 
 class Dump1090NetClient(ADSBSource):
 
@@ -199,3 +205,62 @@ class Dump1090NetClient(ADSBSource):
 
     def getConfigurationParameterKey(self):
         return 'DUMP1090SBS1'
+
+class Dump1090NetLocal(Dump1090NetClient):
+
+    isBiasTeeSupported = False
+    binCheckPass = False
+    receiverProcess = None
+
+    def __init__(self, dump1090BinPath = None, parent = None):
+        super().__init__(parent)
+        self.lazyInit({
+            'DUMP1090_BIN' : dump1090BinPath,
+            'DEVICE_IDX' : 0,
+            'SBS_PORT' : 30003,
+            'TIMEOUT' : self.DEFAULT_TIMEOUT,
+            'BIAS_TEE' : False
+        })
+
+    def doLazyInit(self):
+        print(self.param)
+        self.__checkDump1090Binary()
+        if self.binCheckPass:
+            self.__startDump1090()
+            self.param['PORT'] = self.param['SBS_PORT']
+            self.param['HOST'] = 'localhost'
+            super().doLazyInit()
+
+    def __checkDump1090Binary(self):
+        try:
+            ps = subprocess.run([self.param['DUMP1090_BIN'], '--help'],
+                                 stdout = subprocess.PIPE,
+                                 stderr = subprocess.STDOUT)
+            if ps.returncode == 0:
+                self.binCheckPass = True
+                texts = io.StringIO(ps.stdout.decode('utf-8'))
+                for text in texts:
+                    if text.startswith('--enable-bias-tee'):
+                        self.isBiasTeeSupported = True
+        except FileNotFoundError:
+            print('DUMP1090 not installed.')
+
+    def __startDump1090(self):
+        # dump1090 --device-index <DEVICE_IDX> --net --net-sbs-port <SBS_PORT> --enable-bias-tee
+        cmds = [self.param['DUMP1090_BIN']]
+        cmds.append('--device-index')
+        cmds.append(str(self.param['DEVICE_IDX']))
+        cmds.append('--net')
+        cmds.append('--net-sbs-port')
+        cmds.append(str(self.param['SBS_PORT']))
+        if self.isBiasTeeSupported and self.param['BIAS_TEE']:
+            cmds.append('--enable-bias-tee')
+        self.receiverProcess = subprocess.Popen(cmds, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+
+    def getConfigurationParameterKey(self):
+        return 'DUMP1090SBS1_LOCAL'
+
+    def cleanupTask(self):
+        super().cleanupTask()
+        if self.receiverProcess != None:
+            self.receiverProcess.kill()
