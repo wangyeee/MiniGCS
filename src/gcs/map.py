@@ -256,7 +256,7 @@ class MapView(QQuickView):
             for src in self.adsbSources:
                 ud = UserData.getInstance()
                 param = ud.getUserDataEntry(src.getConfigurationParameterKey())
-                if param != None:
+                if param != None and param['ENABLE']:
                     src.lazyInit(param)
                     src.aircraftCreateSignal.connect(self.adsbModel.addAircraft)
                     src.aircraftUpdateSignal.connect(self.adsbModel.updateAircraft)
