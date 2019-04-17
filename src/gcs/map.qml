@@ -110,20 +110,33 @@ MapItem {
             } // end MapItemGroup
         } // end MapItemView
 
+        // list of aircrafts when ADS-B is enabled
         MapItemView {
             model: adsbModel
             delegate: MapQuickItem {
                 id: aircrafts
-                anchorPoint.x: aircraftImage.width / 2
-                anchorPoint.y: aircraftImage.height / 2
                 coordinate: position
-                sourceItem: Image {
-                    id: aircraftImage
-                    source: "res/aircraft.png"
-                    transform: Rotation {
-                        origin.x: aircraftImage.width / 2
-                        origin.y: aircraftImage.height / 2
-                        angle: heading
+                sourceItem: Item {
+                    id: aircraftIcon
+                    width: 32
+                    height: 32
+                    Image {
+                        id: aircraftImage
+                        source: "res/aircraft.png"
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        transform: Rotation {
+                            origin.x: aircraftImage.width / 2
+                            origin.y: aircraftImage.height / 2
+                            angle: heading
+                        }
+                    }
+                    Text {
+                        id: altitudeText
+                        anchors.top: parent.top
+                        anchors.left: aircraftImage.right
+                        // QGeoCoordinate.Coordinate3D = 2
+                        text: callsign + "\n" + (isNaN(position.altitude) ? "Unknown Altitude" : position.altitude + " ft")
                     }
                 }
             } // end MapQuickItem

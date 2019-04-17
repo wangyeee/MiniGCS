@@ -2,6 +2,7 @@ import socket
 import time
 import subprocess
 import io
+import os
 
 from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, Qt,
                           QThread, QVariant, pyqtSignal)
@@ -31,7 +32,7 @@ class AircraftsModel(QAbstractListModel):
 
     def updateAircraft(self, aircraft: SBS1Message):
         i = self.__findByICAO(aircraft.icao24)
-        if i > 0:
+        if i >= 0:
             idx = self.index(i)
             self.allAircrafts[i] = aircraft
             self.dataChanged.emit(idx, idx)
@@ -44,7 +45,7 @@ class AircraftsModel(QAbstractListModel):
 
     def removeAircraft(self, aircraft: SBS1Message):
         i = self.__findByICAO(aircraft.icao24)
-        if i > 0:
+        if i >= 0:
             self.beginRemoveRows(QModelIndex(), i, i)
             del self.allAircrafts[i]
             self.endRemoveRows()
@@ -54,10 +55,12 @@ class AircraftsModel(QAbstractListModel):
         if idx < 0 or idx > len(self.allAircrafts) - 1:
             return QVariant()
         if role == self.positionRole:
+            # print('Position update#{} at {} => {}, {}'.format(idx, self.allAircrafts[idx].loggedDate, self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
+            if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon and self.allAircrafts[idx].altitude:
+                return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon, self.allAircrafts[idx].altitude))
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
-                # print('Position update#{} at {} => {}, {}'.format(idx, self.allAircrafts[idx].loggedDate, self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
                 return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
-            return QVariant(QGeoCoordinate(1000, 1000))
+            return QVariant(QGeoCoordinate())
         if role == self.headingRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
                 if self.allAircrafts[idx].track:
@@ -68,13 +71,13 @@ class AircraftsModel(QAbstractListModel):
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
                 if self.allAircrafts[idx].callsign:
                     return QVariant(self.allAircrafts[idx].callsign)
+                # Display ICAO address when callsign is unavailable
                 return QVariant('x{}'.format(self.allAircrafts[idx].icao24))
         return QVariant()
 
     def flags(self, index):
         return Qt.NoItemFlags
 
-    # TODO display callsign on map
     def roleNames(self):
         return {
             self.positionRole : QByteArray(b'position'),
@@ -162,12 +165,12 @@ class Dump1090NetClient(ADSBSource):
             msg = SBS1Message(line)
             if msg.isValid:
                 msg.loggedDate = time.time()  # re-use loggedDate field
-                if msg.icao24 not in self.aircrafts:
-                    self.aircrafts[msg.icao24] = msg
-                    self.aircraftCreateSignal.emit(self.aircrafts[msg.icao24])
-                else:
+                if msg.icao24 in self.aircrafts:
                     self.__updateMessageFields(self.aircrafts[msg.icao24], msg)
                     self.aircraftUpdateSignal.emit(self.aircrafts[msg.icao24])
+                else:
+                    self.aircrafts[msg.icao24] = msg
+                    self.aircraftCreateSignal.emit(self.aircrafts[msg.icao24])
 
     def __removeInactiveData(self):
         timeNow = time.time()
@@ -255,7 +258,10 @@ class Dump1090NetLocal(Dump1090NetClient):
         cmds.append(str(self.param['SBS_PORT']))
         if self.isBiasTeeSupported and self.param['BIAS_TEE']:
             cmds.append('--enable-bias-tee')
-        self.receiverProcess = subprocess.Popen(cmds, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        self.receiverProcess = subprocess.Popen(cmds,
+                                                stdout = subprocess.DEVNULL,
+                                                stderr = subprocess.DEVNULL,
+                                                cwd = os.path.dirname(self.param['DUMP1090_BIN']))
 
     def getConfigurationParameterKey(self):
         return 'DUMP1090SBS1_LOCAL'
