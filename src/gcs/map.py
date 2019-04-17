@@ -21,7 +21,7 @@ from pymavlink.dialects.v10 import common as mavlink
 
 DEFAULT_LATITUDE = 0.0
 DEFAULT_LONGITUDE = 0.0
-DEFAULT_ZOOM = 8
+DEFAULT_ZOOM = 1
 
 MIN_ZOOM = 0
 MAX_ZOOM = 19
@@ -246,7 +246,6 @@ class MapView(QQuickView):
             print('error loading qml file')
         else:
             self.map = self.rootObject()
-            # self.restorePreviousView()
             self.map.waypointSelected.connect(self.waypointEditEvent)
             self.map.mapDragEvent.connect(self.mapDragEvent)
             self.map.mapCenterChangedEvent.connect(self.mapCenterChangedEvent)
@@ -376,7 +375,7 @@ class MapWidget(QSplitter):
         container.setMinimumSize(self.mapView.minimumSize())
         container.setMaximumSize(self.mapView.maximumSize())
         container.setFocusPolicy(Qt.TabFocus)
-        # self.mapView.restorePreviousView()
+        self.mapView.restorePreviousView()
         self.mapView.wpModel.createWaypointAction.connect(self.createWaypointEvent)
         self.mapView.updateWaypointCoordinateEvent.connect(self.moveWaypointEvent)
         self.mapView.moveHomeEvent.connect(self.updateHomeLocationEvent)
