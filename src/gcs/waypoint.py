@@ -327,14 +327,19 @@ class WPNumberPanel(QWidget):
 
     valueChanged = pyqtSignal(object)
 
-    def __init__(self, value, uom = None, validator: QValidator = None, parent = None):
+    def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, parent = None):
         super().__init__(parent)
         self.value = value
+        print('value = {}, isInt? {}'.format(value, isInteger))
+        self.isInteger = isInteger
         self.editField = FocusLineEdit(str(value))
         self.editField.returnPressed.connect(self.valueChangedEvent)
         self.editField.focusLostSignal.connect(self.valueChangedEvent)
         if validator == None:
-            self.editField.setValidator(QDoubleValidator())
+            if self.isInteger:
+                self.editField.setValidator(QIntValidator())
+            else:
+                self.editField.setValidator(QDoubleValidator())
         else:
             self.editField.setValidator(validator)
         l = QHBoxLayout()
@@ -441,7 +446,7 @@ class WaypointList(QTableWidget):
         lngpanel = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE, wp)
         lngpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
         data.append(lngpanel)
-        data.append(WPNumberPanel(wp.altitude, 'M'))
+        data.append(WPNumberPanel(wp.altitude, uom='M'))
         pnl = WaypointEditPanel(wp, 'Edit', 'Remove', self.wpButtonEvent, self.wpButtonEvent)
         data.append(pnl)
         self.setRowCount(len(self.wpList) + 1)
@@ -501,7 +506,7 @@ class WaypointList(QTableWidget):
         data.append(s)
         data.append(WPDegreePanel(self.homeLocation.latitude, WPDegreePanel.LATITUDE_TYPE))
         data.append(WPDegreePanel(self.homeLocation.longitude, WPDegreePanel.LONGITUDE_TYPE))
-        data.append(WPNumberPanel(self.homeLocation.altitude, 'M'))
+        data.append(WPNumberPanel(self.homeLocation.altitude, uom='M'))
         pnl = WaypointEditPanel(self.homeLocation, 'Edit', 'Return')
         pnl.editBtn.clicked.connect(self.editHomeLocation)
         pnl.delBtn.clicked.connect(self.requestReturnHome)
@@ -565,7 +570,7 @@ class WaypointEditWindow(QWidget):
         layout = QFormLayout()
         self.latField = WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE) # QLineEdit(str(wp.latitude))
         self.lngField = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE) # QLineEdit(str(wp.longitude))
-        self.altField = WPNumberPanel(wp.altitude, 'M')
+        self.altField = WPNumberPanel(wp.altitude, uom='M')
         self.typeSel = WPDropDownPanel(WP_TYPE_NAMES, wp.waypointType)
         layout.addRow(QLabel('Latitude'), self.latField)
         layout.addRow(QLabel('Longitude'), self.lngField)
@@ -591,14 +596,13 @@ class WaypointEditWindow(QWidget):
 
     def addAdditionalFields(self, layout):
         if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_WAYPOINT:
-            self.holdTimeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), 's')
-            self.holdTimeField.isInteger = True
+            self.holdTimeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), uom='s', isInteger=True)
             layout.addRow(QLabel('Hold'), self.holdTimeField)
-            self.acceptanceRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), 'm')
+            self.acceptanceRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), uom='m')
             layout.addRow(QLabel('Accept Radius'), self.acceptanceRadiusField)
-            self.passRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), 'm')
+            self.passRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), uom='m')
             layout.addRow(QLabel('Pass Radius'), self.passRadiusField)
-            self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), u'\N{DEGREE SIGN}')
+            self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), uom=u'\N{DEGREE SIGN}')
             layout.addRow(QLabel('Yaw'), self.yawAngleField)
 
     def updateAdditionalFieldValues(self):
@@ -650,7 +654,7 @@ class ContinueAndChangeAltitudeWaypointEditWindow(WaypointEditWindow):
             1 : 'Climbing',
             2 : 'Descending'}, self.getFieldValue(MAVWaypointParameter.PARAM1), self)  # Param1
         layout.addRow(QLabel('Action'), self.actionDropdown)
-        self.desiredAltitudeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), 'm')  # Param7
+        self.desiredAltitudeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), uom='m')  # Param7
         layout.addRow(QLabel('Altitude'), self.desiredAltitudeField)
 
     def updateAdditionalFieldValues(self):
@@ -665,14 +669,13 @@ class FollowWaypointEditWindow(WaypointEditWindow):
         self.setWindowTitle('Edit Follow Waypoint#{}'.format(wp.rowNumber))
 
     def addAdditionalFields(self, layout):
-        self.followingLogicField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1))  # Param1
-        self.followingLogicField.isInteger = True
+        self.followingLogicField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), isInteger = True)  # Param1
         layout.addRow(QLabel('Following'), self.followingLogicField)
-        self.groundSpeedField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), 'm/s')  # Param2
+        self.groundSpeedField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), uom='m/s')  # Param2
         layout.addRow(QLabel('Ground Speed'), self.groundSpeedField)
-        self.radiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), 'm')  # Param3
+        self.radiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), uom='m')  # Param3
         layout.addRow(QLabel('Radius'), self.radiusField)
-        self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), u'\N{DEGREE SIGN}')  # Param4
+        self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), uom=u'\N{DEGREE SIGN}')  # Param4
         layout.addRow(QLabel('Yaw'), self.yawAngleField)
 
     def updateAdditionalFieldValues(self):
@@ -690,18 +693,18 @@ class TakeoffWaypointEditWindow(WaypointEditWindow):
         self.setWindowTitle('Edit Takeoff Waypoint#{}'.format(wp.rowNumber))
 
     def addAdditionalFields(self, layout):
-        self.minPitchField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), u'\N{DEGREE SIGN}')  # Param1
+        self.minPitchField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), uom=u'\N{DEGREE SIGN}')  # Param1
         layout.addRow(QLabel('Pitch'), self.minPitchField)
-        self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), u'\N{DEGREE SIGN}')  # Param4
+        self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), uom=u'\N{DEGREE SIGN}')  # Param4
         layout.addRow(QLabel('Yaw'), self.yawAngleField)
         if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL:
-            self.ascendRateField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), 'm/s')  # Param3
+            self.ascendRateField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), uom='m/s')  # Param3
             layout.addRow(QLabel('Ascend Rate'), self.ascendRateField)
-            self.xPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM6), 'm') # Param6
+            self.xPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM6), uom='m') # Param6
             layout.addRow(QLabel('X Position'), self.xPositionField)
-            self.yPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM5), 'm') # Param5
+            self.yPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM5), uom='m') # Param5
             layout.addRow(QLabel('Y Position'), self.yPositionField)
-            self.zPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), 'm') # Param7
+            self.zPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), uom='m') # Param7
             layout.addRow(QLabel('Z Position'), self.zPositionField)
 
     def updateAdditionalFieldValues(self):
@@ -722,10 +725,10 @@ class LandWaypointEditWindow(WaypointEditWindow):
         self.setWindowTitle('Edit Land Waypoint#{}'.format(wp.rowNumber))
 
     def addAdditionalFields(self, layout):
-        self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), u'\N{DEGREE SIGN}')
+        self.yawAngleField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM4), uom=u'\N{DEGREE SIGN}')
         layout.addRow(QLabel('Yaw'), self.yawAngleField) # Param4
         if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LAND:
-            self.abortAltitudeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), 'm')  # Param1
+            self.abortAltitudeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), uom='m')  # Param1
             layout.addRow(QLabel('Abort Alt'), self.abortAltitudeField)
             self.landModeDropdown = WPDropDownPanel({
                 mavlink.PRECISION_LAND_MODE_DISABLED : 'Disabled',
@@ -733,18 +736,17 @@ class LandWaypointEditWindow(WaypointEditWindow):
                 mavlink.PRECISION_LAND_MODE_REQUIRED : 'Required'}, self.getFieldValue(MAVWaypointParameter.PARAM2), self)  # Param2
             layout.addRow(QLabel('Land Mode'), self.landModeDropdown)
         elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LAND_LOCAL:
-            self.targetNumberField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1))
-            self.targetNumberField.isInteger = True
+            self.targetNumberField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), isInteger = True)
             layout.addRow(QLabel('Target'), self.targetNumberField)
-            self.offsetField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), 'm')
+            self.offsetField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM2), uom='m')
             layout.addRow(QLabel('Offset'), self.offsetField)
-            self.descendRateField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), 'm/s')
+            self.descendRateField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), uom='m/s')
             layout.addRow(QLabel('Desend Rate'), self.descendRateField)
-            self.xPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM6), 'm') # Param6
+            self.xPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM6), uom='m') # Param6
             layout.addRow(QLabel('X Position'), self.xPositionField)
-            self.yPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM5), 'm') # Param5
+            self.yPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM5), uom='m') # Param5
             layout.addRow(QLabel('Y Position'), self.yPositionField)
-            self.zPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), 'm') # Param7
+            self.zPositionField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM7), uom='m') # Param7
             layout.addRow(QLabel('Z Position'), self.zPositionField)
 
     def updateAdditionalFieldValues(self):
@@ -769,13 +771,13 @@ class LoiterWaypointEditWindow(WaypointEditWindow):
         self.setWindowTitle('Edit Loiter Waypoint#{}'.format(wp.rowNumber))
 
     def addAdditionalFields(self, layout):
-        self.loiterRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), 'm')
+        self.loiterRadiusField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM3), uom='m')
         layout.addRow(QLabel('Radius'), self.loiterRadiusField)
         if self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TIME:
-            self.loiterTimeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), 's')
+            self.loiterTimeField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), uom='s')
             layout.addRow(QLabel('Time'), self.loiterTimeField)
         elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TURNS:
-            self.loiterTurnsField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), 'turn')
+            self.loiterTurnsField = WPNumberPanel(self.getFieldValue(MAVWaypointParameter.PARAM1), uom='turn')
             layout.addRow(QLabel('Turns'), self.loiterTurnsField)
         elif self.waypoint.waypointType == mavlink.MAV_CMD_NAV_LOITER_TO_ALT:
             self.headingRequiredDropDown = WaypointEditWindowFactory.createYesNoDropdown(parent=self)
