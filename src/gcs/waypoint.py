@@ -174,6 +174,7 @@ class FocusLineEdit(QLineEdit):
     start = 0
     end = 0
     valueValidator = None
+    isBeingEdited = False
 
     focusLostSignal = pyqtSignal(object)
 
@@ -189,8 +190,24 @@ class FocusLineEdit(QLineEdit):
                 self.valueValidator.setRange(self.start, self.end)
         self.setValidator(self.valueValidator)
 
+    def wheelEvent(self, e):
+        if self.isBeingEdited:
+            if type(self.validator()) == QDoubleValidator:
+                v = float(self.text())
+                v += e.angleDelta().y() / 120
+                self.setText(str(v))
+            elif type(self.validator()) == QIntValidator:
+                v = int(self.text())
+                v += int(e.angleDelta().y() / 120)
+                self.setText(str(v))
+
+    def focusInEvent(self, e):
+        super().focusInEvent(e)
+        self.isBeingEdited = True
+
     def focusOutEvent(self, e):
         super().focusOutEvent(e)
+        self.isBeingEdited = False
         self.focusLostSignal.emit(self)
 
 class WPDegreePanel(QWidget):
