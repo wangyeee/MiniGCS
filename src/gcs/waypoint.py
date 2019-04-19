@@ -176,6 +176,7 @@ class FocusLineEdit(QLineEdit):
     valueValidator = None
     isBeingEdited = False
 
+    focusGainedSignal = pyqtSignal(object)
     focusLostSignal = pyqtSignal(object)
 
     def setValueRange(self, start, end, decimals = 0):
@@ -204,6 +205,7 @@ class FocusLineEdit(QLineEdit):
     def focusInEvent(self, e):
         super().focusInEvent(e)
         self.isBeingEdited = True
+        self.focusGainedSignal.emit(self)
 
     def focusOutEvent(self, e):
         super().focusOutEvent(e)
@@ -530,6 +532,13 @@ class WaypointList(QTableWidget):
     def removeAllRows(self):
         while self.rowCount() > 1:  # the first row is home, which will be kept
             self.removeRow(1)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Backtab, Qt.Key_Tab):
+            # Tab/ShiftTab keys will be used to navigate between defferent line edits
+            pass
+        else:
+            super().keyPressEvent(event)
 
 class WaypointEditWindowFactory:
 
