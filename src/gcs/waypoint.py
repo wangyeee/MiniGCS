@@ -220,8 +220,10 @@ class WPDegreePanel(QWidget):
     decimalValue = 0.0
 
     valueChanged = pyqtSignal(object)
+    focusInSignal = pyqtSignal(object)
     dirType = None
     cachedWP = None
+    cachedCellLocation = None
 
     def __init__(self, decimalValue, ctype, cachedWP = None, parent = None):
         '''
@@ -265,6 +267,9 @@ class WPDegreePanel(QWidget):
         self.degreesField.focusLostSignal.connect(self.valueChangedEvent)
         self.minutesField.focusLostSignal.connect(self.valueChangedEvent)
         self.secondsField.focusLostSignal.connect(self.valueChangedEvent)
+        self.degreesField.focusGainedSignal.connect(self.reportInFocusEvent)
+        self.minutesField.focusGainedSignal.connect(self.reportInFocusEvent)
+        self.secondsField.focusGainedSignal.connect(self.reportInFocusEvent)
         l.addWidget(self.degreesField)
         l.addWidget(self.degreesLabel)
         l.addWidget(self.minutesField)
@@ -302,6 +307,15 @@ class WPDegreePanel(QWidget):
                 self.cachedWP.longitude = val
         self.valueChanged.emit(self)
 
+    def reportInFocusEvent(self, edit):
+        self.focusInSignal.emit(self.cachedCellLocation)
+
+    def setFocus(self, idx):
+        print('Set focus on line edit#{}'.format(idx))
+
+    def setCellLocation(self, cell):
+        self.cachedCellLocation = cell
+
     def _getDirLabel(self, deg, ctype):
         if ctype == 'LAT':
             t = 'N'
@@ -332,7 +346,7 @@ class WPNumberPanel(QWidget):
     def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, parent = None):
         super().__init__(parent)
         self.value = value
-        print('value = {}, isInt? {}'.format(value, isInteger))
+        # print('value = {}, isInt? {}'.format(value, isInteger))
         self.isInteger = isInteger
         self.editField = FocusLineEdit(str(value))
         self.editField.returnPressed.connect(self.valueChangedEvent)
@@ -377,6 +391,7 @@ class WaypointList(QTableWidget):
     preDeleteWaypoint = pyqtSignal(object)  # signal sent before removing a waypoint
     cancelDeleteWaypoint = pyqtSignal(object)  # signal sent for cancelled waypoint removal
     afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
+    currentInFocusCell = None
 
     def __init__(self, wpList, parent = None):
         super().__init__(parent)
@@ -404,6 +419,8 @@ class WaypointList(QTableWidget):
         i = 0
         for s in dataArray:
             if isinstance(s, QWidget):
+                if hasattr(s, 'setCellLocation'):
+                    s.setCellLocation((rowNumber, i))
                 self.setCellWidget(rowNumber, i, s)
             elif isinstance(s, QTableWidgetItem):
                 self.setItem(rowNumber, i, s)
@@ -444,9 +461,11 @@ class WaypointList(QTableWidget):
         data.append(WPDropDownPanel(WP_TYPE_NAMES, wp.waypointType))
         latpanel = WPDegreePanel(wp.latitude, WPDegreePanel.LATITUDE_TYPE, wp)
         latpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
+        latpanel.focusInSignal.connect(self.cellFocusChangedEvent)
         data.append(latpanel)
         lngpanel = WPDegreePanel(wp.longitude, WPDegreePanel.LONGITUDE_TYPE, wp)
         lngpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
+        lngpanel.focusInSignal.connect(self.cellFocusChangedEvent)
         data.append(lngpanel)
         data.append(WPNumberPanel(wp.altitude, uom='M'))
         pnl = WaypointEditPanel(wp, 'Edit', 'Remove', self.wpButtonEvent, self.wpButtonEvent)
@@ -536,9 +555,19 @@ class WaypointList(QTableWidget):
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Backtab, Qt.Key_Tab):
             # Tab/ShiftTab keys will be used to navigate between defferent line edits
-            pass
+            if self.currentInFocusCell != None:
+                # TODO 1. Check if current cess has multiple line edits
+                # 2. Move to another cell
+                # row = self.currentInFocusCell[0]
+                # col = self.currentInFocusCell[1]
+                pass
         else:
             super().keyPressEvent(event)
+
+    def cellFocusChangedEvent(self, cell):
+        print('Focus to {}, {}'.format(cell[0], cell[1]))
+        self.currentInFocusCell = cell
+
 
 class WaypointEditWindowFactory:
 
@@ -565,7 +594,6 @@ class WaypointEditWindowFactory:
         for data, label in options.items():
             dropDown.addItem(label, QVariant(data))
         return dropDown
-
 
 class WaypointEditWindow(QWidget):
 
