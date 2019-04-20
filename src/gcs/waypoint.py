@@ -246,7 +246,7 @@ class FocusLineEdit(QLineEdit):
         self.isBeingEdited = False
         self.focusLostSignal.emit(self)
 
-class WPDegreePanel(QWidget):
+class WPDegreePanel(WaypointListCell):
 
     LATITUDE_TYPE = 'LAT'
     LONGITUDE_TYPE = 'LNG'
@@ -265,7 +265,7 @@ class WPDegreePanel(QWidget):
         ctype=LAT/LNG
         [deg][min][sec][EW/NS]
         '''
-        super().__init__(parent)
+        super().__init__(True, parent)
         self.decimalValue = decimalValue
         self.cachedWP = cachedWP
         # Degrees Minutes Seconds
@@ -382,9 +382,6 @@ class WPDegreePanel(QWidget):
             self.secondsField.claimFocus()
             return 0
 
-    def setFocus0(self, idx):
-        print('Set focus on line edit#{}'.format(idx))
-
     def setCellLocation(self, cell):
         self.cachedCellLocation = cell
 
@@ -408,7 +405,7 @@ class WPDegreePanel(QWidget):
         w = length * fm.width('0') + m.left() + m.right() + c.left() + c.right()
         field.setMaximumWidth(w + 8)
 
-class WPNumberPanel(QWidget):
+class WPNumberPanel(WaypointListCell):
 
     value = 0.0
     isInteger = False
@@ -416,7 +413,7 @@ class WPNumberPanel(QWidget):
     valueChanged = pyqtSignal(object)
 
     def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, parent = None):
-        super().__init__(parent)
+        super().__init__(True, parent)
         self.value = value
         # print('value = {}, isInt? {}'.format(value, isInteger))
         self.isInteger = isInteger
@@ -454,10 +451,12 @@ class WPNumberPanel(QWidget):
         self.editField.setText(str(self.value))
 
     def nextFocus(self):
+        super().nextFocus()
         self.editField.setFocus(Qt.OtherFocusReason)
         return 1
 
     def prevFocus(self):
+        super().prevFocus()
         self.editField.setFocus(Qt.OtherFocusReason)
         return -1
 
