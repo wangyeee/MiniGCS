@@ -1,9 +1,9 @@
-from PyQt5.QtCore import QObject, QRect, Qt, QVariant, pyqtSignal
+from PyQt5.QtCore import QObject, QRect, Qt, QVariant, pyqtSignal, QPoint
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
                              QLabel, QLineEdit, QMessageBox, QPushButton,
                              QTableWidget, QTableWidgetItem, QWidget)
-from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator
+from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator, QCursor
 from enum import Enum
 
 from pymavlink.dialects.v10 import common as mavlink
@@ -112,6 +112,27 @@ class Waypoint(QObject):
             n = -1.0
         return n * (degrees + minutes / 60 + seconds / 3600)
 
+class WaypointListCell(QWidget):
+    moveCursorWhenFocus = False
+
+    def __init__(self, moveCursorWhenFocus = False, parent = None):
+        super().__init__(parent)
+        self.moveCursorWhenFocus = moveCursorWhenFocus
+
+    def nextFocus(self):
+        self._moveCursor()
+        return 0
+
+    def prevFocus(self):
+        self._moveCursor()
+        return 0
+
+    def _moveCursor(self):
+        if self.moveCursorWhenFocus:
+            pos = self.mapToGlobal(QPoint(0,0))
+            ctr = self.rect().center()
+            QCursor.setPos(pos.x() + ctr.x(), pos.y() + ctr.y())
+
 class WaypointEditPanel(QWidget):
 
     editBtn : QPushButton = None
@@ -140,12 +161,12 @@ class WaypointEditPanel(QWidget):
         l.setContentsMargins(0, 0, 0, 0)
         self.setLayout(l)
 
-class WPDropDownPanel(QWidget):
+class WPDropDownPanel(WaypointListCell):
 
     dropDownList = None
 
     def __init__(self, dropDownList: dict, currentSelection = 0, parent = None):
-        super().__init__(parent)
+        super().__init__(True, parent)
         self.dropDown = QComboBox(self)
         self.dropDownList = dropDownList
         self.setSelection(currentSelection, True)
@@ -170,10 +191,12 @@ class WPDropDownPanel(QWidget):
         return self.dropDown.currentIndex()
 
     def nextFocus(self):
+        super().nextFocus()
         self.dropDown.setFocus(Qt.OtherFocusReason)
         return 1
 
     def prevFocus(self):
+        super().prevFocus()
         self.dropDown.setFocus(Qt.OtherFocusReason)
         return -1
 
