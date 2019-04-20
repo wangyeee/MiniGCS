@@ -169,6 +169,14 @@ class WPDropDownPanel(QWidget):
     def getSelectionIndex(self):
         return self.dropDown.currentIndex()
 
+    def nextFocus(self):
+        self.dropDown.setFocus(Qt.OtherFocusReason)
+        return 1
+
+    def prevFocus(self):
+        self.dropDown.setFocus(Qt.OtherFocusReason)
+        return -1
+
 class FocusLineEdit(QLineEdit):
 
     start = 0
@@ -202,6 +210,9 @@ class FocusLineEdit(QLineEdit):
                 v += int(e.angleDelta().y() / 120)
                 self.setText(str(v))
 
+    def claimFocus(self):
+        self.setFocus(Qt.OtherFocusReason)
+
     def focusInEvent(self, e):
         super().focusInEvent(e)
         self.isBeingEdited = True
@@ -224,6 +235,7 @@ class WPDegreePanel(QWidget):
     dirType = None
     cachedWP = None
     cachedCellLocation = None
+    currentInFocusEdit = None
 
     def __init__(self, decimalValue, ctype, cachedWP = None, parent = None):
         '''
@@ -308,9 +320,46 @@ class WPDegreePanel(QWidget):
         self.valueChanged.emit(self)
 
     def reportInFocusEvent(self, edit):
+        self.currentInFocusEdit = edit
         self.focusInSignal.emit(self.cachedCellLocation)
 
-    def setFocus(self, idx):
+    def nextFocus(self):
+        if self.currentInFocusEdit != None:
+            if self.currentInFocusEdit == self.degreesField:
+                self.currentInFocusEdit = self.minutesField
+                self.minutesField.claimFocus()
+                return 0
+            if self.currentInFocusEdit == self.minutesField:
+                self.currentInFocusEdit = self.secondsField
+                self.secondsField.claimFocus()
+                return 0
+            if self.currentInFocusEdit == self.secondsField:
+                self.currentInFocusEdit = None
+                return 1
+            return 0  # Not going to happen
+        else:
+            self.degreesField.claimFocus()
+            return 0
+
+    def prevFocus(self):
+        if self.currentInFocusEdit != None:
+            if self.currentInFocusEdit == self.secondsField:
+                self.currentInFocusEdit = self.minutesField
+                self.minutesField.claimFocus()
+                return 0
+            if self.currentInFocusEdit == self.minutesField:
+                self.currentInFocusEdit = self.degreesField
+                self.degreesField.claimFocus()
+                return 0
+            if self.currentInFocusEdit == self.degreesField:
+                self.currentInFocusEdit = None
+                return -1
+            return 0  # Not going to happen
+        else:
+            self.secondsField.claimFocus()
+            return 0
+
+    def setFocus0(self, idx):
         print('Set focus on line edit#{}'.format(idx))
 
     def setCellLocation(self, cell):
@@ -380,6 +429,14 @@ class WPNumberPanel(QWidget):
     def setValue(self, val):
         self.value = val
         self.editField.setText(str(self.value))
+
+    def nextFocus(self):
+        self.editField.setFocus(Qt.OtherFocusReason)
+        return 1
+
+    def prevFocus(self):
+        self.editField.setFocus(Qt.OtherFocusReason)
+        return -1
 
 class WaypointList(QTableWidget):
 
@@ -553,15 +610,35 @@ class WaypointList(QTableWidget):
             self.removeRow(1)
 
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Backtab, Qt.Key_Tab):
+        key = event.key()
+        if key in (Qt.Key_Backtab, Qt.Key_Tab):
             # Tab/ShiftTab keys will be used to navigate between defferent line edits
             if self.currentInFocusCell != None:
-                # TODO 1. Check if current cess has multiple line edits
+                # 1. Check if current cess has multiple line edits
                 # 2. Move to another cell
-                # row = self.currentInFocusCell[0]
-                # col = self.currentInFocusCell[1]
-                pass
-        else:
+                row = self.currentInFocusCell[0]
+                col = self.currentInFocusCell[1]
+                if key == Qt.Key_Tab:
+                    ret = self.cellWidget(row, col).nextFocus()
+                    if ret == 1:
+                        if col < self.columnCount() - 2:  # Skip last column
+                            col += 1
+                        elif row < self.rowCount() - 1:
+                            row += 1
+                            col = 0
+                        self.currentInFocusCell = (row, col)
+                        self.cellWidget(row, col).nextFocus()
+                elif key == Qt.Key_Backtab:
+                    ret = self.cellWidget(row, col).prevFocus()
+                    if ret == -1:
+                        if col > 0:
+                            col -= 1
+                        elif row > 1: # skip home row
+                            row -= 1
+                            col = self.columnCount() - 2 # Skip last column
+                        self.currentInFocusCell = (row, col)
+                        self.cellWidget(row, col).prevFocus()
+        else: # key not in (Qt.Key_Backtab, Qt.Key_Tab)
             super().keyPressEvent(event)
 
     def cellFocusChangedEvent(self, cell):
