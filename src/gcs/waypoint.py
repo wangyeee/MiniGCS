@@ -673,7 +673,7 @@ class WaypointList(QTableWidget):
             super().keyPressEvent(event)
 
     def cellFocusChangedEvent(self, cell):
-        print('Focus to {}, {}'.format(cell[0], cell[1]))
+        # print('Focus to {}, {}'.format(cell[0], cell[1]))
         self.currentInFocusCell = cell
 
 

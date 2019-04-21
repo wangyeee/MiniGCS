@@ -1,5 +1,6 @@
+import os
 from enum import Enum
-
+from time import time
 from pymavlink import mavutil
 from pymavlink.mavwp import MAVWPLoader
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
@@ -10,6 +11,7 @@ from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
 from waypoint import Waypoint
+from UserData import UserData
 
 BAUD_RATES = {
     110 : '110',
@@ -219,6 +221,8 @@ class MAVLinkConnection(QThread):
                 else:
                     self._msgDispatcher(msg)
         self.connection.close()
+        if self.connection.logfile_raw != None:
+            self.connection.logfile_raw.close()
         # print('connection closed')
 
     def _msgDispatcher(self, msg):
@@ -230,6 +234,7 @@ class MAVLinkConnection(QThread):
 
     def _establishConnection(self):
         hb = self.connection.wait_heartbeat()
+        self.__createLogFile()
         self.mavStatus[MavStsKeys.VEHICLE_TYPE] = hb.type
         self.mavStatus[MavStsKeys.AP_TYPE] = hb.autopilot
         self.mavStatus[MavStsKeys.AP_MODE] = hb.base_mode
@@ -325,3 +330,9 @@ class MAVLinkConnection(QThread):
 
     def initializeReturnToHome(self, home: Waypoint):
         print('RTH started:', home)
+
+    def __createLogFile(self):
+        param = UserData.getInstance().getUserDataEntry('TELEMETRY')
+        if param != None:
+            name = 'MAV_{}.bin'.format(int(time() * 1000))
+            self.connection.setup_logfile_raw(os.path.join(param['LOG_FOLDER'], name), 'w')
