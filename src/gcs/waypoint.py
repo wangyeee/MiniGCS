@@ -127,10 +127,12 @@ class WaypointListCell(QWidget):
         self._moveCursor()
         return 0
 
-    def _moveCursor(self):
+    def _moveCursor(self, field = None):
         if self.moveCursorWhenFocus:
-            pos = self.mapToGlobal(QPoint(0,0))
-            ctr = self.rect().center()
+            if field == None:
+                field = self
+            pos = field.mapToGlobal(QPoint(0,0))
+            ctr = field.rect().center()
             QCursor.setPos(pos.x() + ctr.x(), pos.y() + ctr.y())
 
 class WaypointEditPanel(QWidget):
@@ -351,10 +353,12 @@ class WPDegreePanel(WaypointListCell):
             if self.currentInFocusEdit == self.degreesField:
                 self.currentInFocusEdit = self.minutesField
                 self.minutesField.claimFocus()
+                self._moveCursor(self.minutesField)
                 return 0
             if self.currentInFocusEdit == self.minutesField:
                 self.currentInFocusEdit = self.secondsField
                 self.secondsField.claimFocus()
+                self._moveCursor(self.secondsField)
                 return 0
             if self.currentInFocusEdit == self.secondsField:
                 self.currentInFocusEdit = None
@@ -362,6 +366,7 @@ class WPDegreePanel(WaypointListCell):
             return 0  # Not going to happen
         else:
             self.degreesField.claimFocus()
+            self._moveCursor(self.degreesField)
             return 0
 
     def prevFocus(self):
@@ -369,10 +374,12 @@ class WPDegreePanel(WaypointListCell):
             if self.currentInFocusEdit == self.secondsField:
                 self.currentInFocusEdit = self.minutesField
                 self.minutesField.claimFocus()
+                self._moveCursor(self.minutesField)
                 return 0
             if self.currentInFocusEdit == self.minutesField:
                 self.currentInFocusEdit = self.degreesField
                 self.degreesField.claimFocus()
+                self._moveCursor(self.degreesField)
                 return 0
             if self.currentInFocusEdit == self.degreesField:
                 self.currentInFocusEdit = None
@@ -380,6 +387,7 @@ class WPDegreePanel(WaypointListCell):
             return 0  # Not going to happen
         else:
             self.secondsField.claimFocus()
+            self._moveCursor(self.secondsField)
             return 0
 
     def setCellLocation(self, cell):
