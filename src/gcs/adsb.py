@@ -55,16 +55,16 @@ class AircraftsModel(QAbstractListModel):
         if idx < 0 or idx > len(self.allAircrafts) - 1:
             return QVariant()
         if role == self.positionRole:
-            # print('Position update#{} at {} => {}, {}'.format(idx, self.allAircrafts[idx].loggedDate, self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon and self.allAircrafts[idx].altitude:
+                # 3D position, altitude is displayed next to aircraft icon
                 return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon, self.allAircrafts[idx].altitude))
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
+                # 2D position, 'Unknown Altitude' is displayed next to aircraft icon
                 return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
             return QVariant(QGeoCoordinate())
         if role == self.headingRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
                 if self.allAircrafts[idx].track:
-                    # print('Heading update#{} => {}'.format(idx, self.allAircrafts[idx].track))
                     return QVariant(self.allAircrafts[idx].track)
             return QVariant(0)
         if role == self.callsignRole:
@@ -244,6 +244,12 @@ class Dump1090NetLocal(Dump1090NetClient):
                 texts = io.StringIO(ps.stdout.decode('utf-8'))
                 for text in texts:
                     if text.startswith('--enable-bias-tee'):
+                        # Check if dump1090 supports setting bias T in RTL-SDR
+                        # Enabling bias T with supported RTL-SDR receiver and external
+                        # LNA will significantly increase range
+                        # Source: https://github.com/wangyeee/dump1090/tree/minigcs_integration
+                        # Receiver: https://www.rtl-sdr.com/rtl-sdr-blog-v-3-dongles-user-guide
+                        # LNA: https://www.rtl-sdr.com/new-product-rtl-sdr-blog-1090-mhz-ads-b-lna
                         self.isBiasTeeSupported = True
         except FileNotFoundError:
             print('DUMP1090 not installed.')
