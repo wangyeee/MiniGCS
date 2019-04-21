@@ -134,6 +134,7 @@ class WaypointListCell(QWidget):
             pos = field.mapToGlobal(QPoint(0,0))
             ctr = field.rect().center()
             QCursor.setPos(pos.x() + ctr.x(), pos.y() + ctr.y())
+            field.setCursor(Qt.BlankCursor)
 
 class WaypointEditPanel(QWidget):
 
