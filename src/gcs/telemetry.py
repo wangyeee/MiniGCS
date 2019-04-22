@@ -3,6 +3,7 @@ from enum import Enum
 from time import time
 from pymavlink import mavutil
 from pymavlink.mavwp import MAVWPLoader
+from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
                           QWaitCondition, pyqtSignal)
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
@@ -294,7 +295,10 @@ class MAVLinkConnection(QThread):
         self._sendMissionCount(len(wpList))
 
     def setHomePosition(self, wp):
-        item = wp.toMavlinkMessage(self.connection.target_system, self.connection.target_component, 0)
+        item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system, self.connection.target_component, 0,
+                                                            mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_DO_SET_HOME , 1, 0,
+                                                            1, None, None, None,
+                                                            wp.latitude, wp.longitude, wp.altitude)
         self._sendOneWaypoint(item)
 
     def _sendMissionCount(self, cnt):
@@ -330,6 +334,10 @@ class MAVLinkConnection(QThread):
 
     def initializeReturnToHome(self, home: Waypoint):
         print('RTH started:', home)
+        item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system, self.connection.target_component, 0,
+                                                            mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 1, 0,
+                                                            None, None, None, None, None, None, None)
+        self._sendOneWaypoint(item)
 
     def __createLogFile(self):
         param = UserData.getInstance().getUserDataEntry('TELEMETRY')

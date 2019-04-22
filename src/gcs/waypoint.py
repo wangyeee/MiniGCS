@@ -14,7 +14,7 @@ WP_TYPE_NAMES = {
     mavlink.MAV_CMD_NAV_LOITER_UNLIM : 'Loiter Unlimited',
     mavlink.MAV_CMD_NAV_LOITER_TURNS : 'Loiter Turns',
     mavlink.MAV_CMD_NAV_LOITER_TIME : 'Loiter Time',
-    mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH : 'Return to Launch',
+    # mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH : 'Return to Launch',
     mavlink.MAV_CMD_NAV_LAND : 'Land',
     mavlink.MAV_CMD_NAV_TAKEOFF : 'Takeoff',
     mavlink.MAV_CMD_NAV_LAND_LOCAL : 'Land Local',
