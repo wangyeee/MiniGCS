@@ -322,18 +322,15 @@ class MAVLinkConnection(QThread):
         self.txResponseCond.wakeAll()
 
     def navigateToWaypoint(self, wp: Waypoint):
-        print('Goto', wp)
-        # TODO sent MAV_CMD_NAV_WAYPOINT message to UAV
-        # mavlink.mission_item_send(self.target_system,
-        #                           self.target_component,
-        #                           0,
-        #                           self.get_default_frame(),
-        #                           mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
-        #                           2, 0, 0, 0, 0, 0,
-        #                           wp.latitude, wp.longitude, wp.altitude)
+        item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system, self.connection.target_component, 0,
+                                                            mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_NAV_WAYPOINT, 1,
+                                                            1,  # Auto continue to next waypoint
+                                                            0, 0, 0, 0, wp.latitude, wp.longitude, wp.altitude)
+        self._sendOneWaypoint(item)
 
     def initializeReturnToHome(self, home: Waypoint):
         print('RTH started:', home)
+        # TODO compare the home location in UAV with it in GCS
         item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system, self.connection.target_component, 0,
                                                             mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 1, 0,
                                                             None, None, None, None, None, None, None)
