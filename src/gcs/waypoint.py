@@ -719,6 +719,10 @@ class WaypointList(QTableWidget):
 
 class HomeEditWindow(QWidget):
 
+    HOME_SRC_UAV = 0
+    HOME_SRC_MAP = 1
+    HOME_SRC_MANUAL = 2
+
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setWindowTitle('Edit Home Location')
@@ -749,7 +753,6 @@ class HomeEditWindow(QWidget):
         columnSpan = 1
         l.addWidget(QLabel('Latitude'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
         self.latitudeField = WPDegreePanel(0.0, WPDegreePanel.LATITUDE_TYPE)
-        self.latitudeField.disableEdit()
         columnSpan = 2
         l.addWidget(self.latitudeField, row, column + 1, rowSpan, columnSpan, Qt.AlignLeft)
 
@@ -757,7 +760,6 @@ class HomeEditWindow(QWidget):
         columnSpan = 1
         l.addWidget(QLabel('Longitude'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
         self.longitudeField = WPDegreePanel(0.0, WPDegreePanel.LONGITUDE_TYPE)
-        self.longitudeField.disableEdit()
         columnSpan = 2
         l.addWidget(self.longitudeField, row, column + 1, rowSpan, columnSpan, Qt.AlignLeft)
 
@@ -765,7 +767,6 @@ class HomeEditWindow(QWidget):
         columnSpan = 1
         l.addWidget(QLabel('Altitude'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
         self.altitudeField = WPNumberPanel(0.0, uom='m')
-        self.altitudeField.disableEdit()
         columnSpan = 2
         l.addWidget(self.altitudeField, row, column + 1, rowSpan, columnSpan, Qt.AlignLeft)
 
@@ -778,7 +779,23 @@ class HomeEditWindow(QWidget):
         self.cancelButton.clicked.connect(self.close)
         l.addWidget(self.cancelButton, row, column + 2, rowSpan, columnSpan, Qt.AlignRight)
 
+        self.setInitialHomeLocationSource(HomeEditWindow.HOME_SRC_UAV)  # Default to home location reported by the UAV
         self.setLayout(l)
+
+    def setInitialHomeLocationSource(self, src, wp: Waypoint = None):
+        if src == HomeEditWindow.HOME_SRC_UAV:
+            self.srcDroneHomeLocation.setChecked(True)
+            self.__enableManualInputs(False)
+        elif src == HomeEditWindow.HOME_SRC_MAP:
+            self.srcMapHomeLocation.setChecked(True)
+            self.__enableManualInputs(False)
+        elif src == HomeEditWindow.HOME_SRC_MANUAL:
+            self.srcInputHomeLocation.setChecked(True)
+            if wp != None:
+                self.latitudeField.setValue(wp.latitude)
+                self.longitudeField.setValue(wp.longitude)
+                self.altitudeField.setValue(wp.altitude)
+            self.__enableManualInputs(True)
 
     def __setHomeLocationSource(self):
         print('__setHomeLocationSource')
