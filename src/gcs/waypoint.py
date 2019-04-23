@@ -1,8 +1,8 @@
 from PyQt5.QtCore import QObject, QRect, Qt, QVariant, pyqtSignal, QPoint
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
-                             QLabel, QLineEdit, QMessageBox, QPushButton,
-                             QTableWidget, QTableWidgetItem, QWidget)
+                             QLabel, QLineEdit, QMessageBox, QPushButton, QButtonGroup, QRadioButton,
+                             QTableWidget, QTableWidgetItem, QWidget, QGridLayout)
 from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator, QCursor
 from enum import Enum
 
@@ -114,6 +114,7 @@ class Waypoint(QObject):
 
 class WaypointListCell(QWidget):
     moveCursorWhenFocus = False
+    editEnable = True
 
     def __init__(self, moveCursorWhenFocus = False, parent = None):
         super().__init__(parent)
@@ -126,6 +127,12 @@ class WaypointListCell(QWidget):
     def prevFocus(self):
         self._moveCursor()
         return 0
+
+    def enableEdit(self):
+        self.editEnable = True
+
+    def disableEdit(self):
+        self.editEnable = False
 
     def _moveCursor(self, field = None):
         if self.moveCursorWhenFocus:
@@ -480,6 +487,7 @@ class WaypointList(QTableWidget):
     cancelDeleteWaypoint = pyqtSignal(object)  # signal sent for cancelled waypoint removal
     afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
     currentInFocusCell = None
+    homeEditWindow = None
 
     def __init__(self, wpList, parent = None):
         super().__init__(parent)
@@ -491,6 +499,7 @@ class WaypointList(QTableWidget):
         # 1 -> use current drone location
         # 0 -> use the location of home icon on map
         self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1] = 0
+        self.homeEditWindow = HomeEditWindow()
 
     def createTableHeader(self):
         '''
@@ -623,8 +632,7 @@ class WaypointList(QTableWidget):
         self._setRowData(0, data)
 
     def editHomeLocation(self):
-        print('Edit home location popup')
-        # self.updateHomeLocation.emit(self.homeLocation)
+        self.homeEditWindow.show()
 
     def requestReturnHome(self):
         print('RTL started: {0}, {1} at {2}'.format(self.homeLocation.latitude, self.homeLocation.longitude, self.homeLocation.altitude))
@@ -676,6 +684,81 @@ class WaypointList(QTableWidget):
         # print('Focus to {}, {}'.format(cell[0], cell[1]))
         self.currentInFocusCell = cell
 
+class HomeEditWindow(QWidget):
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle('Edit Home Location')
+        self.homeSrcGrp = QButtonGroup(self)
+        l = QGridLayout()
+        row = 0
+        column = 0
+        rowSpan = 1
+        columnSpan = 3
+        l.addWidget(QLabel('Choose data source'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
+        self.srcDroneHomeLocation = QRadioButton('Home location in the UAV', self)
+        self.homeSrcGrp.addButton(self.srcDroneHomeLocation)
+        row += 1
+        l.addWidget(self.srcDroneHomeLocation, row, column, rowSpan, columnSpan, Qt.AlignLeft)
+
+        self.srcMapHomeLocation = QRadioButton('Home location on the map', self)
+        self.homeSrcGrp.addButton(self.srcMapHomeLocation)
+        row += 1
+        l.addWidget(self.srcMapHomeLocation, row, column, rowSpan, columnSpan, Qt.AlignLeft)
+
+        self.srcInputHomeLocation = QRadioButton('Manual input', self)
+        self.homeSrcGrp.addButton(self.srcInputHomeLocation)
+        row += 1
+        l.addWidget(self.srcInputHomeLocation, row, column, rowSpan, columnSpan, Qt.AlignLeft)
+        self.srcInputHomeLocation.toggled.connect(self.__enableManualInputs)
+
+        row += 1
+        columnSpan = 1
+        l.addWidget(QLabel('Latitude'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
+        self.latitudeField = WPDegreePanel(0.0, WPDegreePanel.LATITUDE_TYPE)
+        self.latitudeField.disableEdit()
+        columnSpan = 2
+        l.addWidget(self.latitudeField, row, column + 1, rowSpan, columnSpan, Qt.AlignLeft)
+
+        row += 1
+        columnSpan = 1
+        l.addWidget(QLabel('Longitude'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
+        self.longitudeField = WPDegreePanel(0.0, WPDegreePanel.LONGITUDE_TYPE)
+        self.longitudeField.disableEdit()
+        columnSpan = 2
+        l.addWidget(self.longitudeField, row, column + 1, rowSpan, columnSpan, Qt.AlignLeft)
+
+        row += 1
+        columnSpan = 1
+        l.addWidget(QLabel('Altitude'), row, column, rowSpan, columnSpan, Qt.AlignLeft)
+        self.altitudeField = WPNumberPanel(0.0, uom='m')
+        self.altitudeField.disableEdit()
+        columnSpan = 2
+        l.addWidget(self.altitudeField, row, column + 1, rowSpan, columnSpan, Qt.AlignLeft)
+
+        row += 1
+        columnSpan = 1
+        self.okButton = QPushButton('OK', self)
+        self.okButton.clicked.connect(self.__setHomeLocationSource)
+        l.addWidget(self.okButton, row, column + 1, rowSpan, columnSpan, Qt.AlignRight)
+        self.cancelButton = QPushButton('Cancel', self)
+        self.cancelButton.clicked.connect(self.close)
+        l.addWidget(self.cancelButton, row, column + 2, rowSpan, columnSpan, Qt.AlignRight)
+
+        self.setLayout(l)
+
+    def __setHomeLocationSource(self):
+        print('__setHomeLocationSource')
+
+    def __enableManualInputs(self, checked):
+        if checked:
+            self.latitudeField.enableEdit()
+            self.longitudeField.enableEdit()
+            self.altitudeField.enableEdit()
+        else:
+            self.latitudeField.disableEdit()
+            self.longitudeField.disableEdit()
+            self.altitudeField.disableEdit()
 
 class WaypointEditWindowFactory:
 
