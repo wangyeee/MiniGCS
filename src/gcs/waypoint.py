@@ -3,7 +3,7 @@ from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
                              QLabel, QLineEdit, QMessageBox, QPushButton, QButtonGroup, QRadioButton,
                              QTableWidget, QTableWidgetItem, QWidget, QGridLayout)
-from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator, QCursor
+from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator, QCursor, QPalette
 from enum import Enum
 
 from pymavlink.dialects.v10 import common as mavlink
@@ -134,6 +134,14 @@ class WaypointListCell(QWidget):
     def disableEdit(self):
         self.editEnable = False
 
+    def _setPaletteColor(self, base, text):
+        p = self.palette()
+        if p == None:
+            p = QPalette()
+        p.setColor(QPalette.Base, base)
+        p.setColor(QPalette.Text, text)
+        self.setPalette(p)
+
     def _moveCursor(self, field = None):
         if self.moveCursorWhenFocus:
             if field == None:
@@ -233,7 +241,7 @@ class FocusLineEdit(QLineEdit):
         self.setValidator(self.valueValidator)
 
     def wheelEvent(self, e):
-        if self.isBeingEdited:
+        if self.isBeingEdited and self.isReadOnly() == False:
             if type(self.validator()) == QDoubleValidator:
                 v = float(self.text())
                 v += e.angleDelta().y() / 120
@@ -401,6 +409,20 @@ class WPDegreePanel(WaypointListCell):
     def setCellLocation(self, cell):
         self.cachedCellLocation = cell
 
+    def enableEdit(self):
+        super().enableEdit()
+        self._setPaletteColor(Qt.white, Qt.black)
+        self.degreesField.setReadOnly(False)
+        self.minutesField.setReadOnly(False)
+        self.secondsField.setReadOnly(False)
+
+    def disableEdit(self):
+        super().disableEdit()
+        self._setPaletteColor(Qt.gray, Qt.darkGray)
+        self.degreesField.setReadOnly(True)
+        self.minutesField.setReadOnly(True)
+        self.secondsField.setReadOnly(True)
+
     def _getDirLabel(self, deg, ctype):
         if ctype == 'LAT':
             t = 'N'
@@ -463,8 +485,9 @@ class WPNumberPanel(WaypointListCell):
         return int(self.editField.text()) if self.isInteger else float(self.editField.text())
 
     def setValue(self, val):
-        self.value = val
-        self.editField.setText(str(self.value))
+        if self.editField.readOnly() == False:
+            self.value = val
+            self.editField.setText(str(self.value))
 
     def nextFocus(self):
         super().nextFocus()
@@ -475,6 +498,16 @@ class WPNumberPanel(WaypointListCell):
         super().prevFocus()
         self.editField.setFocus(Qt.OtherFocusReason)
         return -1
+
+    def enableEdit(self):
+        super().enableEdit()
+        self._setPaletteColor(Qt.white, Qt.black)
+        self.editField.setReadOnly(False)
+
+    def disableEdit(self):
+        super().disableEdit()
+        self._setPaletteColor(Qt.gray, Qt.darkGray)
+        self.editField.setReadOnly(True)
 
 class WaypointList(QTableWidget):
 
