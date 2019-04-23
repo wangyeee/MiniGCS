@@ -485,7 +485,7 @@ class WPNumberPanel(WaypointListCell):
         return int(self.editField.text()) if self.isInteger else float(self.editField.text())
 
     def setValue(self, val):
-        if self.editField.readOnly() == False:
+        if self.editField.isReadOnly() == False:
             self.value = val
             self.editField.setText(str(self.value))
 
@@ -521,6 +521,7 @@ class WaypointList(QTableWidget):
     afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
     currentInFocusCell = None
     homeEditWindow = None
+    manualSetHomeLocationSource = False
 
     def __init__(self, wpList, parent = None):
         super().__init__(parent)
@@ -529,10 +530,11 @@ class WaypointList(QTableWidget):
         self.wpList = wpList
         self.setRowCount(len(self.wpList) + 1)
         self.createHomeWaypointRow()
-        # 1 -> use current drone location
-        # 0 -> use the location of home icon on map
-        self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1] = 0
+        # HomeEditWindow.HOME_SRC_UAV (1) -> use current drone location
+        # HomeEditWindow.HOME_SRC_MAP (0) -> use the location of home icon on map
+        self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1] = HomeEditWindow.HOME_SRC_UAV
         self.homeEditWindow = HomeEditWindow()
+        self.homeEditWindow.updateHomeLocationSourceSignal.connect(self.updateHomeLocationSourceEvent)
 
     def createTableHeader(self):
         '''
@@ -582,6 +584,8 @@ class WaypointList(QTableWidget):
     def updateHomeLocation(self, coord: QGeoCoordinate):
         self.homeLocation.latitude = coord.latitude()
         self.homeLocation.longitude = coord.longitude()
+        if coord.type() == QGeoCoordinate.Coordinate3D:
+            self.homeLocation.altitude = coord.altitude()
         self.setHomeLocation(self.homeLocation)
 
     def addWaypoint(self, wp: Waypoint):
@@ -665,6 +669,10 @@ class WaypointList(QTableWidget):
         self._setRowData(0, data)
 
     def editHomeLocation(self):
+        src = self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1]
+        if self.manualSetHomeLocationSource and src == HomeEditWindow.HOME_SRC_MAP:
+            src = HomeEditWindow.HOME_SRC_MANUAL
+        self.homeEditWindow.setInitialHomeLocationSource(src, self.homeLocation)
         self.homeEditWindow.show()
 
     def requestReturnHome(self):
@@ -714,13 +722,26 @@ class WaypointList(QTableWidget):
             super().keyPressEvent(event)
 
     def cellFocusChangedEvent(self, cell):
-        # print('Focus to {}, {}'.format(cell[0], cell[1]))
         self.currentInFocusCell = cell
+
+    def updateHomeLocationSourceEvent(self, src, coord):
+        self.manualSetHomeLocationSource = False
+        if src == HomeEditWindow.HOME_SRC_UAV:
+            self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1] = HomeEditWindow.HOME_SRC_UAV
+        elif src in (HomeEditWindow.HOME_SRC_MAP, HomeEditWindow.HOME_SRC_MANUAL):
+            self.homeLocation.mavlinkParameters[MAVWaypointParameter.PARAM1] = HomeEditWindow.HOME_SRC_MAP
+        if coord != None and src == HomeEditWindow.HOME_SRC_MANUAL:
+            self.manualSetHomeLocationSource = True
+            self.updateHomeLocation(coord)
 
 class HomeEditWindow(QWidget):
 
-    HOME_SRC_UAV = 0
-    HOME_SRC_MAP = 1
+    # 1st param, src: could be HOME_SRC_MAP, HOME_SRC_UAV, or HOME_SRC_MANUAL
+    # 2st param, coord: QGeoCoordinate object if src == HOME_SRC_MANUAL, else None
+    updateHomeLocationSourceSignal = pyqtSignal(int, object)
+
+    HOME_SRC_MAP = 0  # Must be 0 to conform mavlink protocol
+    HOME_SRC_UAV = 1  # Must be 1 to conform mavlink protocol
     HOME_SRC_MANUAL = 2
 
     def __init__(self, parent = None):
@@ -791,14 +812,21 @@ class HomeEditWindow(QWidget):
             self.__enableManualInputs(False)
         elif src == HomeEditWindow.HOME_SRC_MANUAL:
             self.srcInputHomeLocation.setChecked(True)
-            if wp != None:
-                self.latitudeField.setValue(wp.latitude)
-                self.longitudeField.setValue(wp.longitude)
-                self.altitudeField.setValue(wp.altitude)
             self.__enableManualInputs(True)
+        if wp != None:
+            self.latitudeField.setValue(wp.latitude)
+            self.longitudeField.setValue(wp.longitude)
+            self.altitudeField.setValue(wp.altitude)
 
     def __setHomeLocationSource(self):
-        print('__setHomeLocationSource')
+        if self.srcDroneHomeLocation.isChecked():
+            self.updateHomeLocationSourceSignal.emit(HomeEditWindow.HOME_SRC_UAV, None)
+        elif self.srcMapHomeLocation.isChecked():
+            self.updateHomeLocationSourceSignal.emit(HomeEditWindow.HOME_SRC_MAP, None)
+        elif self.srcInputHomeLocation.isChecked():
+            coord = QGeoCoordinate(self.latitudeField.getValue(), self.longitudeField.getValue(), self.altitudeField.getValue())
+            self.updateHomeLocationSourceSignal.emit(HomeEditWindow.HOME_SRC_MANUAL, coord)
+        self.close()
 
     def __enableManualInputs(self, checked):
         if checked:
