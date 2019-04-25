@@ -250,7 +250,8 @@ class MAVLinkConnection(QThread):
         self.paramList.append(msg)
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
-            self.paramPanel = ParameterPanel(self.paramList)
+            # self.paramPanel = ParameterPanel(self.paramList)
+            # self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
             self.downloadWaypoints()  # request to read all onboard waypoints
             self.connectionEstablishedSignal.emit()
 
@@ -279,7 +280,10 @@ class MAVLinkConnection(QThread):
         self.txResponseCond.wakeAll()
 
     def showParameterEditWindow(self):
-        if self.paramPanel != None and self.isConnected:
+        if self.isConnected:
+            if self.paramPanel == None:
+                self.paramPanel = ParameterPanel(self.paramList)
+                self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
             self.paramPanel.show()
 
     def downloadWaypoints(self):
@@ -335,6 +339,9 @@ class MAVLinkConnection(QThread):
                                                             mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 1, 0,
                                                             None, None, None, None, None, None, None)
         self._sendOneWaypoint(item)
+
+    def uploadNewParametersEvent(self, params: dict):
+        print('sending parameters:', params)
 
     def __createLogFile(self):
         param = UserData.getInstance().getUserDataEntry('TELEMETRY')
