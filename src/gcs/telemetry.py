@@ -340,7 +340,7 @@ class MAVLinkConnection(QThread):
                                                             None, None, None, None, None, None, None)
         self._sendOneWaypoint(item)
 
-    def uploadNewParametersEvent(self, params: dict):
+    def uploadNewParametersEvent(self, params):
         print('sending parameters:', params)
 
     def __createLogFile(self):

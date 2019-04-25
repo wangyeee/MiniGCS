@@ -32,7 +32,7 @@ class ParameterList(QTableWidget):
         self.paramList = sorted(paramList, key = lambda p: p.param_id)
         print('Init param list with {} params.'.format(len(self.paramList)))
         self.createTableHeader()
-        self.createTableBody()
+        self.createTableBody(self.paramList)
 
     def createTableHeader(self):
         '''
@@ -43,11 +43,14 @@ class ParameterList(QTableWidget):
         self.setHorizontalHeaderLabels(hdr)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-    def createTableBody(self):
+    def createTableBody(self, plist, correctCount = False):
         rowNumber = 0
-        self.setRowCount(len(self.paramList))
-        for param in self.paramList:
+        paramCount = len(plist)
+        self.setRowCount(paramCount)
+        for param in plist:
             self.paramNameIndexCache[param.param_id] = rowNumber
+            if correctCount:
+                param.param_count = paramCount
             name = QTableWidgetItem(param.param_id)
             name.setFlags(name.flags() ^ Qt.ItemIsEditable)
             vstr = None
@@ -73,9 +76,15 @@ class ParameterList(QTableWidget):
         self.resizeRowsToContents()
         self.resizeColumnsToContents()
 
+    def showChangedParametersOnly(self):
+        while self.rowCount() > 0:  # Remove current parameters, if any
+            self.removeRow(0)
+        self.createTableBody(self.changedParams, True)
+
     def collectTableBody(self):
         self.changedParams.clear()
         self.allParams.clear()
+        changedParamIdx = 0
         for rowNumber in range(self.rowCount()):
             name = self.item(rowNumber, 0).text()
             ptype = self.item(rowNumber, 2).data(PARAM_TYPE_RAW_ROLE)
@@ -85,12 +94,13 @@ class ParameterList(QTableWidget):
                 value = float(self.item(rowNumber, 1).text())
             else:
                 value = self.item(rowNumber, 1).text()
-            # print('Row#{}: {} = {} ({})'.format(rowNumber, name, value, ptype))
             self.allParams[name] = value
             oldVal = self._initValue(name)
             if oldVal != value:
-                self.changedParams.append((name, value, oldVal, ptype))
-                # print('Value changed on row#{}: {} = {} -> {}'.format(rowNumber, name, oldVal, value))
+                # value of param_count will be corrected in showChangedParametersOnly()
+                p = mavlink.MAVLink_param_value_message(name, value, ptype, 0, changedParamIdx)
+                self.changedParams.append(p)
+                changedParamIdx += 1
 
     def _initValue(self, name):
         if name in self.paramNameIndexCache:
@@ -113,7 +123,7 @@ class ParameterList(QTableWidget):
 
 class ParameterPanel(QWidget):
 
-    uploadNewParametersSignal = pyqtSignal(object)  # dict[name] = value
+    uploadNewParametersSignal = pyqtSignal(object)  # list of MAVLink_param_value_message
 
     uploadUAVStep = 0
 
@@ -144,15 +154,13 @@ class ParameterPanel(QWidget):
                 QMessageBox.warning(self.window(), 'Warning', 'No changes have been made.', QMessageBox.Ok)
                 return
             print('Changed params: ', self.paramList.changedParams)
+            self.paramList.showChangedParametersOnly()
             self.uploadButton.setText('Confirm Upload')
             self.uploadUAVStep += 1
         elif self.uploadUAVStep == 1:  ## 'Confirm Upload' clicked
             print('Send parameters... ->', self.paramList.changedParams)
             self.uploadUAVStep = 0
-            newVals = {}
-            for p in self.paramList.changedParams:
-                newVals[p[0]] = p[1]
-            self.uploadNewParametersSignal.emit(newVals)
+            self.uploadNewParametersSignal.emit(self.paramList.changedParams)
             self.close()
 
     def saveToFile(self):
