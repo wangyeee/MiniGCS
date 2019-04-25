@@ -680,7 +680,7 @@ class WaypointList(QTableWidget):
         # TODO set status in GCS
         cfm = QMessageBox.question(self.window(),
                                    'Confirm RTH',
-                                   'Start return to home ({}, {})?'.format(self.homeLocation.latitude, self.homeLocation.longitude),
+                                   'Start return to home {}?'.format(self.homeLocation.getCoordinate().toString()),
                                    QMessageBox.Yes, QMessageBox.No)
         if cfm == QMessageBox.Yes:
             self.requestReturnToHome.emit(self.homeLocation)
