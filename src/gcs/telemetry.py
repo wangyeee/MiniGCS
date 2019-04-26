@@ -183,6 +183,9 @@ class MAVLinkConnection(QThread):
 
     def __init__(self, connection):
         super().__init__()
+        self.param = UserData.getInstance().getUserDataEntry('TELEMETRY')
+        if self.param == None:
+            self.param = {}
         self.running = True
         self.connection = connection
         self.handlerLookup['HEARTBEAT'] = self.heartBeatHandler
@@ -246,13 +249,11 @@ class MAVLinkConnection(QThread):
         self.connection.param_fetch_all()
 
     def receiveOnboardParameter(self, msg):
-        # print(msg)
         self.paramList.append(msg)
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
-            # self.paramPanel = ParameterPanel(self.paramList)
-            # self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
-            self.downloadWaypoints()  # request to read all onboard waypoints
+            if self.param['DOWNLOAD_WAYPOINTS_ON_CONNECT']:
+                self.downloadWaypoints()  # request to read all onboard waypoints
             self.connectionEstablishedSignal.emit()
 
     def receiveMissionItem(self, msg):
@@ -344,7 +345,5 @@ class MAVLinkConnection(QThread):
         print('sending parameters:', params)
 
     def __createLogFile(self):
-        param = UserData.getInstance().getUserDataEntry('TELEMETRY')
-        if param != None:
-            name = 'MAV_{}.bin'.format(int(time() * 1000))
-            self.connection.setup_logfile_raw(os.path.join(param['LOG_FOLDER'], name), 'w')
+        name = 'MAV_{}.hex'.format(int(time() * 1000))
+        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'w')
