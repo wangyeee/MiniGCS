@@ -7,7 +7,7 @@ from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
                           QWaitCondition, pyqtSignal)
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
-                             QSizePolicy, QWidget)
+                             QSizePolicy, QWidget, QTabWidget)
 from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
@@ -70,14 +70,27 @@ class MavStsKeys(Enum):
 
 class ConnectionEditWindow(QWidget):
 
-    portList = {}
-
     connectToMAVLink = pyqtSignal(object)
 
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.tabs = QTabWidget(self)
+        self.serialConnTab = SerialConnectionEditTab(self)
+        self.tabs.addTab(self.serialConnTab, 'Serial Link')
+
+        l = QGridLayout()
+        l.addWidget(self.tabs, 0, 0, 5, 5, Qt.AlignCenter)
+        self.setLayout(l)
+
+
+class SerialConnectionEditTab(QWidget):
+
+    portList = {}
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.connectToMAVLink = parent.connectToMAVLink
         self.listSerialPorts()
-        self.setWindowTitle('Serial Link')
         l = QGridLayout()
         row = 0
 
@@ -135,7 +148,7 @@ class ConnectionEditWindow(QWidget):
         # print(self.portList)
 
     def cancelConnection(self):
-        self.close()
+        self.parent().close()
 
     def connectSerialPort(self):
         port = self.portsDropDown.currentData()
@@ -144,7 +157,7 @@ class ConnectionEditWindow(QWidget):
         mavutil.set_dialect('autoquad')  # test
         connection = mavutil.mavlink_connection(port, int(baud))
         self.connectToMAVLink.emit(connection)
-        self.close()
+        self.parent().close()
 
 class MAVLinkConnection(QThread):
 
