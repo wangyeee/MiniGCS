@@ -6,8 +6,8 @@ from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
                           QWaitCondition, pyqtSignal)
-from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
-                             QSizePolicy, QWidget, QTabWidget)
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit,
+                             QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout)
 from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
@@ -76,11 +76,60 @@ class ConnectionEditWindow(QWidget):
         super().__init__(parent)
         self.tabs = QTabWidget(self)
         self.serialConnTab = SerialConnectionEditTab(self)
+        self.logReplayTab = LogFileReplayEditTab(self)
         self.tabs.addTab(self.serialConnTab, 'Serial Link')
-
-        l = QGridLayout()
-        l.addWidget(self.tabs, 0, 0, 5, 5, Qt.AlignCenter)
+        self.tabs.addTab(self.logReplayTab, 'Log File Replay')
+        l = QVBoxLayout()
+        l.setContentsMargins(0, 0, 0, 0)
+        l.addWidget(self.tabs)
+        l.addWidget(self.__createActionButtons())
         self.setLayout(l)
+
+    def __createActionButtons(self):
+        l = QHBoxLayout()
+        l.setContentsMargins(5, 0, 5, 5)
+        self.connectButton = QPushButton('Connect')
+        self.closeButton = QPushButton('Close')
+        self.connectButton.clicked.connect(self._doConnect)
+        self.closeButton.clicked.connect(self.close)
+        l.addWidget(self.connectButton)
+        l.addWidget(self.closeButton)
+        self.actionButtonWidget = QWidget()
+        self.actionButtonWidget.setLayout(l)
+        return self.actionButtonWidget
+
+    def _doConnect(self):
+        currTab = self.tabs.currentWidget()
+        if hasattr(currTab, 'doConnect'):
+            currTab.doConnect()
+            self.close()
+
+class LogFileReplayEditTab(QWidget):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.connectToMAVLink = parent.connectToMAVLink
+        l = QVBoxLayout()
+        l.setAlignment(Qt.AlignTop)
+        lbl = QLabel('Choose Log File')
+        l.addWidget(lbl)
+
+        fileWidget = QWidget(self)
+        l1 = QHBoxLayout()
+        self.logFilePathEdit = QLineEdit(self)
+        sp = self.logFilePathEdit.sizePolicy()
+        sp.setHorizontalStretch(1)
+        self.logFilePathEdit.setSizePolicy(sp)
+        l1.addWidget(self.logFilePathEdit)
+        self.browseButton = QPushButton('Browse')
+        l1.addWidget(self.browseButton)
+        fileWidget.setLayout(l1)
+
+        l.addWidget(fileWidget)
+        self.setLayout(l)
+
+    def doConnect(self):
+        print('LogFileReplayEditTab.doConnect')
 
 
 class SerialConnectionEditTab(QWidget):
@@ -122,12 +171,6 @@ class SerialConnectionEditTab(QWidget):
         l.addWidget(self.stopDropDown, row, 3, 1, 1, Qt.AlignLeft)
         row += 1
 
-        self.connectButton = QPushButton('Connect')
-        self.closeButton = QPushButton('Close')
-        l.addWidget(self.connectButton, row, 2, 1, 1, Qt.AlignCenter)
-        l.addWidget(self.closeButton, row, 3, 1, 1, Qt.AlignCenter)
-        self.connectButton.clicked.connect(self.connectSerialPort)
-        self.closeButton.clicked.connect(self.cancelConnection)
         self.setLayout(l)
 
     def _createDropDown(self, label, data: dict):
@@ -145,12 +188,8 @@ class SerialConnectionEditTab(QWidget):
             cnts += 1
         if cnts == 0:
             self.portList['No ports available'] = 'No ports available'
-        # print(self.portList)
 
-    def cancelConnection(self):
-        self.parent().close()
-
-    def connectSerialPort(self):
+    def doConnect(self):
         port = self.portsDropDown.currentData()
         baud = self.baudDropDown.currentData()
         # print('{} -- {}'.format(port, baud))
