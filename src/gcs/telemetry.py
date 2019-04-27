@@ -133,6 +133,8 @@ class LogFileReplayEditTab(QWidget):
         fileName = self.logFilePathEdit.text()
         if os.path.isfile(fileName):
             print('Replay Log file:', fileName)
+            connection = mavutil.mavlogfile(fileName)
+            self.connectToMAVLink.emit(connection)
             return True
         QMessageBox.critical(self.window(), 'Error', 'Invalid log file: {}'.format(fileName), QMessageBox.Ok)
         return False
@@ -407,5 +409,5 @@ class MAVLinkConnection(QThread):
         print('sending parameters:', params)
 
     def __createLogFile(self):
-        name = 'MAV_{}.hex'.format(int(time() * 1000))
-        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'w')
+        name = 'MAV_{}.bin'.format(int(time() * 1000))
+        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')  # a patch is needed in mavutil.py to support binary mode
