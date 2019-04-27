@@ -1,4 +1,4 @@
-import os
+import os, struct
 from enum import Enum
 from time import time
 from pymavlink import mavutil
@@ -245,13 +245,21 @@ class MAVLinkConnection(QThread):
     numberOfonboardWP = 0
     onboardWP = []
 
-    def __init__(self, connection):
+    enableLog = True
+    replayMode = False
+    mavlinkLogFile = None
+
+    def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
         self.param = UserData.getInstance().getUserDataEntry('TELEMETRY')
         if self.param == None:
             self.param = {}
         self.running = True
         self.connection = connection
+        self.replayMode = replayMode
+        self.enableLog = enableLog
+        if replayMode:
+            self.enableLog = False
         self.handlerLookup['HEARTBEAT'] = self.heartBeatHandler
         self.handlerLookup['ATTITUDE'] = self.altitudeHandler
         self.handlerLookup['GPS_RAW_INT'] = self.gpsRawIntHandler
@@ -284,13 +292,16 @@ class MAVLinkConnection(QThread):
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
                 msgType = msg.get_type()
+                if self.enableLog:
+                    ts = int(time() * 1.0e6) & ~3
+                    self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
                 if msgType in self.internalHandlerLookup:
                     self.internalHandlerLookup[msgType](msg)
                 else:
                     self._msgDispatcher(msg)
         self.connection.close()
-        if self.connection.logfile_raw != None:
-            self.connection.logfile_raw.close()
+        if self.enableLog and self.mavlinkLogFile != None:
+            self.mavlinkLogFile.close()
         # print('connection closed')
 
     def _msgDispatcher(self, msg):
@@ -310,7 +321,12 @@ class MAVLinkConnection(QThread):
         self.mavStatus[MavStsKeys.AP_SYS_STS] = hb.system_status
         self.mavStatus[MavStsKeys.MAVLINK_VER] = hb.mavlink_version
         # request all parameters
-        self.connection.param_fetch_all()
+        if self.replayMode:
+            print('conneced in replay mode')
+            self.isConnected = True
+            self.connectionEstablishedSignal.emit()
+        else:
+            self.connection.param_fetch_all()
 
     def receiveOnboardParameter(self, msg):
         self.paramList.append(msg)
@@ -409,5 +425,7 @@ class MAVLinkConnection(QThread):
         print('sending parameters:', params)
 
     def __createLogFile(self):
-        name = 'MAV_{}.bin'.format(int(time() * 1000))
-        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')  # a patch is needed in mavutil.py to support binary mode
+        if self.enableLog:
+            name = 'MAV_{}.bin'.format(int(time() * 1000))
+            self.mavlinkLogFile = open(os.path.join(self.param['LOG_FOLDER'], name), 'wb')
+            # self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')
