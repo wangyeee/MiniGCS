@@ -6,8 +6,8 @@ from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
                           QWaitCondition, pyqtSignal)
-from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit,
-                             QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout)
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
+                             QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox)
 from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
@@ -101,8 +101,8 @@ class ConnectionEditWindow(QWidget):
     def _doConnect(self):
         currTab = self.tabs.currentWidget()
         if hasattr(currTab, 'doConnect'):
-            currTab.doConnect()
-            self.close()
+            if currTab.doConnect():
+                self.close()
 
 class LogFileReplayEditTab(QWidget):
 
@@ -122,6 +122,7 @@ class LogFileReplayEditTab(QWidget):
         self.logFilePathEdit.setSizePolicy(sp)
         l1.addWidget(self.logFilePathEdit)
         self.browseButton = QPushButton('Browse')
+        self.browseButton.clicked.connect(self.__chooseLogFile)
         l1.addWidget(self.browseButton)
         fileWidget.setLayout(l1)
 
@@ -129,8 +130,17 @@ class LogFileReplayEditTab(QWidget):
         self.setLayout(l)
 
     def doConnect(self):
-        print('LogFileReplayEditTab.doConnect')
+        fileName = self.logFilePathEdit.text()
+        if os.path.isfile(fileName):
+            print('Replay Log file:', fileName)
+            return True
+        QMessageBox.critical(self.window(), 'Error', 'Invalid log file: {}'.format(fileName), QMessageBox.Ok)
+        return False
 
+    def __chooseLogFile(self):
+        fileName = QFileDialog.getOpenFileName(self, 'Choose Log File')
+        if fileName != None:
+            self.logFilePathEdit.setText(fileName[0])
 
 class SerialConnectionEditTab(QWidget):
 
@@ -196,7 +206,7 @@ class SerialConnectionEditTab(QWidget):
         mavutil.set_dialect('autoquad')  # test
         connection = mavutil.mavlink_connection(port, int(baud))
         self.connectToMAVLink.emit(connection)
-        self.parent().close()
+        return True
 
 class MAVLinkConnection(QThread):
 
