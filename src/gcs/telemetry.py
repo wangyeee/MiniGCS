@@ -6,8 +6,8 @@ from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
                           QWaitCondition, pyqtSignal)
-from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton,
-                             QSizePolicy, QWidget)
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
+                             QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox)
 from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
@@ -70,14 +70,88 @@ class MavStsKeys(Enum):
 
 class ConnectionEditWindow(QWidget):
 
-    portList = {}
-
     connectToMAVLink = pyqtSignal(object)
 
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.tabs = QTabWidget(self)
+        self.serialConnTab = SerialConnectionEditTab(self)
+        self.logReplayTab = LogFileReplayEditTab(self)
+        self.tabs.addTab(self.serialConnTab, 'Serial Link')
+        self.tabs.addTab(self.logReplayTab, 'Log File Replay')
+        l = QVBoxLayout()
+        l.setContentsMargins(0, 0, 0, 0)
+        l.addWidget(self.tabs)
+        l.addWidget(self.__createActionButtons())
+        self.setLayout(l)
+
+    def __createActionButtons(self):
+        l = QHBoxLayout()
+        l.setContentsMargins(5, 0, 5, 5)
+        self.connectButton = QPushButton('Connect')
+        self.closeButton = QPushButton('Close')
+        self.connectButton.clicked.connect(self._doConnect)
+        self.closeButton.clicked.connect(self.close)
+        l.addWidget(self.connectButton)
+        l.addWidget(self.closeButton)
+        self.actionButtonWidget = QWidget()
+        self.actionButtonWidget.setLayout(l)
+        return self.actionButtonWidget
+
+    def _doConnect(self):
+        currTab = self.tabs.currentWidget()
+        if hasattr(currTab, 'doConnect'):
+            if currTab.doConnect():
+                self.close()
+
+class LogFileReplayEditTab(QWidget):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.connectToMAVLink = parent.connectToMAVLink
+        l = QVBoxLayout()
+        l.setAlignment(Qt.AlignTop)
+        lbl = QLabel('Choose Log File')
+        l.addWidget(lbl)
+
+        fileWidget = QWidget(self)
+        l1 = QHBoxLayout()
+        self.logFilePathEdit = QLineEdit(self)
+        sp = self.logFilePathEdit.sizePolicy()
+        sp.setHorizontalStretch(1)
+        self.logFilePathEdit.setSizePolicy(sp)
+        l1.addWidget(self.logFilePathEdit)
+        self.browseButton = QPushButton('Browse')
+        self.browseButton.clicked.connect(self.__chooseLogFile)
+        l1.addWidget(self.browseButton)
+        fileWidget.setLayout(l1)
+
+        l.addWidget(fileWidget)
+        self.setLayout(l)
+
+    def doConnect(self):
+        fileName = self.logFilePathEdit.text()
+        if os.path.isfile(fileName):
+            print('Replay Log file:', fileName)
+            connection = mavutil.mavlogfile(fileName)
+            self.connectToMAVLink.emit(connection)
+            return True
+        QMessageBox.critical(self.window(), 'Error', 'Invalid log file: {}'.format(fileName), QMessageBox.Ok)
+        return False
+
+    def __chooseLogFile(self):
+        fileName = QFileDialog.getOpenFileName(self, 'Choose Log File')
+        if fileName != None:
+            self.logFilePathEdit.setText(fileName[0])
+
+class SerialConnectionEditTab(QWidget):
+
+    portList = {}
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.connectToMAVLink = parent.connectToMAVLink
         self.listSerialPorts()
-        self.setWindowTitle('Serial Link')
         l = QGridLayout()
         row = 0
 
@@ -109,12 +183,6 @@ class ConnectionEditWindow(QWidget):
         l.addWidget(self.stopDropDown, row, 3, 1, 1, Qt.AlignLeft)
         row += 1
 
-        self.connectButton = QPushButton('Connect')
-        self.closeButton = QPushButton('Close')
-        l.addWidget(self.connectButton, row, 2, 1, 1, Qt.AlignCenter)
-        l.addWidget(self.closeButton, row, 3, 1, 1, Qt.AlignCenter)
-        self.connectButton.clicked.connect(self.connectSerialPort)
-        self.closeButton.clicked.connect(self.cancelConnection)
         self.setLayout(l)
 
     def _createDropDown(self, label, data: dict):
@@ -132,19 +200,15 @@ class ConnectionEditWindow(QWidget):
             cnts += 1
         if cnts == 0:
             self.portList['No ports available'] = 'No ports available'
-        # print(self.portList)
 
-    def cancelConnection(self):
-        self.close()
-
-    def connectSerialPort(self):
+    def doConnect(self):
         port = self.portsDropDown.currentData()
         baud = self.baudDropDown.currentData()
         # print('{} -- {}'.format(port, baud))
         mavutil.set_dialect('autoquad')  # test
         connection = mavutil.mavlink_connection(port, int(baud))
         self.connectToMAVLink.emit(connection)
-        self.close()
+        return True
 
 class MAVLinkConnection(QThread):
 
@@ -345,5 +409,5 @@ class MAVLinkConnection(QThread):
         print('sending parameters:', params)
 
     def __createLogFile(self):
-        name = 'MAV_{}.hex'.format(int(time() * 1000))
-        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'w')
+        name = 'MAV_{}.bin'.format(int(time() * 1000))
+        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')  # a patch is needed in mavutil.py to support binary mode
