@@ -1,10 +1,11 @@
-import os
+import os, struct
 from enum import Enum
-from time import time
+from time import time, sleep
 from pymavlink import mavutil
+from pymavlink.mavutil import mavlogfile
 from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
-from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant,
+from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant, QObject,
                           QWaitCondition, pyqtSignal)
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
                              QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox)
@@ -104,6 +105,32 @@ class ConnectionEditWindow(QWidget):
             if currTab.doConnect():
                 self.close()
 
+class LogFileReplaySpeedControl(mavlogfile, QObject):
+
+    replayCompleteSignal = pyqtSignal()
+
+    replaySpeed = 1.0
+
+    def __init__(self, filename):
+        mavlogfile.__init__(self, filename)
+        QObject.__init__(self)
+
+    def pre_message(self):
+        super().pre_message()
+        if self._last_timestamp is not None and self.replaySpeed > 0:
+            ts = abs(self._timestamp - self._last_timestamp) * self.replaySpeed
+            sleep(ts)
+
+    def recv(self,n=None):
+        b = super().recv(n)
+        if b == None or len(b) < n:
+            self.replayCompleteSignal.emit()
+        return b
+
+    def write(self, buf):
+        '''Log files will be open in read only mode. All write operations are ignored.'''
+        pass
+
 class LogFileReplayEditTab(QWidget):
 
     def __init__(self, parent):
@@ -133,7 +160,7 @@ class LogFileReplayEditTab(QWidget):
         fileName = self.logFilePathEdit.text()
         if os.path.isfile(fileName):
             print('Replay Log file:', fileName)
-            connection = mavutil.mavlogfile(fileName)
+            connection = LogFileReplaySpeedControl(fileName)
             self.connectToMAVLink.emit(connection)
             return True
         QMessageBox.critical(self.window(), 'Error', 'Invalid log file: {}'.format(fileName), QMessageBox.Ok)
@@ -245,13 +272,22 @@ class MAVLinkConnection(QThread):
     numberOfonboardWP = 0
     onboardWP = []
 
-    def __init__(self, connection):
+    enableLog = True
+    replayMode = False
+    mavlinkLogFile = None
+
+    def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
         self.param = UserData.getInstance().getUserDataEntry('TELEMETRY')
         if self.param == None:
             self.param = {}
         self.running = True
         self.connection = connection
+        self.replayMode = replayMode
+        self.enableLog = enableLog
+        if replayMode:
+            self.enableLog = False
+            connection.replayCompleteSignal.connect(self.requestExit)
         self.handlerLookup['HEARTBEAT'] = self.heartBeatHandler
         self.handlerLookup['ATTITUDE'] = self.altitudeHandler
         self.handlerLookup['GPS_RAW_INT'] = self.gpsRawIntHandler
@@ -284,13 +320,16 @@ class MAVLinkConnection(QThread):
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
                 msgType = msg.get_type()
+                if self.enableLog:
+                    ts = int(time() * 1.0e6) & ~3
+                    self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
                 if msgType in self.internalHandlerLookup:
                     self.internalHandlerLookup[msgType](msg)
                 else:
                     self._msgDispatcher(msg)
         self.connection.close()
-        if self.connection.logfile_raw != None:
-            self.connection.logfile_raw.close()
+        if self.enableLog and self.mavlinkLogFile != None:
+            self.mavlinkLogFile.close()
         # print('connection closed')
 
     def _msgDispatcher(self, msg):
@@ -310,7 +349,12 @@ class MAVLinkConnection(QThread):
         self.mavStatus[MavStsKeys.AP_SYS_STS] = hb.system_status
         self.mavStatus[MavStsKeys.MAVLINK_VER] = hb.mavlink_version
         # request all parameters
-        self.connection.param_fetch_all()
+        if self.replayMode:
+            print('conneced in log file replay mode')
+            self.isConnected = True
+            self.connectionEstablishedSignal.emit()
+        else:
+            self.connection.param_fetch_all()
 
     def receiveOnboardParameter(self, msg):
         self.paramList.append(msg)
@@ -409,5 +453,7 @@ class MAVLinkConnection(QThread):
         print('sending parameters:', params)
 
     def __createLogFile(self):
-        name = 'MAV_{}.bin'.format(int(time() * 1000))
-        self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')  # a patch is needed in mavutil.py to support binary mode
+        if self.enableLog:
+            name = 'MAV_{}.bin'.format(int(time() * 1000))
+            self.mavlinkLogFile = open(os.path.join(self.param['LOG_FOLDER'], name), 'wb')
+            # self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')

@@ -1,6 +1,7 @@
 import math
 import os
 import sys
+import pymavlink
 
 from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
                              QSizePolicy, QVBoxLayout, QWidget)
@@ -52,7 +53,7 @@ class MiniGCS(QMainWindow):
         self.setCentralWidget(self.window)
 
     def createConnection(self, conn):
-        self.mav = MAVLinkConnection(conn)
+        self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
         self.map.waypointList.requestReturnToHome.connect(self.mav.initializeReturnToHome)
         self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
         self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
