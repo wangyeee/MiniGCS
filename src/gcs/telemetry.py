@@ -1,6 +1,6 @@
 import os, struct
 from enum import Enum
-from time import time
+from time import time, sleep
 from pymavlink import mavutil
 from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
@@ -104,6 +104,21 @@ class ConnectionEditWindow(QWidget):
             if currTab.doConnect():
                 self.close()
 
+class LogFileReplaySpeedControl(mavutil.mavlogfile):
+
+    replaySpeed = 1.0
+
+    def pre_message(self):
+        super().pre_message()
+        if self._last_timestamp is not None and self.replaySpeed > 0:
+            ts = abs(self._timestamp - self._last_timestamp) * self.replaySpeed
+            print('Sleep for {} s'.format(ts))
+            sleep(ts)
+
+    def write(self, buf):
+        '''Log files will be open in read only mode. All write operations are ignored.'''
+        pass
+
 class LogFileReplayEditTab(QWidget):
 
     def __init__(self, parent):
@@ -133,7 +148,7 @@ class LogFileReplayEditTab(QWidget):
         fileName = self.logFilePathEdit.text()
         if os.path.isfile(fileName):
             print('Replay Log file:', fileName)
-            connection = mavutil.mavlogfile(fileName)
+            connection = LogFileReplaySpeedControl(fileName)
             self.connectToMAVLink.emit(connection)
             return True
         QMessageBox.critical(self.window(), 'Error', 'Invalid log file: {}'.format(fileName), QMessageBox.Ok)
