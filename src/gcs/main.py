@@ -53,7 +53,7 @@ class MiniGCS(QMainWindow):
         self.setCentralWidget(self.window)
 
     def createConnection(self, conn):
-        self.mav = MAVLinkConnection(conn, type(conn) == pymavlink.mavutil.mavlogfile)
+        self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
         self.map.waypointList.requestReturnToHome.connect(self.mav.initializeReturnToHome)
         self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
         self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
