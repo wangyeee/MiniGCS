@@ -88,22 +88,27 @@ class SystemStatusPanel(QWidget):
         else:
             self.gpsLbl.setText(GPS_FIX_LABELS[mavlink.GPS_FIX_TYPE_NO_FIX])
 
-    def toggleButtonLabel(self):
+    def toggleButtonLabel(self, isConnected = False):
         if self.connectLabelShown:
             self.connectToMAVLink.emit()
-            self.connectLabelShown = False
-            self.connectButton.setText('Disconnect')
+            # TODO add a timer to re-enable connect button after timeout
+            self.connectButton.setEnabled(False)
+            if isConnected:
+                self.connectLabelShown = False
+                self.connectButton.setText('Disconnect')
+                self.connectButton.setEnabled(True)
         else:
             self.disconnectFromMAVLink.emit()
             self.connectLabelShown = True
             self.editParameterButton.setEnabled(False)
             self.connectButton.setText('Connect')
 
-    def toggleGPSButtonLabel(self):
+    def toggleGPSButtonLabel(self, isConnected = False):
         if self.gpsLabelShown:
             self.connectToLocalGPS.emit()
-            self.gpsLabelShown = False
-            self.localGPSButton.setText('Disconnect GPS')
+            if isConnected:
+                self.gpsLabelShown = False
+                self.localGPSButton.setText('Disconnect GPS')
         else:
             self.disconnectFromLocalGPS.emit()
             self.gpsLabelShown = True

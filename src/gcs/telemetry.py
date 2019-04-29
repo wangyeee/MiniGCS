@@ -72,6 +72,7 @@ class MavStsKeys(Enum):
 class ConnectionEditWindow(QWidget):
 
     MAVLinkConnectedSignal = pyqtSignal(object)
+    cancelConnectionSignal = pyqtSignal()
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -98,6 +99,10 @@ class ConnectionEditWindow(QWidget):
         self.actionButtonWidget = QWidget()
         self.actionButtonWidget.setLayout(l)
         return self.actionButtonWidget
+
+    def closeEvent(self, event):
+        self.cancelConnectionSignal.emit()
+        super().closeEvent(event)
 
     def _doConnect(self):
         currTab = self.tabs.currentWidget()

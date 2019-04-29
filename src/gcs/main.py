@@ -23,7 +23,7 @@ class MiniGCS(QMainWindow):
         qmlFile = os.path.join(current_path, 'map.qml')
         self.setWindowTitle('Mini GCS')
         self.teleWindow = ConnectionEditWindow()
-        self.teleWindow.connectToMAVLink.connect(self.createConnection)
+        self.teleWindow.MAVLinkConnectedSignal.connect(self.createConnection)
         self.window = QWidget()
         mainLayout = QHBoxLayout()
         leftLayout = QVBoxLayout()
@@ -49,6 +49,8 @@ class MiniGCS(QMainWindow):
         self.localGPSWindow.connection.locationUpdate.connect(self.map.updateHomeLocationEvent)
         self.sts.connectToLocalGPS.connect(self.localGPSWindow.show)
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
+        self.teleWindow.MAVLinkConnectedSignal.connect(lambda: self.sts.toggleButtonLabel(True))
+        self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.connectButton.setEnabled(True))
         self.window.setLayout(mainLayout)
         self.setCentralWidget(self.window)
 
