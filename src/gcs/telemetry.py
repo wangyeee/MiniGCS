@@ -71,7 +71,7 @@ class MavStsKeys(Enum):
 
 class ConnectionEditWindow(QWidget):
 
-    connectToMAVLink = pyqtSignal(object)
+    MAVLinkConnectedSignal = pyqtSignal(object)
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -135,7 +135,7 @@ class LogFileReplayEditTab(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.connectToMAVLink = parent.connectToMAVLink
+        self.MAVLinkConnectedSignal = parent.MAVLinkConnectedSignal
         l = QVBoxLayout()
         l.setAlignment(Qt.AlignTop)
         lbl = QLabel('Choose Log File')
@@ -161,7 +161,7 @@ class LogFileReplayEditTab(QWidget):
         if os.path.isfile(fileName):
             print('Replay Log file:', fileName)
             connection = LogFileReplaySpeedControl(fileName)
-            self.connectToMAVLink.emit(connection)
+            self.MAVLinkConnectedSignal.emit(connection)
             return True
         QMessageBox.critical(self.window(), 'Error', 'Invalid log file: {}'.format(fileName), QMessageBox.Ok)
         return False
@@ -177,7 +177,7 @@ class SerialConnectionEditTab(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.connectToMAVLink = parent.connectToMAVLink
+        self.MAVLinkConnectedSignal = parent.MAVLinkConnectedSignal
         self.listSerialPorts()
         l = QGridLayout()
         row = 0
@@ -234,7 +234,7 @@ class SerialConnectionEditTab(QWidget):
         # print('{} -- {}'.format(port, baud))
         mavutil.set_dialect('autoquad')  # test
         connection = mavutil.mavlink_connection(port, int(baud))
-        self.connectToMAVLink.emit(connection)
+        self.MAVLinkConnectedSignal.emit(connection)
         return True
 
 class MAVLinkConnection(QThread):
