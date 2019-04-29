@@ -2,11 +2,8 @@ from pynmea2 import NMEAStreamReader
 from pynmea2.types.talker import GGA
 from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5.QtPositioning import QGeoCoordinate
-from PyQt5.QtWidgets import QApplication
 from serial import Serial
-from telemetry import ConnectionEditWindow
-
-import sys
+from telemetry import ConnectionEditWindow, SerialConnectionEditTab
 
 class NMEAReceiver(QThread):
 
@@ -53,9 +50,14 @@ class GPSConfigurationWindow(ConnectionEditWindow):
         super().__init__(parent)
         self.setWindowTitle('GPS Configuration')
 
-    def connectSerialPort(self):
-        port = self.portsDropDown.currentData()
-        baud = self.baudDropDown.currentData()
+    def _createTabs(self):
+        self.serialConnTab = SerialConnectionEditTab(self)
+        self.tabs.addTab(self.serialConnTab, 'Serial GPS Receiver')
+
+    def _doConnect(self):
+        currTab = self.tabs.currentWidget()
+        port = currTab.portsDropDown.currentData()
+        baud = currTab.baudDropDown.currentData()
         self.connection.configureSerialPort(port, int(baud))
         self.connection.connect()
         self.close()

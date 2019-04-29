@@ -77,15 +77,18 @@ class ConnectionEditWindow(QWidget):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.tabs = QTabWidget(self)
-        self.serialConnTab = SerialConnectionEditTab(self)
-        self.logReplayTab = LogFileReplayEditTab(self)
-        self.tabs.addTab(self.serialConnTab, 'Serial Link')
-        self.tabs.addTab(self.logReplayTab, 'Log File Replay')
+        self._createTabs()
         l = QVBoxLayout()
         l.setContentsMargins(0, 0, 0, 0)
         l.addWidget(self.tabs)
         l.addWidget(self.__createActionButtons())
         self.setLayout(l)
+
+    def _createTabs(self):
+        self.serialConnTab = SerialConnectionEditTab(self)
+        self.logReplayTab = LogFileReplayEditTab(self)
+        self.tabs.addTab(self.serialConnTab, 'Serial Link')
+        self.tabs.addTab(self.logReplayTab, 'Log File Replay')
 
     def __createActionButtons(self):
         l = QHBoxLayout()
