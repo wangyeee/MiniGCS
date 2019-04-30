@@ -196,6 +196,11 @@ class SerialConnectionEditTab(QWidget):
         lbl, self.portsDropDown = self._createDropDown('Serial Port', self.portList)
         l.addWidget(lbl, row, 0, 1, 1, Qt.AlignRight)
         l.addWidget(self.portsDropDown, row, 1, 1, 3, Qt.AlignLeft)
+        self.refreshButton = QPushButton('\u21BB')
+        self.refreshButton.setFixedSize(self.portsDropDown.height(), self.portsDropDown.height())
+        l.addWidget(self.refreshButton, row, 4, 1, 1, Qt.AlignLeft)
+        self.refreshButton.clicked.connect(lambda: self.listSerialPorts(self.portsDropDown))
+        # print('set button size:', self.refreshButton.height())
         row += 1
 
         lbl, self.baudDropDown = self._createDropDown('Baud Rate', BAUD_RATES)
@@ -230,14 +235,20 @@ class SerialConnectionEditTab(QWidget):
             dropDown.addItem(str(val), QVariant(key))
         return QLabel(label), dropDown
 
-    def listSerialPorts(self):
+    def listSerialPorts(self, dropDown = None):
         portsInfo = sorted(comports(False))
         cnts = 0
+        self.portList.clear()
         for p in portsInfo:
             self.portList[p.device] = p
             cnts += 1
         if cnts == 0:
             self.portList['No ports available'] = 'No ports available'
+        if dropDown != None:
+            while dropDown.count() > 0:
+                dropDown.removeItem(0)
+            for key, val in self.portList.items():
+                dropDown.addItem(str(val), QVariant(key))
 
     def doConnect(self):
         port = self.portsDropDown.currentData()
