@@ -89,7 +89,7 @@ class MiniGCS(QMainWindow):
         print('[MAIN] closeEvent')
         ud = UserData.getInstance()
         if self.map != None:
-            ps = self.map.getParametersToSave()
+            ps = self.map.getParametersToSave(True)
             for p in ps:
                 ud.setUserDataEntry(p[0], p[1])
         try:

@@ -18,6 +18,7 @@ from UserData import UserData
 from adsb import AircraftsModel, ADSBSource
 from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
 from pymavlink.dialects.v10 import common as mavlink
+from telemetry import UD_TELEMETRY_KEY, UD_TELEMETRY_LOG_FOLDER_KEY
 
 DEFAULT_LATITUDE = 0.0
 DEFAULT_LONGITUDE = 0.0
@@ -365,6 +366,7 @@ class MapWidget(QSplitter):
 
     uploadWaypointsToUAVEvent = pyqtSignal(object)  # pass the waypoint list as parameter
     downloadWaypointsFromUAVSignal = pyqtSignal()
+    textMessageLogFile = None  # log of messages displayed on messageLabel
 
     def __init__(self, mapQmlFile, parent = None):
         super().__init__(Qt.Vertical, parent)
@@ -390,6 +392,7 @@ class MapWidget(QSplitter):
         self.loadWaypoints = QPushButton('Load from UAV')
         self.uploadWaypoints = QPushButton('Upload to UAV')
         self.messageLabel = QLabel('Disconnected')
+        self.__setupTextMessageLogging()
         self.loadWaypoints.clicked.connect(self.loadWaypointsFromUAV)
         self.uploadWaypoints.clicked.connect(self.uploadWaypointsToUAV)
         panelLayput = QHBoxLayout()
@@ -410,7 +413,15 @@ class MapWidget(QSplitter):
         self.addWidget(container)
         self.addWidget(self.lowerPanel)
 
+    def __setupTextMessageLogging(self):
+        tconf = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY)
+        if tconf != None:
+            name = 'MAV_{}.log'.format(int(time.time() * 1000))
+            self.textMessageLogFile = open(os.path.join(tconf[UD_TELEMETRY_LOG_FOLDER_KEY], name), 'w')
+
     def displayTextMessage(self, msg):
+        if self.textMessageLogFile != None:
+            self.textMessageLogFile.write('[{}] {}'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime()), msg))
         self.messageLabel.setText(msg)
 
     def uploadWaypointsToUAV(self):
@@ -478,7 +489,10 @@ class MapWidget(QSplitter):
             self.mapView.wpModel.createWaypoint(wp.latitude, wp.longitude)
             self.mapView.map.waypointCreated.emit(wp.latitude, wp.longitude)
 
-    def getParametersToSave(self):
+    def getParametersToSave(self, cleanup = False):
+        if cleanup:
+            # a hack to close log file on close
+            self.textMessageLogFile.close()
         return [(UD_MAP_KEY, self.mapView.mapConf)]
 
 #test only

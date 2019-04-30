@@ -60,6 +60,9 @@ STOP_BITS = {
     2 : '2'
 }
 
+UD_TELEMETRY_KEY = 'TELEMETRY'
+UD_TELEMETRY_LOG_FOLDER_KEY = 'LOG_FOLDER'
+
 class MavStsKeys(Enum):
     AP_SYS_ID = 0
     VEHICLE_TYPE = 1
@@ -286,7 +289,7 @@ class MAVLinkConnection(QThread):
 
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
-        self.param = UserData.getInstance().getUserDataEntry('TELEMETRY')
+        self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY)
         if self.param == None:
             self.param = {}
         self.running = True
@@ -463,5 +466,4 @@ class MAVLinkConnection(QThread):
     def __createLogFile(self):
         if self.enableLog:
             name = 'MAV_{}.bin'.format(int(time() * 1000))
-            self.mavlinkLogFile = open(os.path.join(self.param['LOG_FOLDER'], name), 'wb')
-            # self.connection.setup_logfile_raw(os.path.join(self.param['LOG_FOLDER'], name), 'wb')
+            self.mavlinkLogFile = open(os.path.join(self.param[UD_TELEMETRY_LOG_FOLDER_KEY], name), 'wb')
