@@ -65,6 +65,7 @@ class MiniGCS(QMainWindow):
         self.sts.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
         self.mav.connectionEstablishedSignal.connect(lambda: self.sts.editParameterButton.setEnabled(True))
         self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
+        self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
         self.mav.start()
 
     def droneStatusHandler(self, msg):

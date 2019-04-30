@@ -342,7 +342,7 @@ class MAVLinkConnection(QThread):
         self.connection.close()
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
-        # print('connection closed')
+        self.newTextMessageSignal.emit('Disconneced')
 
     def _msgDispatcher(self, msg):
         msgType = msg.get_type()

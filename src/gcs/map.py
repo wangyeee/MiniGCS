@@ -421,7 +421,7 @@ class MapWidget(QSplitter):
 
     def displayTextMessage(self, msg):
         if self.textMessageLogFile != None:
-            self.textMessageLogFile.write('[{}] {}'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime()), msg))
+            self.textMessageLogFile.write('[{}] {}\n'.format(time.strftime('%d %b %Y %H:%M:%S', time.localtime()), msg))
         self.messageLabel.setText(msg)
 
     def uploadWaypointsToUAV(self):
