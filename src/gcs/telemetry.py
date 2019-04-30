@@ -264,6 +264,7 @@ class MAVLinkConnection(QThread):
 
     connectionEstablishedSignal = pyqtSignal()
     onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
+    newTextMessageSignal = pyqtSignal(object)
 
     handlerLookup = {}
     internalHandlerLookup = {}
@@ -361,16 +362,19 @@ class MAVLinkConnection(QThread):
         self.mavStatus[MavStsKeys.MAVLINK_VER] = hb.mavlink_version
         # request all parameters
         if self.replayMode:
-            print('conneced in log file replay mode')
+            self.newTextMessageSignal.emit('Conneced in log file replay mode')
             self.isConnected = True
             self.connectionEstablishedSignal.emit()
         else:
+            self.newTextMessageSignal.emit('Conneced to AP:{}'.format(self.mavStatus[MavStsKeys.AP_TYPE]))
             self.connection.param_fetch_all()
 
     def receiveOnboardParameter(self, msg):
         self.paramList.append(msg)
+        self.newTextMessageSignal.emit('Param: {} = {}'.format(msg.param_id, msg.param_value))
         if msg.param_index + 1 == msg.param_count:
             self.isConnected = True
+            self.newTextMessageSignal.emit('{} parameters received'.format(msg.param_count))
             if self.param['DOWNLOAD_WAYPOINTS_ON_CONNECT']:
                 self.downloadWaypoints()  # request to read all onboard waypoints
             self.connectionEstablishedSignal.emit()
@@ -383,7 +387,7 @@ class MAVLinkConnection(QThread):
         if self.numberOfonboardWP < self.onboardWPCount:
             self.connection.waypoint_request_send(self.numberOfonboardWP)  # read next one
         else:
-            print('Total {} waypoint(s) onboard'.format(len(self.onboardWP)))
+            self.newTextMessageSignal.emit('Total {} waypoint(s) onboard'.format(len(self.onboardWP)))
             self.onboardWaypointsReceivedSignal.emit(self.onboardWP)  # all done, send signal
 
     def receiveMissionItemCount(self, msg):

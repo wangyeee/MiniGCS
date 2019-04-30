@@ -97,9 +97,9 @@ class PrimaryFlightDisplay(QWidget):
     # TODO filter input data?
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
         # print('updateAttitude[{4}]: pitch = {0}, roll = {1}, yaw = {2}, time = {3}'.format(pitch, roll, yaw, timestamp, sourceUAS))
-        self.pitch = pitch# * math.pi / 180
-        self.roll = roll# * math.pi / 180
-        self.yaw = yaw# * math.pi / 180
+        self.pitch = self.pitch if math.isnan(pitch) else pitch
+        self.roll = self.roll if math.isnan(roll) else roll
+        self.yaw = self.yaw if math.isnan(yaw) else yaw
 
     def updateAttitudeSpeed(self, sourceUAS, timestamp, rollspeed, pitchspeed, yawspeed):
         # print('updateAttitudeSpeed[{4}]: pitch = {0}, roll = {1}, yaw = {2}, time = {3}'.format(pitchspeed, rollspeed, yawspeed, timestamp, sourceUAS))
@@ -113,21 +113,21 @@ class PrimaryFlightDisplay(QWidget):
 
     def updatePrimaryAltitude(self, sourceUAS, timestamp, altitude):
         # print('updatePrimaryAltitude[{0}]: altitude = {1}, time = {2}'.format(sourceUAS, altitude, timestamp))
-        self.primaryAltitude = altitude
+        self.primaryAltitude = self.primaryAltitude if math.isnan(altitude) else altitude
         #didReceivePrimaryAltitude = true;
 
     def updateGPSAltitude(self, sourceUAS, timestamp, altitude):
         # print('updateGPSAltitude[{0}]: altitude = {1}, time = {2}'.format(sourceUAS, altitude, timestamp))
-        self.GPSAltitude = altitude
+        self.GPSAltitude = self.GPSAltitude if math.isnan(altitude) else altitude
         #if not didReceivePrimaryAltitude:
         #    primaryAltitude = altitude
 
     def updatePrimarySpeed(self, sourceUAS, timestamp, speed):
-        self.primarySpeed = speed
+        self.primarySpeed = self.primarySpeed if math.isnan(speed) else speed
         #didReceivePrimarySpeed = true
 
     def updateGPSSpeed(self, sourceUAS, timestamp, speed, y, z):
-        self.groundspeed = speed
+        self.groundspeed = self.groundspeed if math.isnan(speed) else speed
         #if not didReceivePrimarySpeed:
         #    primarySpeed = speed;
 
