@@ -11,7 +11,7 @@ from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
-from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox
+from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox, QLabel
 from PyQt5.QtGui import QCursor
 
 from UserData import UserData
@@ -389,11 +389,13 @@ class MapWidget(QSplitter):
         self.actionPanel = QWidget(self)  # Upload/Refresh buttons
         self.loadWaypoints = QPushButton('Load from UAV')
         self.uploadWaypoints = QPushButton('Upload to UAV')
-        panelLayput = QHBoxLayout()
-        panelLayput.setSpacing(0)
-        panelLayput.addStretch(1)
+        self.messageLabel = QLabel('Disconnected')
         self.loadWaypoints.clicked.connect(self.loadWaypointsFromUAV)
         self.uploadWaypoints.clicked.connect(self.uploadWaypointsToUAV)
+        panelLayput = QHBoxLayout()
+        panelLayput.setSpacing(0)
+        panelLayput.addWidget(self.messageLabel, 0, Qt.AlignLeft)
+        panelLayput.addStretch(1)
         panelLayput.addWidget(self.loadWaypoints, 0, Qt.AlignRight)
         panelLayput.addWidget(self.uploadWaypoints, 0, Qt.AlignRight)
         self.actionPanel.setLayout(panelLayput)
@@ -407,6 +409,9 @@ class MapWidget(QSplitter):
 
         self.addWidget(container)
         self.addWidget(self.lowerPanel)
+
+    def displayTextMessage(self, msg):
+        self.messageLabel.setText(msg)
 
     def uploadWaypointsToUAV(self):
         cfm = QMessageBox.question(self.window(),
