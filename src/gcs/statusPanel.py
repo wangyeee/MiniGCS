@@ -3,7 +3,8 @@ import sys
 from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
-                             QPushButton, QWidget)
+                             QPushButton, QWidget, QTabWidget, QVBoxLayout)
+from compass import Compass
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',
@@ -29,6 +30,23 @@ class SystemStatusPanel(QWidget):
 
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.tabs = QTabWidget(self)
+        self.statusPanel = StatusSummaryPanel(self)
+        self.tabs.addTab(self.statusPanel, 'Summary')
+        self.compassPanel = Compass(self)
+        self.tabs.addTab(self.compassPanel, 'Compass')
+        l = QVBoxLayout()
+        l.addWidget(self.tabs)
+        self.setLayout(l)
+
+class StatusSummaryPanel(QWidget):
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.connectToMAVLink = parent.connectToMAVLink
+        self.disconnectFromMAVLink = parent.disconnectFromMAVLink
+        self.connectToLocalGPS = parent.connectToLocalGPS
+        self.disconnectFromLocalGPS = parent.disconnectFromLocalGPS
         l = QGridLayout()
         row = 0
         self.sysNameLbl = QLabel('System Status')

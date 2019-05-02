@@ -1,11 +1,12 @@
-from PyQt5.QtWidgets import QLabel, QWidget, QVBoxLayout, QGraphicsItem, QGraphicsScene, QGraphicsView
-from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtCore import Qt
+from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
+from PyQt5.QtWidgets import (QGraphicsItem, QGraphicsScene, QGraphicsView,
+                             QLabel, QVBoxLayout, QWidget)
 
 class Compass(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.label = QLabel('Heading: 0.0' + u"\u00b0")
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.label = QLabel('Heading: 0.0' + u'\u00b0')
         svgRenderer = QSvgRenderer('res/compass.svg')
         self.compass = QGraphicsSvgItem()
         self.compass.setSharedRenderer(svgRenderer)
@@ -47,4 +48,4 @@ class Compass(QWidget):
 
     def setHeading(self, hdr):
         self.compass.setRotation(360.0 - hdr)
-        self.label.setText('Heading: ' + str(hdr) + u"\u00b0")
+        self.label.setText('Heading: {:.1f}{}'.format(hdr, u'\u00b0'))

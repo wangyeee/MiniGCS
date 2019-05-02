@@ -49,8 +49,8 @@ class MiniGCS(QMainWindow):
         self.localGPSWindow.connection.locationUpdate.connect(self.map.updateHomeLocationEvent)
         self.sts.connectToLocalGPS.connect(self.localGPSWindow.show)
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
-        self.teleWindow.MAVLinkConnectedSignal.connect(lambda: self.sts.toggleButtonLabel(True))
-        self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.connectButton.setEnabled(True))
+        self.teleWindow.MAVLinkConnectedSignal.connect(lambda: self.sts.statusPanel.toggleButtonLabel(True))
+        self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.statusPanel.connectButton.setEnabled(True))
         self.window.setLayout(mainLayout)
         self.setCentralWidget(self.window)
 
@@ -62,26 +62,27 @@ class MiniGCS(QMainWindow):
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
         self.mav.systemStatusHandler.connect(self.droneStatusHandler)
-        self.sts.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
-        self.mav.connectionEstablishedSignal.connect(lambda: self.sts.editParameterButton.setEnabled(True))
+        self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
+        self.mav.connectionEstablishedSignal.connect(lambda: self.sts.statusPanel.editParameterButton.setEnabled(True))
         self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
         self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
         self.mav.start()
 
     def droneStatusHandler(self, msg):
         # mV mA -> V A
-        self.sts.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
+        self.sts.statusPanel.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def droneLocationHandler(self, msg):
         scale = 1E7
         self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
-        self.sts.updateGPSFixStatus(msg.fix_type)
+        self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
 
     def droneAttitudeHandler(self, msg):
         scale = 180 / math.pi
         self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll * scale, msg.pitch * scale, msg.yaw * scale)
         self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed * scale, msg.pitchspeed * scale, msg.yawspeed * scale)
+        self.sts.compassPanel.setHeading(msg.yaw * scale)
 
     def disconnect(self):
         self.mav.requestExit()
