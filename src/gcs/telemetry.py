@@ -196,11 +196,10 @@ class SerialConnectionEditTab(QWidget):
         lbl, self.portsDropDown = self._createDropDown('Serial Port', self.portList)
         l.addWidget(lbl, row, 0, 1, 1, Qt.AlignRight)
         l.addWidget(self.portsDropDown, row, 1, 1, 3, Qt.AlignLeft)
-        self.refreshButton = QPushButton('\u21BB')
+        self.refreshButton = QPushButton('\u21BB')  # Unicode for clockwise open circle arrow
         self.refreshButton.setFixedSize(self.portsDropDown.height(), self.portsDropDown.height())
         l.addWidget(self.refreshButton, row, 4, 1, 1, Qt.AlignLeft)
         self.refreshButton.clicked.connect(lambda: self.listSerialPorts(self.portsDropDown))
-        # print('set button size:', self.refreshButton.height())
         row += 1
 
         lbl, self.baudDropDown = self._createDropDown('Baud Rate', BAUD_RATES)
@@ -276,6 +275,7 @@ class MAVLinkConnection(QThread):
     connectionEstablishedSignal = pyqtSignal()
     onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
     newTextMessageSignal = pyqtSignal(object)
+    messageTimeoutSignal = pyqtSignal(float)  # pass number of seconds without receiving any messages
 
     handlerLookup = {}
     internalHandlerLookup = {}
@@ -298,6 +298,8 @@ class MAVLinkConnection(QThread):
     enableLog = True
     replayMode = False
     mavlinkLogFile = None
+    lastMessageReceivedTimestamp = 0.0
+    messageTimeoutThreshold = 1.0  # one second
 
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
@@ -343,6 +345,7 @@ class MAVLinkConnection(QThread):
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
                 msgType = msg.get_type()
+                self.lastMessageReceivedTimestamp = time()
                 if self.enableLog:
                     ts = int(time() * 1.0e6) & ~3
                     self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
@@ -350,6 +353,10 @@ class MAVLinkConnection(QThread):
                     self.internalHandlerLookup[msgType](msg)
                 else:
                     self._msgDispatcher(msg)
+            rs = time() - self.lastMessageReceivedTimestamp
+            if (rs > self.messageTimeoutThreshold):
+                print('Message timeout:', rs)
+                self.messageTimeoutSignal.emit(rs)
         self.connection.close()
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
@@ -364,6 +371,7 @@ class MAVLinkConnection(QThread):
 
     def _establishConnection(self):
         hb = self.connection.wait_heartbeat()
+        self.lastMessageReceivedTimestamp = time()
         self.__createLogFile()
         self.mavStatus[MavStsKeys.VEHICLE_TYPE] = hb.type
         self.mavStatus[MavStsKeys.AP_TYPE] = hb.autopilot
