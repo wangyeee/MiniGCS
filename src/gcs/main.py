@@ -61,6 +61,7 @@ class MiniGCS(QMainWindow):
         self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
+        self.mav.scaledPressureHandler.connect(self.droneAltitudeHandler)
         self.mav.systemStatusHandler.connect(self.droneStatusHandler)
         self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
         self.mav.connectionEstablishedSignal.connect(lambda: self.sts.statusPanel.editParameterButton.setEnabled(True))
@@ -77,6 +78,9 @@ class MiniGCS(QMainWindow):
         self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
         self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
+
+    def droneAltitudeHandler(self, msg):
+        self.sts.barometerPanel.setBarometer(msg.press_abs)
 
     def droneAttitudeHandler(self, msg):
         scale = 180 / math.pi

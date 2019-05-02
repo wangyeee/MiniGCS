@@ -5,6 +5,7 @@ from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
                              QPushButton, QWidget, QTabWidget, QVBoxLayout)
 from compass import Compass
+from barometer import Barometer
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',
@@ -35,6 +36,8 @@ class SystemStatusPanel(QWidget):
         self.tabs.addTab(self.statusPanel, 'Summary')
         self.compassPanel = Compass(self)
         self.tabs.addTab(self.compassPanel, 'Compass')
+        self.barometerPanel = Barometer(self)
+        self.tabs.addTab(self.barometerPanel, 'Barometer')
         l = QVBoxLayout()
         l.addWidget(self.tabs)
         self.setLayout(l)
