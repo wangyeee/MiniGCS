@@ -3,15 +3,16 @@ import os
 import sys
 import pymavlink
 
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QMainWindow,
-                             QSizePolicy, QVBoxLayout, QWidget)
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QSplitter
 
+from LocalGPS import GPSConfigurationWindow
 from map import MapWidget
 from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
-from LocalGPS import GPSConfigurationWindow
 from UserData import UserData
+
 
 class MiniGCS(QMainWindow):
 
@@ -24,17 +25,14 @@ class MiniGCS(QMainWindow):
         self.setWindowTitle('Mini GCS')
         self.teleWindow = ConnectionEditWindow()
         self.teleWindow.MAVLinkConnectedSignal.connect(self.createConnection)
-        self.window = QWidget()
-        mainLayout = QHBoxLayout()
-        leftLayout = QVBoxLayout()
-        self.left = QWidget()
+        self.window = QSplitter()
+        self.left = QSplitter(Qt.Vertical, self.window)
         self.pfd = PrimaryFlightDisplay(self.window)
         self.sts = SystemStatusPanel(self.window)
         self.sts.connectToMAVLink.connect(self.teleWindow.show)
         self.sts.disconnectFromMAVLink.connect(self.disconnect)
-        leftLayout.addWidget(self.pfd)
-        leftLayout.addWidget(self.sts)
-        self.left.setLayout(leftLayout)
+        self.left.addWidget(self.pfd)
+        self.left.addWidget(self.sts)
         spLeft = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         spLeft.setHorizontalStretch(1)
         self.left.setSizePolicy(spLeft)
@@ -42,8 +40,8 @@ class MiniGCS(QMainWindow):
         spRight = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         spRight.setHorizontalStretch(2)
         self.map.setSizePolicy(spRight)
-        mainLayout.addWidget(self.left)
-        mainLayout.addWidget(self.map)
+        self.window.addWidget(self.left)
+        self.window.addWidget(self.map)
         self.localGPSWindow = GPSConfigurationWindow()
         # TODO configurable behavior
         self.localGPSWindow.connection.locationUpdate.connect(self.map.updateHomeLocationEvent)
@@ -51,7 +49,6 @@ class MiniGCS(QMainWindow):
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
         self.teleWindow.MAVLinkConnectedSignal.connect(lambda: self.sts.statusPanel.toggleButtonLabel(True))
         self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.statusPanel.connectButton.setEnabled(True))
-        self.window.setLayout(mainLayout)
         self.setCentralWidget(self.window)
 
     def createConnection(self, conn):
