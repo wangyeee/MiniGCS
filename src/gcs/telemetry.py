@@ -300,6 +300,7 @@ class MAVLinkConnection(QThread):
     mavlinkLogFile = None
     lastMessageReceivedTimestamp = 0.0
     messageTimeoutThreshold = 1.0  # one second
+    lastMessages = {} # type = (msg, timestamp)
 
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
@@ -346,6 +347,7 @@ class MAVLinkConnection(QThread):
             if msg != None:
                 msgType = msg.get_type()
                 self.lastMessageReceivedTimestamp = time()
+                self.lastMessages[msgType] = (msg, self.lastMessageReceivedTimestamp)
                 if self.enableLog:
                     ts = int(time() * 1.0e6) & ~3
                     self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
