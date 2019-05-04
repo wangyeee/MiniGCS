@@ -60,6 +60,29 @@ STOP_BITS = {
     2 : '2'
 }
 
+MAVLINK_DIALECTS = {
+    mavlink.MAV_AUTOPILOT_GENERIC : 'standard',
+    # mavlink.MAV_AUTOPILOT_RESERVED : '',
+    mavlink.MAV_AUTOPILOT_SLUGS : 'slugs',
+    mavlink.MAV_AUTOPILOT_ARDUPILOTMEGA : 'ardupilotmega',
+    mavlink.MAV_AUTOPILOT_OPENPILOT : 'standard',
+    mavlink.MAV_AUTOPILOT_GENERIC_WAYPOINTS_ONLY : 'minimal',
+    mavlink.MAV_AUTOPILOT_GENERIC_WAYPOINTS_AND_SIMPLE_NAVIGATION_ONLY : 'minimal',
+    mavlink.MAV_AUTOPILOT_GENERIC_MISSION_FULL : 'standard',
+    # mavlink.MAV_AUTOPILOT_INVALID : '',
+    mavlink.MAV_AUTOPILOT_PPZ : 'paparazzi',
+    mavlink.MAV_AUTOPILOT_UDB : 'standard',
+    mavlink.MAV_AUTOPILOT_FP : 'standard',
+    mavlink.MAV_AUTOPILOT_PX4 : 'standard',
+    mavlink.MAV_AUTOPILOT_SMACCMPILOT : 'standard',
+    mavlink.MAV_AUTOPILOT_AUTOQUAD : 'autoquad',
+    mavlink.MAV_AUTOPILOT_ARMAZILA : 'standard',
+    mavlink.MAV_AUTOPILOT_AEROB : 'standard',
+    mavlink.MAV_AUTOPILOT_ASLUAV : 'ASLUAV',
+    mavlink.MAV_AUTOPILOT_SMARTAP : 'standard',
+    mavlink.MAV_AUTOPILOT_AIRRAILS : 'standard'
+}
+
 UD_TELEMETRY_KEY = 'TELEMETRY'
 UD_TELEMETRY_LOG_FOLDER_KEY = 'LOG_FOLDER'
 
@@ -252,8 +275,6 @@ class SerialConnectionEditTab(QWidget):
     def doConnect(self):
         port = self.portsDropDown.currentData()
         baud = self.baudDropDown.currentData()
-        # print('{} -- {}'.format(port, baud))
-        mavutil.set_dialect('autoquad')  # test
         connection = mavutil.mavlink_connection(port, int(baud))
         self.MAVLinkConnectedSignal.emit(connection)
         return True
@@ -375,6 +396,7 @@ class MAVLinkConnection(QThread):
         hb = self.connection.wait_heartbeat()
         self.lastMessageReceivedTimestamp = time()
         self.__createLogFile()
+        self.__setMavlinkDialect(hb.autopilot)
         self.mavStatus[MavStsKeys.VEHICLE_TYPE] = hb.type
         self.mavStatus[MavStsKeys.AP_TYPE] = hb.autopilot
         self.mavStatus[MavStsKeys.AP_MODE] = hb.base_mode
@@ -492,3 +514,12 @@ class MAVLinkConnection(QThread):
         if self.enableLog:
             name = 'MAV_{}.bin'.format(int(time() * 1000))
             self.mavlinkLogFile = open(os.path.join(self.param[UD_TELEMETRY_LOG_FOLDER_KEY], name), 'wb')
+
+    def __setMavlinkDialect(self, ap):
+        if ap in MAVLINK_DIALECTS:
+            print('Set dialect to:', MAVLINK_DIALECTS[ap])
+            mavutil.set_dialect(MAVLINK_DIALECTS[ap])
+        elif ap != mavlink.MAV_AUTOPILOT_INVALID:
+            # default to common
+            print('Set dialect to common for unknown AP type:', ap)
+            mavutil.set_dialect(MAVLINK_DIALECTS[mavlink.MAV_AUTOPILOT_GENERIC])
