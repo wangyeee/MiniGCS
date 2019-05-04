@@ -513,7 +513,7 @@ class WaypointList(QTableWidget):
 
     homeLocation = Waypoint(0, 0, 0, 0, mavlink.MAV_CMD_DO_SET_HOME)
     wpList = None
-    requestReturnToHome = pyqtSignal(object)  # pass current home location
+    requestReturnToHome = pyqtSignal()
     editWaypoint = pyqtSignal(object)  # show popup window to edit the waypoint
     deleteWaypoint = pyqtSignal(object)  # remove a waypoint
     preDeleteWaypoint = pyqtSignal(object)  # signal sent before removing a waypoint
@@ -683,7 +683,7 @@ class WaypointList(QTableWidget):
                                    'Start return to home {}?'.format(self.homeLocation.getCoordinate().toString()),
                                    QMessageBox.Yes, QMessageBox.No)
         if cfm == QMessageBox.Yes:
-            self.requestReturnToHome.emit(self.homeLocation)
+            self.requestReturnToHome.emit()
 
     def removeAllRows(self):
         while self.rowCount() > 1:  # the first row is home, which will be kept

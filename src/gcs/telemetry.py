@@ -499,13 +499,8 @@ class MAVLinkConnection(QThread):
                                                             0, 0, 0, 0, wp.latitude, wp.longitude, wp.altitude)
         self._sendOneWaypoint(item)
 
-    def initializeReturnToHome(self, home: Waypoint):
-        print('RTH started:', home)
-        # TODO compare the home location in UAV with it in GCS
-        item = mavutil.mavlink.MAVLink_mission_item_message(self.connection.target_system, self.connection.target_component, 0,
-                                                            mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 1, 0,
-                                                            None, None, None, None, None, None, None)
-        self._sendOneWaypoint(item)
+    def initializeReturnToHome(self):
+        self.connection.set_mode_rtl()
 
     def uploadNewParametersEvent(self, params):
         print('sending parameters:', params)
