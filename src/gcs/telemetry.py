@@ -297,6 +297,7 @@ class MAVLinkConnection(QThread):
     onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
     newTextMessageSignal = pyqtSignal(object)
     messageTimeoutSignal = pyqtSignal(float)  # pass number of seconds without receiving any messages
+    connectedToAPTypeSignal = pyqtSignal(int)  # pass auto pilot type as parameter, which is used to setup AP-specific tools
 
     handlerLookup = {}
     internalHandlerLookup = {}
@@ -518,3 +519,4 @@ class MAVLinkConnection(QThread):
             # default to common
             print('Set dialect to common for unknown AP type:', ap)
             mavutil.set_dialect(MAVLINK_DIALECTS[mavlink.MAV_AUTOPILOT_GENERIC])
+        self.connectedToAPTypeSignal.emit(ap)

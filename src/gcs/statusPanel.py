@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
                              QPushButton, QWidget, QTabWidget, QVBoxLayout)
 from compass import Compass
 from barometer import Barometer
+from plugins.autoquad import AutoQuadControlPanel
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',
@@ -29,6 +30,8 @@ class SystemStatusPanel(QWidget):
     connectToLocalGPS = pyqtSignal()
     disconnectFromLocalGPS = pyqtSignal()
 
+    apControlPanels = {}
+
     def __init__(self, parent = None):
         super().__init__(parent)
         self.tabs = QTabWidget(self)
@@ -38,9 +41,19 @@ class SystemStatusPanel(QWidget):
         self.tabs.addTab(self.compassPanel, 'Compass')
         self.barometerPanel = Barometer(self)
         self.tabs.addTab(self.barometerPanel, 'Barometer')
+        self.apControlPanels[mavlink.MAV_AUTOPILOT_AUTOQUAD] = AutoQuadControlPanel()
         l = QVBoxLayout()
         l.addWidget(self.tabs)
         self.setLayout(l)
+
+    def addAPControlPanel(self, apType):
+        if apType in self.apControlPanels:
+            t = self.apControlPanels[apType]
+            print('Add control panel for AP: {} ({})'.format(t.tabName(), apType))
+            self.tabs.addTab(t, t.tabName())
+            t.show()
+        else:
+            print('No control panel available for AP:', apType)
 
 class StatusSummaryPanel(QWidget):
 

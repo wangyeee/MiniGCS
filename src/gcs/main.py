@@ -13,7 +13,6 @@ from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 from UserData import UserData
 
-
 class MiniGCS(QMainWindow):
 
     mav = None
@@ -64,6 +63,7 @@ class MiniGCS(QMainWindow):
         self.mav.connectionEstablishedSignal.connect(lambda: self.sts.statusPanel.editParameterButton.setEnabled(True))
         self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
         self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
+        self.mav.connectedToAPTypeSignal.connect(self.sts.addAPControlPanel)
         self.mav.start()
 
     def droneStatusHandler(self, msg):
@@ -102,7 +102,7 @@ class MiniGCS(QMainWindow):
             pass
         super().closeEvent(event)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app = QApplication(sys.argv)
     try:
         UserData.getInstance().loadGCSConfiguration()
