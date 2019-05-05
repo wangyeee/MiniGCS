@@ -292,6 +292,7 @@ class MAVLinkConnection(QThread):
     altitudeHandler = pyqtSignal(object)
     systemStatusHandler = pyqtSignal(object)
     statusTextHandler = pyqtSignal(object)
+    externalMessageHandler = pyqtSignal(object)  # pass any types of message to an external handler
 
     connectionEstablishedSignal = pyqtSignal()
     onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
@@ -367,6 +368,7 @@ class MAVLinkConnection(QThread):
         while self.running:
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
+                self.externalMessageHandler.emit(msg)
                 msgType = msg.get_type()
                 self.lastMessageReceivedTimestamp = time()
                 self.lastMessages[msgType] = (msg, self.lastMessageReceivedTimestamp)
@@ -441,7 +443,7 @@ class MAVLinkConnection(QThread):
 
     def receiveMissionRequest(self, msg):
         # print('missionRequest:', msg)
-        self._sendOneWaypoint(self.wpLoader.wp(msg.seq))
+        self.sendMavlinkMessage(self.wpLoader.wp(msg.seq))
 
     def receiveMissionAcknowledge(self, msg):
         print('missionRequestAck:', msg)
@@ -471,7 +473,7 @@ class MAVLinkConnection(QThread):
                                                             mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_DO_SET_HOME , 1, 0,
                                                             1, None, None, None,
                                                             wp.latitude, wp.longitude, wp.altitude)
-        self._sendOneWaypoint(item)
+        self.sendMavlinkMessage(item)
 
     def _sendMissionCount(self, cnt):
         print('{} waypoints to be sent'.format(cnt))
@@ -484,10 +486,11 @@ class MAVLinkConnection(QThread):
         self.txLock.unlock()
         print('[CNT] Got response!')
 
-    def _sendOneWaypoint(self, wp):
-        print('sending wp: {}'.format(wp))
+    def sendMavlinkMessage(self, msg):
+        # TODO thread-safe check?
+        print('sending msg: {}'.format(msg))
         # self.txTimeoutTimer.start(self.txTimeoutmsec)
-        self.connection.mav.send(wp)
+        self.connection.mav.send(msg)
 
     def _timerTimeout(self):
         print('Timeout')
@@ -498,7 +501,7 @@ class MAVLinkConnection(QThread):
                                                             mavlink.MAV_FRAME_GLOBAL, mavlink.MAV_CMD_NAV_WAYPOINT, 1,
                                                             1,  # Auto continue to next waypoint
                                                             0, 0, 0, 0, wp.latitude, wp.longitude, wp.altitude)
-        self._sendOneWaypoint(item)
+        self.sendMavlinkMessage(item)
 
     def initializeReturnToHome(self):
         self.connection.set_mode_rtl()

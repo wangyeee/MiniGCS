@@ -14,3 +14,6 @@ class AutoQuadControlPanel(AbstractControlPanel):
 
     def tabName(self):
         return 'AutoQuad'
+
+    def registerMavlinkMessageListeners(self):
+        return ['AQ_TELEMETRY_F', 'AQ_ESC_TELEMETRY']

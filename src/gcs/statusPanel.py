@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
 from compass import Compass
 from barometer import Barometer
 from plugins.autoquad import AutoQuadControlPanel
+from telemetry import MAVLinkConnection
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',
@@ -45,6 +46,11 @@ class SystemStatusPanel(QWidget):
         l = QVBoxLayout()
         l.addWidget(self.tabs)
         self.setLayout(l)
+
+    def initializaMavlinkForControlPanels(self, mav: MAVLinkConnection):
+        for ap in self.apControlPanels:
+            mav.externalMessageHandler.connect(ap.processMavlinkMessage)
+            ap.mavlinkTxSignal.connect(mav.sendMavlinkMessage)
 
     def addAPControlPanel(self, apType):
         if apType in self.apControlPanels:
