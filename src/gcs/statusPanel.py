@@ -51,7 +51,7 @@ class SystemStatusPanel(QWidget):
             t = self.apControlPanels[apType]
             print('Add control panel for AP: {} ({})'.format(t.tabName(), apType))
             self.tabs.addTab(t, t.tabName())
-            t.show()
+            t.setVisible(True)
         else:
             print('No control panel available for AP:', apType)
 

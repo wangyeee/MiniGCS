@@ -1,7 +1,8 @@
 from PyQt5.QtCore import Qt  # , pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QLabel, QWidget
+from PyQt5.QtWidgets import QGridLayout, QLabel
+from plugins.common import AbstractControlPanel
 
-class AutoQuadControlPanel(QWidget):
+class AutoQuadControlPanel(AbstractControlPanel):
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -10,7 +11,6 @@ class AutoQuadControlPanel(QWidget):
         l.addWidget(QLabel('AutoQuad Tools'), row, 0, 1, 3, Qt.AlignLeft)
         row += 1
         self.setLayout(l)
-        self.hide()
 
     def tabName(self):
         return 'AutoQuad'
