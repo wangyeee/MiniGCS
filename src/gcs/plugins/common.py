@@ -5,10 +5,6 @@ class AbstractControlPanel(QWidget):
 
     mavlinkTxSignal = pyqtSignal(object)  # pass a mavlink message object
 
-    def __init__(self, parent = None):
-        super().__init__(parent)
-        self.setVisible(False)
-
     def tabName(self):
         return 'Tools'
 

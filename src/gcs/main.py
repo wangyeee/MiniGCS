@@ -64,6 +64,7 @@ class MiniGCS(QMainWindow):
         self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
         self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
         self.mav.connectedToAPTypeSignal.connect(self.sts.addAPControlPanel)
+        self.sts.initializaMavlinkForControlPanels(self.mav)
         self.mav.start()
 
     def droneStatusHandler(self, msg):

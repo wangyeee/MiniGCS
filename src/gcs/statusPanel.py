@@ -49,15 +49,14 @@ class SystemStatusPanel(QWidget):
 
     def initializaMavlinkForControlPanels(self, mav: MAVLinkConnection):
         for ap in self.apControlPanels:
-            mav.externalMessageHandler.connect(ap.processMavlinkMessage)
-            ap.mavlinkTxSignal.connect(mav.sendMavlinkMessage)
+            mav.externalMessageHandler.connect(self.apControlPanels[ap].processMavlinkMessage)
+            self.apControlPanels[ap].mavlinkTxSignal.connect(mav.sendMavlinkMessage)
 
     def addAPControlPanel(self, apType):
         if apType in self.apControlPanels:
             t = self.apControlPanels[apType]
             print('Add control panel for AP: {} ({})'.format(t.tabName(), apType))
             self.tabs.addTab(t, t.tabName())
-            t.setVisible(True)
         else:
             print('No control panel available for AP:', apType)
 
