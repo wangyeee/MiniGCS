@@ -492,8 +492,8 @@ class MAVLinkConnection(QThread):
         # self.txTimeoutTimer.start(self.txTimeoutmsec)
         if msg.target_system == 255:
             msg.target_system = self.connection.target_system
+        if msg.target_component == 255:
             msg.target_component = self.connection.target_component
-            print('Auto correct: {}, {}'.format(msg.target_system, msg.target_component))
         self.connection.mav.send(msg)
 
     def _timerTimeout(self):
