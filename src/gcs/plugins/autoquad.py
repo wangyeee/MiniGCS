@@ -5,7 +5,16 @@ from plugins.common import AbstractControlPanel
 
 class AutoQuadControlPanel(AbstractControlPanel):
 
+    __mavlinkMessageTypes = ['AQ_TELEMETRY_F', 'AQ_ESC_TELEMETRY']
+    cmdSent = 0
+
     def __init__(self, parent = None):
+        '''
+        layout:
+        From SD       To SD
+        DIMU Tare     MAG Calib.
+        Calib. Save
+        '''
         super().__init__(parent)
         l = QGridLayout()
         row = 0
@@ -22,17 +31,35 @@ class AutoQuadControlPanel(AbstractControlPanel):
 
     def __dIMUTare(self):
         # set target system to 255 to let telemetry.py auto correct the values
-        msg = mavlink.MAVLink_command_long_message(255, 0, #target_system, mav.target_component,
-                 mavlink.MAV_CMD_PREFLIGHT_CALIBRATION, 0,
-                 0, 0, 0, 0, 1, 0, 0)
-        print('DIMU tare:', msg)
+        msg = mavlink.MAVLink_command_long_message(255, 0, mavlink.MAV_CMD_PREFLIGHT_CALIBRATION, 0,
+                                                   0, 0, 0, 0, 1, 0, 0)
+        self.__addMessageType('COMMAND_ACK')
+        self.cmdSent =  mavlink.MAV_CMD_PREFLIGHT_CALIBRATION
         self.mavlinkTxSignal.emit(msg)
 
     def __magCalib(self):
-        print('MAG calib.')
+        msg = mavlink.MAVLink_command_long_message(255, 0, mavlink.MAV_CMD_PREFLIGHT_CALIBRATION, 0,
+                                                   0, 1, 0, 0, 0, 0, 0)
+        print('MAG calib:', msg)
+        self.__addMessageType('COMMAND_ACK')
+        self.cmdSent =  mavlink.MAV_CMD_PREFLIGHT_CALIBRATION
+        self.mavlinkTxSignal.emit(msg)
 
     def tabName(self):
         return 'AutoQuad'
 
+    def __addMessageType(self, msgType):
+        if msgType not in self.__mavlinkMessageTypes:
+            self.__mavlinkMessageTypes.append(msgType)
+
+    def __removeMessageType(self, msgType):
+        if msgType in self.__mavlinkMessageTypes:
+            self.__mavlinkMessageTypes.remove(msgType)
+
     def registerMavlinkMessageListeners(self):
-        return ['AQ_TELEMETRY_F', 'AQ_ESC_TELEMETRY']
+        return self.__mavlinkMessageTypes
+
+    def __mavlinkMessageReceived(self, msg):
+        if msg.get_type() == 'COMMAND_ACK' and msg.command == self.cmdSent:
+            print('Command result: {}'.format(self.cmdSent))
+            self.__removeMessageType('COMMAND_ACK')
