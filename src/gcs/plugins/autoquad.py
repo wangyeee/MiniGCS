@@ -1,7 +1,19 @@
 from PyQt5.QtCore import Qt  # , pyqtSignal
-from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton, QMessageBox
 from pymavlink.dialects.v10 import autoquad as mavlink
 from plugins.common import AbstractControlPanel
+
+MAV_CMD_ACKS = {
+    mavlink.MAV_CMD_ACK_OK : 'Command executed',
+    mavlink.MAV_CMD_ACK_ERR_FAIL : 'Generic error',
+    mavlink.MAV_CMD_ACK_ERR_ACCESS_DENIED : 'Command refused',
+    mavlink.MAV_CMD_ACK_ERR_NOT_SUPPORTED : 'Command not supported',
+    mavlink.MAV_CMD_ACK_ERR_COORDINATE_FRAME_NOT_SUPPORTED : 'Coordinate frame not supported',
+    mavlink.MAV_CMD_ACK_ERR_COORDINATES_OUT_OF_RANGE : 'Invalid coordinate values',
+    mavlink.MAV_CMD_ACK_ERR_X_LAT_OUT_OF_RANGE : 'Invalid latitude value',
+    mavlink.MAV_CMD_ACK_ERR_Y_LON_OUT_OF_RANGE : 'Invalid longitude value',
+    mavlink.MAV_CMD_ACK_ERR_Z_ALT_OUT_OF_RANGE : 'Invalid altitude value'
+}
 
 class AutoQuadControlPanel(AbstractControlPanel):
 
@@ -89,7 +101,11 @@ class AutoQuadControlPanel(AbstractControlPanel):
     def registerMavlinkMessageListeners(self):
         return self.__mavlinkMessageTypes
 
-    def __mavlinkMessageReceived(self, msg):
+    def mavlinkMessageReceived(self, msg):
         if msg.get_type() == 'COMMAND_ACK' and msg.command == self.cmdSent:
-            print('Command result: {}'.format(self.cmdSent))
+            if msg.result in MAV_CMD_ACKS:
+                if msg.result == mavlink.MAV_CMD_ACK_OK:
+                    QMessageBox.information(self, 'Information', MAV_CMD_ACKS[msg.result], QMessageBox.Ok)
+                else:
+                    QMessageBox.critical(self, 'Error', MAV_CMD_ACKS[msg.result], QMessageBox.Ok)
             self.__removeMessageType('COMMAND_ACK')
