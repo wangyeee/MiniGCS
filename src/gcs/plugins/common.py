@@ -1,9 +1,11 @@
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QWidget, QGridLayout, QPushButton, QMessageBox
+from PyQt5.QtCore import pyqtSignal, Qt
+from pymavlink.dialects.v10 import common as mavlink
 
 class AbstractControlPanel(QWidget):
 
     mavlinkTxSignal = pyqtSignal(object)  # pass a mavlink message object
+    isConnected = False
 
     def tabName(self):
         return 'Tools'
@@ -25,6 +27,19 @@ class AbstractControlPanel(QWidget):
 
 class GenericControlPanel(AbstractControlPanel):
 
+    autoPilotRebootSignal = pyqtSignal()
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        l = QGridLayout()
+        row = 0
+        self.rebootAutoPilotButton = QPushButton('Reboot AutoPilot')
+        self.rebootAutoPilotButton.clicked.connect(self.__rebootAutoPilot)
+        l.addWidget(self.rebootAutoPilotButton, row, 0, 1, 1, Qt.AlignLeft)
+        row += 1
+        l.setRowStretch(row, 1)
+        self.setLayout(l)
+
     def tabName(self):
         return 'Mavlink'
 
@@ -34,3 +49,15 @@ class GenericControlPanel(AbstractControlPanel):
     def mavlinkMessageReceived(self, msg):
         if msg.get_type() == 'STATUSTEXT':
             print(msg)
+
+    def __rebootAutoPilot(self):
+        if self.isConnected:
+            cfm = QMessageBox.question(self.window(),
+                                       'Reboot AutoPilot',
+                                       'The autopilot will reboot, continue?',
+                                       QMessageBox.Yes, QMessageBox.No)
+            if cfm == QMessageBox.Yes:
+                msg = mavlink.MAVLink_command_long_message(255, 0, mavlink.MAV_CMD_PREFLIGHT_REBOOT_SHUTDOWN, 0,
+                                                           1, 0, 0, 0, 0, 0, 0)
+                self.autoPilotRebootSignal.emit()  # signal other component the reboot event
+                self.mavlinkTxSignal.emit(msg)

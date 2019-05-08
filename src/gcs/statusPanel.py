@@ -66,6 +66,7 @@ class SystemStatusPanel(QWidget):
     def __linkTelemetryForControlPanel(self, panel, mav):
         mav.externalMessageHandler.connect(panel.processMavlinkMessage)
         panel.mavlinkTxSignal.connect(mav.sendMavlinkMessage)
+        panel.isConnected = True
 
 class StatusSummaryPanel(QWidget):
 
@@ -100,6 +101,8 @@ class StatusSummaryPanel(QWidget):
         self.radioBar.setValue(0)
         l.addWidget(QLabel('Radio'), row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.radioBar, row, 1, 1, 2, Qt.AlignLeft)
+        row += 1
+        l.setRowStretch(row, 1)
         row += 1
 
         self.editParameterButton = QPushButton('Edit Parameters')
