@@ -1,6 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QGridLayout, QPushButton, QMessageBox, QPlainTextEdit
 from PyQt5.QtCore import pyqtSignal, Qt
-from PyQt5.QtGui import QPalette
 from pymavlink.dialects.v10 import common as mavlink
 import time
 
