@@ -44,6 +44,7 @@ class AutoQuadControlPanel(AbstractControlPanel):
         row += 1
         l.addWidget(self.calibSaveButton, row, 0, 1, 1, Qt.AlignLeft)
         row += 1
+        l.setRowStretch(row, 1)
         self.setLayout(l)
 
     def __saveParametersToSDCard(self):

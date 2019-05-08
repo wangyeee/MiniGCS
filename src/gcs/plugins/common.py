@@ -1,6 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QGridLayout, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QGridLayout, QPushButton, QMessageBox, QPlainTextEdit
 from PyQt5.QtCore import pyqtSignal, Qt
 from pymavlink.dialects.v10 import common as mavlink
+import time
 
 class AbstractControlPanel(QWidget):
 
@@ -28,6 +29,8 @@ class AbstractControlPanel(QWidget):
 class GenericControlPanel(AbstractControlPanel):
 
     autoPilotRebootSignal = pyqtSignal()
+    textMessageConsole = None
+    __updateTextConsoleSignal = pyqtSignal(object)
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -37,7 +40,11 @@ class GenericControlPanel(AbstractControlPanel):
         self.rebootAutoPilotButton.clicked.connect(self.__rebootAutoPilot)
         l.addWidget(self.rebootAutoPilotButton, row, 0, 1, 1, Qt.AlignLeft)
         row += 1
-        l.setRowStretch(row, 1)
+        self.textMessageConsole = QPlainTextEdit(self)
+        self.textMessageConsole.setReadOnly(True)
+        self.textMessageConsole.document().setMaximumBlockCount(100)
+        self.__updateTextConsoleSignal.connect(self.__textMessagePrint)
+        l.addWidget(self.textMessageConsole, row, 0, 5, 5)
         self.setLayout(l)
 
     def tabName(self):
@@ -48,7 +55,12 @@ class GenericControlPanel(AbstractControlPanel):
 
     def mavlinkMessageReceived(self, msg):
         if msg.get_type() == 'STATUSTEXT':
-            print(msg)
+            self.__updateTextConsoleSignal.emit(msg.text)
+
+    def __textMessagePrint(self, msg: str):
+        self.textMessageConsole.insertPlainText('{}: {}'.format(time.strftime('%H:%M:%S', time.localtime()), msg))
+        bar = self.textMessageConsole.verticalScrollBar()
+        bar.setValue(bar.maximum())
 
     def __rebootAutoPilot(self):
         if self.isConnected:
