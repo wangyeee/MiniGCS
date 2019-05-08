@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
 from compass import Compass
 from barometer import Barometer
 from plugins.autoquad import AutoQuadControlPanel
+from plugins.common import GenericControlPanel
 from telemetry import MAVLinkConnection
 
 GPS_FIX_LABELS = {
@@ -42,15 +43,17 @@ class SystemStatusPanel(QWidget):
         self.tabs.addTab(self.compassPanel, 'Compass')
         self.barometerPanel = Barometer(self)
         self.tabs.addTab(self.barometerPanel, 'Barometer')
+        self.genericControlPanel = GenericControlPanel()
+        self.tabs.addTab(self.genericControlPanel, self.genericControlPanel.tabName())
         self.apControlPanels[mavlink.MAV_AUTOPILOT_AUTOQUAD] = AutoQuadControlPanel()
         l = QVBoxLayout()
         l.addWidget(self.tabs)
         self.setLayout(l)
 
     def initializaMavlinkForControlPanels(self, mav: MAVLinkConnection):
+        self.__linkTelemetryForControlPanel(self.genericControlPanel, mav)
         for ap in self.apControlPanels:
-            mav.externalMessageHandler.connect(self.apControlPanels[ap].processMavlinkMessage)
-            self.apControlPanels[ap].mavlinkTxSignal.connect(mav.sendMavlinkMessage)
+            self.__linkTelemetryForControlPanel(self.apControlPanels[ap], mav)
 
     def addAPControlPanel(self, apType):
         if apType in self.apControlPanels:
@@ -59,6 +62,10 @@ class SystemStatusPanel(QWidget):
             self.tabs.addTab(t, t.tabName())
         else:
             print('No control panel available for AP:', apType)
+
+    def __linkTelemetryForControlPanel(self, panel, mav):
+        mav.externalMessageHandler.connect(panel.processMavlinkMessage)
+        panel.mavlinkTxSignal.connect(mav.sendMavlinkMessage)
 
 class StatusSummaryPanel(QWidget):
 

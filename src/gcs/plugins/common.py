@@ -22,3 +22,15 @@ class AbstractControlPanel(QWidget):
     def mavlinkMessageReceived(self, msg):
         # print('Error, sub-class must implement this method to process mavlink message:', msg)
         pass
+
+class GenericControlPanel(AbstractControlPanel):
+
+    def tabName(self):
+        return 'Mavlink'
+
+    def registerMavlinkMessageListeners(self):
+        return ['STATUSTEXT']
+
+    def mavlinkMessageReceived(self, msg):
+        if msg.get_type() == 'STATUSTEXT':
+            print(msg)
