@@ -45,7 +45,8 @@ class Barometer(QWidget):
 
         layout = QVBoxLayout()
         layout.addWidget(view)
-        super().setLayout(layout)
+        self.setLayout(layout)
+        self.setBarometer(1000)
 
     def setBarometer(self, hbar):
         deg = ((hbar - 950) * 3 + 210) % 360
