@@ -103,6 +103,9 @@ class StatusSummaryPanel(QWidget):
         self.radioBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('green'))
         l.addWidget(QLabel('Radio'), row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.radioBar, row, 1, 1, 1)
+        self.radioTelemetryButton = QPushButton('Radio Telemetry')
+        self.radioTelemetryButton.clicked.connect(self.__showRadioTelemetryWindow)
+        l.addWidget(self.radioTelemetryButton, row, 2, 1, 1)
         row += 1
         l.setRowStretch(row, 1)
         row += 1
@@ -165,6 +168,12 @@ class StatusSummaryPanel(QWidget):
             self.disconnectFromLocalGPS.emit()
             self.gpsLabelShown = True
             self.localGPSButton.setText('Local GPS')
+
+    def __showRadioTelemetryWindow(self):
+        '''
+        Display realtime values for each radio channel,
+        this could be used for pre-flight checks
+        '''
 
 # test
 if __name__ == "__main__":
