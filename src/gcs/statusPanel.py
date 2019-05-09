@@ -93,14 +93,14 @@ class StatusSummaryPanel(QWidget):
         l.addWidget(QLabel('Battery'), row, 0, 1, 1, Qt.AlignLeft)
         self.battBar = QProgressBar(self)
         self.battBar.setValue(0)
-        l.addWidget(self.battBar, row, 1, 1, 1, Qt.AlignLeft)
+        l.addWidget(self.battBar, row, 1, 1, 1)
         self.battVoltLabel = QLabel('0.0V')
         l.addWidget(self.battVoltLabel, row, 2, 1, 1, Qt.AlignLeft)
         row += 1
         self.radioBar = QProgressBar(self)
         self.radioBar.setValue(0)
         l.addWidget(QLabel('Radio'), row, 0, 1, 1, Qt.AlignLeft)
-        l.addWidget(self.radioBar, row, 1, 1, 2, Qt.AlignLeft)
+        l.addWidget(self.radioBar, row, 1, 1, 1)
         row += 1
         l.setRowStretch(row, 1)
         row += 1
@@ -112,13 +112,14 @@ class StatusSummaryPanel(QWidget):
         self.connectButton = QPushButton('Connect')
         self.connectLabelShown = True
         self.connectButton.clicked.connect(self.toggleButtonLabel)
-        l.addWidget(self.connectButton, row, 1, 1, 1, Qt.AlignLeft)
+        l.addWidget(self.connectButton, row, 1, 1, 1, Qt.AlignCenter)
 
         self.localGPSButton = QPushButton('Local GPS')
         self.gpsLabelShown = True
         self.localGPSButton.clicked.connect(self.toggleGPSButtonLabel)
         l.addWidget(self.localGPSButton, row, 2, 1, 1, Qt.AlignLeft)
 
+        l.setColumnStretch(1, 1)
         self.setLayout(l)
 
     def updateBatteryStatus(self, voltage, current, remaining):
