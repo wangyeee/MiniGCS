@@ -93,12 +93,14 @@ class StatusSummaryPanel(QWidget):
         l.addWidget(QLabel('Battery'), row, 0, 1, 1, Qt.AlignLeft)
         self.battBar = QProgressBar(self)
         self.battBar.setValue(0)
+        self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('green'))
         l.addWidget(self.battBar, row, 1, 1, 1)
-        self.battVoltLabel = QLabel('0.0V')
-        l.addWidget(self.battVoltLabel, row, 2, 1, 1, Qt.AlignLeft)
+        self.battVoltLabel = QLabel('0.0V/0.0A')
+        l.addWidget(self.battVoltLabel, row, 2, 1, 1)
         row += 1
         self.radioBar = QProgressBar(self)
         self.radioBar.setValue(0)
+        self.radioBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('green'))
         l.addWidget(QLabel('Radio'), row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.radioBar, row, 1, 1, 1)
         row += 1
@@ -123,7 +125,7 @@ class StatusSummaryPanel(QWidget):
         self.setLayout(l)
 
     def updateBatteryStatus(self, voltage, current, remaining):
-        self.battVoltLabel.setText('{}V'.format(voltage))
+        self.battVoltLabel.setText('{:.1f}V/{:.1f}A'.format(voltage, current))
         self.battBar.setValue(remaining)
         if remaining >= 60:
             self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('green'))
