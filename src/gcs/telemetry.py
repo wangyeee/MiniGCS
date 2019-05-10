@@ -7,7 +7,7 @@ from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant, QObject,
                           QWaitCondition, pyqtSignal)
-from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog, QGridLayout,
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
                              QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox, QProgressBar)
 from serial.tools.list_ports import comports
 
@@ -316,6 +316,7 @@ class MAVLinkConnection(QThread):
     navControllerOutputHandler = pyqtSignal(object)
     radioStatusHandler = pyqtSignal(object)
     rcChannelRawHandler = pyqtSignal(object)
+    servoOutputRawHandler = pyqtSignal(object)
     scaledIMUHandler = pyqtSignal(object)
     scaledPressureHandler = pyqtSignal(object)
     heartBeatHandler = pyqtSignal(object)
@@ -374,6 +375,7 @@ class MAVLinkConnection(QThread):
         self.handlerLookup['NAV_CONTROLLER_OUTPUT'] = self.navControllerOutputHandler
         self.handlerLookup['RADIO_STATUS'] = self.radioStatusHandler
         self.handlerLookup['RC_CHANNELS_RAW'] = self.rcChannelRawHandler
+        self.handlerLookup['SERVO_OUTPUT_RAW'] = self.servoOutputRawHandler
         self.handlerLookup['SCALED_IMU'] = self.scaledIMUHandler
         self.handlerLookup['SCALED_PRESSURE'] = self.scaledPressureHandler
         self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
