@@ -7,8 +7,8 @@ from pymavlink.mavwp import MAVWPLoader
 from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant, QObject,
                           QWaitCondition, pyqtSignal)
-from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
-                             QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox)
+from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog, QGridLayout,
+                             QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox, QProgressBar)
 from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
@@ -94,6 +94,36 @@ class MavStsKeys(Enum):
     CUSTOM_AP_MODE = 4
     AP_SYS_STS = 5
     MAVLINK_VER = 6
+
+class RadioControlTelemetryWindow(QWidget):
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle('Radio Control Telemetry')
+        l = QGridLayout()
+        self.channelValueBars = []
+        for i in range(8):
+            self.channelValueBars.append(QProgressBar(self))
+            self.channelValueBars[i].setRange(1000, 2000)
+            l.addWidget(QLabel('Channel {}'.format(i + 1)), i, 0, 1, 1)
+            l.addWidget(self.channelValueBars[i], i, 1, 1, 1)
+        self.setLayout(l)
+
+    def updateRCChannelValues(self, msg):
+        channels = []
+        channels.append(msg.chan1_raw)
+        channels.append(msg.chan2_raw)
+        channels.append(msg.chan3_raw)
+        channels.append(msg.chan4_raw)
+        channels.append(msg.chan5_raw)
+        channels.append(msg.chan6_raw)
+        channels.append(msg.chan7_raw)
+        channels.append(msg.chan8_raw)
+        self.__updateValues(channels)
+
+    def __updateValues(self, values):
+        for i in range(8):
+            self.channelValueBars[i].setValue(values[i])
+            self.channelValueBars[i].setFormat('{} ms'.format(values[i]))
 
 class ConnectionEditWindow(QWidget):
 

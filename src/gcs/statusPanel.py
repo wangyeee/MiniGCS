@@ -8,7 +8,7 @@ from compass import Compass
 from barometer import Barometer
 from plugins.autoquad import AutoQuadControlPanel
 from plugins.common import GenericControlPanel
-from telemetry import MAVLinkConnection
+from telemetry import MAVLinkConnection, RadioControlTelemetryWindow
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',
@@ -52,6 +52,7 @@ class SystemStatusPanel(QWidget):
 
     def initializaMavlinkForControlPanels(self, mav: MAVLinkConnection):
         self.__linkTelemetryForControlPanel(self.genericControlPanel, mav)
+        mav.rcChannelRawHandler.connect(self.statusPanel.rcTelemetryWindow.updateRCChannelValues)
         for ap in self.apControlPanels:
             self.__linkTelemetryForControlPanel(self.apControlPanels[ap], mav)
 
@@ -125,6 +126,7 @@ class StatusSummaryPanel(QWidget):
         l.addWidget(self.localGPSButton, row, 2, 1, 1, Qt.AlignLeft)
 
         l.setColumnStretch(1, 1)
+        self.rcTelemetryWindow = RadioControlTelemetryWindow()
         self.setLayout(l)
 
     def updateBatteryStatus(self, voltage, current, remaining):
@@ -174,6 +176,7 @@ class StatusSummaryPanel(QWidget):
         Display realtime values for each radio channel,
         this could be used for pre-flight checks
         '''
+        self.rcTelemetryWindow.show()
 
 # test
 if __name__ == "__main__":
