@@ -126,17 +126,22 @@ class RadioControlTelemetryPanel(QWidget):
         super().__init__(parent)
         l = QGridLayout()
         self.channelValueBars = []
+        self.channelValueLabels = []
         for i in range(8):
             self.channelValueBars.append(QProgressBar(self))
+            self.channelValueLabels.append(QLabel('0 ms', self))
             self.channelValueBars[i].setRange(1000, 2000)
+            self.channelValueBars[i].setTextVisible(False)
             l.addWidget(QLabel('Channel {}'.format(i + 1)), i, 0, 1, 1)
             l.addWidget(self.channelValueBars[i], i, 1, 1, 1)
+            l.addWidget(self.channelValueLabels[i], i, 2, 1, 1)
+        l.setColumnStretch(1, 1)
         self.setLayout(l)
 
     def updateValues(self, values):
         for i in range(8):
             self.channelValueBars[i].setValue(values[i])
-            self.channelValueBars[i].setFormat('{} ms'.format(values[i]))
+            self.channelValueLabels[i].setText('{} ms'.format(values[i]))
 
 class ConnectionEditWindow(QWidget):
 
