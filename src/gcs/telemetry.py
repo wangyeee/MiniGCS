@@ -86,6 +86,8 @@ MAVLINK_DIALECTS = {
 UD_TELEMETRY_KEY = 'TELEMETRY'
 UD_TELEMETRY_LOG_FOLDER_KEY = 'LOG_FOLDER'
 
+DEFAULT_RC_AUTO_SCALE_SAMPLES = 10
+
 class MavStsKeys(Enum):
     AP_SYS_ID = 0
     VEHICLE_TYPE = 1
@@ -125,9 +127,12 @@ class RadioControlTelemetryPanel(QWidget):
     def __init__(self, parent = None):
         super().__init__(parent)
         l = QGridLayout()
+        self.__autoScaleSamples = DEFAULT_RC_AUTO_SCALE_SAMPLES
+        self.channelValueRanges = [] # (min, max, samples)
         self.channelValueBars = []
         self.channelValueLabels = []
         for i in range(8):
+            self.channelValueRanges.append((1000000, 0, 0))
             self.channelValueBars.append(QProgressBar(self))
             self.channelValueLabels.append(QLabel('0 ms', self))
             self.channelValueBars[i].setRange(1000, 2000)
@@ -140,6 +145,21 @@ class RadioControlTelemetryPanel(QWidget):
 
     def updateValues(self, values):
         for i in range(8):
+            if values[i] < self.channelValueRanges[i][0]:
+                self.channelValueRanges[i] = (values[i], self.channelValueRanges[i][1], self.channelValueRanges[i][2])
+            if values[i] > self.channelValueRanges[i][1]:
+                self.channelValueRanges[i] = (self.channelValueRanges[i][0], values[i], self.channelValueRanges[i][2])
+            if self.channelValueRanges[i][1] > self.channelValueRanges[i][0]:
+                if self.channelValueRanges[i][2] < self.__autoScaleSamples:
+                    # First `self.__autoScaleSamples` samples will always be used to update scale
+                    self.channelValueBars[i].setRange(self.channelValueRanges[i][0], self.channelValueRanges[i][1])
+                    self.channelValueRanges[i] = (self.channelValueRanges[i][0], self.channelValueRanges[i][1], self.channelValueRanges[i][2] + 1)
+                else:
+                    # After that, only values exceeding current ranges will be updated
+                    if self.channelValueRanges[i][0] < self.channelValueBars[i].minimum():
+                        self.channelValueBars[i].setMinimum(self.channelValueRanges[i][0])
+                    if self.channelValueRanges[i][1] > self.channelValueBars[i].maximum():
+                        self.channelValueBars[i].setMaximum(self.channelValueRanges[i][1])
             self.channelValueBars[i].setValue(values[i])
             self.channelValueLabels[i].setText('{} ms'.format(values[i]))
 
