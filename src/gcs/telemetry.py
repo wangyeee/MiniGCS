@@ -99,6 +99,31 @@ class RadioControlTelemetryWindow(QWidget):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setWindowTitle('Radio Control Telemetry')
+        self.tabs = QTabWidget()
+        self.ports = {}
+        l = QVBoxLayout()
+        l.addWidget(self.tabs)
+        self.setLayout(l)
+
+    def updateRCChannelValues(self, msg):
+        if msg.port not in self.ports:
+            self.ports[msg.port] = RadioControlTelemetryPanel()
+            self.tabs.addTab(self.ports[msg.port], 'Receiver {}'.format(msg.port))
+
+        channels = []
+        channels.append(msg.chan1_raw)
+        channels.append(msg.chan2_raw)
+        channels.append(msg.chan3_raw)
+        channels.append(msg.chan4_raw)
+        channels.append(msg.chan5_raw)
+        channels.append(msg.chan6_raw)
+        channels.append(msg.chan7_raw)
+        channels.append(msg.chan8_raw)
+        self.ports[msg.port].updateValues(channels)
+
+class RadioControlTelemetryPanel(QWidget):
+    def __init__(self, parent = None):
+        super().__init__(parent)
         l = QGridLayout()
         self.channelValueBars = []
         for i in range(8):
@@ -108,21 +133,7 @@ class RadioControlTelemetryWindow(QWidget):
             l.addWidget(self.channelValueBars[i], i, 1, 1, 1)
         self.setLayout(l)
 
-    def updateRCChannelValues(self, msg):
-        if msg.port == 0:
-            # TODO add multiple receiver support
-            channels = []
-            channels.append(msg.chan1_raw)
-            channels.append(msg.chan2_raw)
-            channels.append(msg.chan3_raw)
-            channels.append(msg.chan4_raw)
-            channels.append(msg.chan5_raw)
-            channels.append(msg.chan6_raw)
-            channels.append(msg.chan7_raw)
-            channels.append(msg.chan8_raw)
-            self.__updateValues(channels)
-
-    def __updateValues(self, values):
+    def updateValues(self, values):
         for i in range(8):
             self.channelValueBars[i].setValue(values[i])
             self.channelValueBars[i].setFormat('{} ms'.format(values[i]))
