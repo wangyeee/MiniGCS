@@ -455,12 +455,12 @@ class PrimaryFlightDisplay(QWidget):
         painter.setPen(pen)
         v = abs(self.__getAdditionalParameter('voltage'))
         a = abs(self.__getAdditionalParameter('current'))
-        self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.mediumTextSize, -side*w*0.85, side*w/4)
-        self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.mediumTextSize, -side*w*0.85, side*w/4 + self.mediumTextSize * 1.1)
+        self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.smallTestSize, -side*w*0.9, side*w/4)
+        self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.smallTestSize, -side*w*0.9, side*w/4 + self.mediumTextSize * 1.1)
         # Number of GPS satellites
         s = self.__getAdditionalParameter('gps_satellite')
         s = 0 if s == 255 else s
-        self.drawTextRightCenter(painter, '{}x🛰️'.format(s), self.mediumTextSize, side*w*0.85, side*w/4)
+        self.drawTextRightCenter(painter, '{}x🛰️'.format(s), self.smallTestSize, side*w*0.9, side*w/4)
 
         pen.setColor(QColor(255, 0, 0))
         painter.setPen(pen)
