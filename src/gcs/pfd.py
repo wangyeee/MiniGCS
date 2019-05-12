@@ -85,6 +85,8 @@ class PrimaryFlightDisplay(QWidget):
     pitch = 0.0
     yaw = 0.0
 
+    additionalParameters = {}
+
     def __init__(self, parent):
         super().__init__(parent)
         self.setMinimumSize(480, 320)
@@ -125,6 +127,11 @@ class PrimaryFlightDisplay(QWidget):
     def updatePrimarySpeed(self, sourceUAS, timestamp, speed):
         self.primarySpeed = self.primarySpeed if math.isnan(speed) else speed
         #didReceivePrimarySpeed = true
+
+    def updateBatteryStatus(self, sourceUAS, timestamp, voltage, current, remaining):
+        self.additionalParameters['voltage'] = voltage
+        self.additionalParameters['current'] = current
+        self.additionalParameters['remaining'] = remaining
 
     def updateGPSSpeed(self, sourceUAS, timestamp, speed, y, z):
         self.groundspeed = self.groundspeed if math.isnan(speed) else speed
@@ -438,6 +445,19 @@ class PrimaryFlightDisplay(QWidget):
         painter.drawLine(QPointF(-side*w, 0), QPointF(-(side-length)*w, 0))
         painter.drawLine(QPointF(side*w, 0), QPointF((side-length)*w, 0))
 
+        # Power usage
+        pen.setColor(QColor(255, 255, 255))
+        painter.setPen(pen)
+        v = 0
+        a = 0
+        if 'voltage' in self.additionalParameters:
+            v = abs(self.additionalParameters['voltage'])
+        if 'current' in self.additionalParameters:
+            a = abs(self.additionalParameters['current'])
+        self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.mediumTextSize, (-side)*w*0.85, side*w/4)
+        self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.mediumTextSize, (-side)*w*0.85, side*w/4 + self.mediumTextSize * 1.1)
+        pen.setColor(QColor(255, 0, 0))
+        painter.setPen(pen)
         rel = length / math.sqrt(2)
         # The gull
         painter.drawLine(QPointF(rel*w, rel*w/2), QPoint(0, 0))
