@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Port from qgroundcontrol PFD
 '''
@@ -132,6 +133,10 @@ class PrimaryFlightDisplay(QWidget):
         self.additionalParameters['voltage'] = voltage
         self.additionalParameters['current'] = current
         self.additionalParameters['remaining'] = remaining
+
+    def updateGPSReception(self, sourceUAS, timestamp, fixType, satelliteCount):
+        self.additionalParameters['gps_fix'] = fixType
+        self.additionalParameters['gps_satellite'] = satelliteCount
 
     def updateGPSSpeed(self, sourceUAS, timestamp, speed, y, z):
         self.groundspeed = self.groundspeed if math.isnan(speed) else speed
@@ -448,14 +453,15 @@ class PrimaryFlightDisplay(QWidget):
         # Power usage
         pen.setColor(QColor(255, 255, 255))
         painter.setPen(pen)
-        v = 0
-        a = 0
-        if 'voltage' in self.additionalParameters:
-            v = abs(self.additionalParameters['voltage'])
-        if 'current' in self.additionalParameters:
-            a = abs(self.additionalParameters['current'])
-        self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.mediumTextSize, (-side)*w*0.85, side*w/4)
-        self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.mediumTextSize, (-side)*w*0.85, side*w/4 + self.mediumTextSize * 1.1)
+        v = abs(self.__getAdditionalParameter('voltage'))
+        a = abs(self.__getAdditionalParameter('current'))
+        self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.mediumTextSize, -side*w*0.85, side*w/4)
+        self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.mediumTextSize, -side*w*0.85, side*w/4 + self.mediumTextSize * 1.1)
+        # Number of GPS satellites
+        s = self.__getAdditionalParameter('gps_satellite')
+        s = 0 if s == 255 else s
+        self.drawTextRightCenter(painter, '{}x🛰️'.format(s), self.mediumTextSize, side*w*0.85, side*w/4)
+
         pen.setColor(QColor(255, 0, 0))
         painter.setPen(pen)
         rel = length / math.sqrt(2)
@@ -856,3 +862,8 @@ class PrimaryFlightDisplay(QWidget):
 
     def shouldDisplayNavigationData(self):
         return True
+
+    def __getAdditionalParameter(self, param, defaultValue = 0):
+        if param in self.additionalParameters:
+            return self.additionalParameters[param]
+        return defaultValue

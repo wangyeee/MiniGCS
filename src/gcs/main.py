@@ -77,6 +77,7 @@ class MiniGCS(QMainWindow):
         self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
         self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
+        self.pfd.updateGPSReception(0, msg.time_usec, msg.fix_type, msg.satellites_visible)
 
     def droneAltitudeHandler(self, msg):
         self.sts.barometerPanel.setBarometer(msg.press_abs)
