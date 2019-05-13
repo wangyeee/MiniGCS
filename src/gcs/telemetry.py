@@ -427,6 +427,8 @@ class MAVLinkConnection(QThread):
         self.internalHandlerLookup['MISSION_ACK'] = self.receiveMissionAcknowledge
         self.internalHandlerLookup['MISSION_COUNT'] = self.receiveMissionItemCount
         self.internalHandlerLookup['MISSION_ITEM'] = self.receiveMissionItem
+        self.internalHandlerLookup['DATA_STREAM'] = self.receiveDataStream
+        self.internalHandlerLookup['PARAM_SET'] = self.receiveParameterSet
 
         self.txTimeoutTimer.timeout.connect(self._timerTimeout)
         self.txTimeoutTimer.setSingleShot(True)
@@ -526,6 +528,14 @@ class MAVLinkConnection(QThread):
     def receiveMissionAcknowledge(self, msg):
         print('missionRequestAck:', msg)
         self.txResponseCond.wakeAll()
+
+    def receiveDataStream(self, msg):
+        # DATA_STREAM {stream_id : 10, message_rate : 0, on_off : 0}
+        print(msg)
+
+    def receiveParameterSet(self, msg):
+        # PARAM_SET {target_system : 81, target_component : 50, param_id : BFLOW_GYRO_COM, param_value : 0.0, param_type : 9}
+        print(msg)
 
     def showParameterEditWindow(self):
         if self.isConnected:
