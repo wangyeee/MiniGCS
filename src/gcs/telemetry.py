@@ -401,6 +401,7 @@ class MAVLinkConnection(QThread):
         if self.param == None:
             self.param = {}
         self.messageTimeoutThreshold = UserData.getParameterValue(self.param, UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY, self.messageTimeoutThreshold)
+        self.txTimeoutmsec = self.messageTimeoutThreshold * 1000000
         self.running = True
         self.connection = connection
         self.replayMode = replayMode
@@ -440,17 +441,22 @@ class MAVLinkConnection(QThread):
         while self.running:
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
-                self.externalMessageHandler.emit(msg)
                 msgType = msg.get_type()
-                self.lastMessageReceivedTimestamp = time()
-                self.lastMessages[msgType] = (msg, self.lastMessageReceivedTimestamp)
-                if self.enableLog:
-                    ts = int(time() * 1.0e6) & ~3
-                    self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
-                if msgType in self.internalHandlerLookup:
-                    self.internalHandlerLookup[msgType](msg)
+                if msgType != 'BAD_DATA':
+                    # exclude BAD_DATA from any other messages
+                    self.externalMessageHandler.emit(msg)
+                    self.lastMessageReceivedTimestamp = time()
+                    self.lastMessages[msgType] = (msg, self.lastMessageReceivedTimestamp)
+                    if self.enableLog:
+                        ts = int(time() * 1.0e6) & ~3
+                        self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
+                    if msgType in self.internalHandlerLookup:
+                        self.internalHandlerLookup[msgType](msg)
+                    else:
+                        self._msgDispatcher(msg)
                 else:
-                    self._msgDispatcher(msg)
+                    # TODO handle BAD_DATA?
+                    print('BAD_DATA:', msg)
             rs = time() - self.lastMessageReceivedTimestamp
             if (rs > self.messageTimeoutThreshold):
                 print('Message timeout:', rs)
