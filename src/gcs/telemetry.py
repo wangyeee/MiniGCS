@@ -85,6 +85,7 @@ MAVLINK_DIALECTS = {
 
 UD_TELEMETRY_KEY = 'TELEMETRY'
 UD_TELEMETRY_LOG_FOLDER_KEY = 'LOG_FOLDER'
+UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY = 'TIMEOUT_THRESHOLD'
 
 DEFAULT_RC_AUTO_SCALE_SAMPLES = 10
 
@@ -391,7 +392,7 @@ class MAVLinkConnection(QThread):
     replayMode = False
     mavlinkLogFile = None
     lastMessageReceivedTimestamp = 0.0
-    messageTimeoutThreshold = 1.0  # one second
+    messageTimeoutThreshold = 2.0  # two seconds
     lastMessages = {} # type = (msg, timestamp)
 
     def __init__(self, connection, replayMode = False, enableLog = True):
@@ -399,6 +400,7 @@ class MAVLinkConnection(QThread):
         self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY)
         if self.param == None:
             self.param = {}
+        self.messageTimeoutThreshold = UserData.getParameterValue(self.param, UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY, self.messageTimeoutThreshold)
         self.running = True
         self.connection = connection
         self.replayMode = replayMode

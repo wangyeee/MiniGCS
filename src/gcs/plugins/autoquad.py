@@ -48,19 +48,15 @@ class AutoQuadControlPanel(AbstractControlPanel):
         self.setLayout(l)
 
     def __saveParametersToSDCard(self):
-        print('Save to SD')
         self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=2)
 
     def __loadParametersFromSDCard(self):
-        print('Load from SD')
         self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=3)
 
     def __loadDIMUCalibration(self):
-        print('Calib. Load')
         self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU, command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=0)
 
     def __saveDIMUCalibration(self):
-        print('Calib. Save')
         self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU, command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=1)
 
     def __sendMAVLinkLongMessage(self, target_system = 255, # set target system to 255 to let telemetry.py auto correct the values

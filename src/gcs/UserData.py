@@ -52,3 +52,9 @@ class UserData:
 
     def getUserDataEntry(self, key):
         return None if key not in self.userData else self.userData[key]
+
+    @staticmethod
+    def getParameterValue(params, key, defaultValue = None):
+        if key in params:
+            return params[key]
+        return defaultValue
