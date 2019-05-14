@@ -136,7 +136,7 @@ MapItem {
                         anchors.top: parent.top
                         anchors.left: aircraftImage.right
                         // QGeoCoordinate.Coordinate3D = 2
-                        text: callsign + "\n" + (isNaN(position.altitude) ? "Unknown Altitude" : position.altitude + " ft")
+                        text: callsign + "\n" + (isNaN(position.altitude) ? "Unknown Altitude" : position.altitude.toFixed(1) + " m")
                     }
                 }
             } // end MapQuickItem

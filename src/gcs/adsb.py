@@ -57,7 +57,9 @@ class AircraftsModel(QAbstractListModel):
         if role == self.positionRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon and self.allAircrafts[idx].altitude:
                 # 3D position, altitude is displayed next to aircraft icon
-                return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon, self.allAircrafts[idx].altitude))
+                # Altitude from dump1090 is in feet, convert to meters by default
+                altitudeInMeters = self.allAircrafts[idx].altitude * 0.3048
+                return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon, altitudeInMeters))
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
                 # 2D position, 'Unknown Altitude' is displayed next to aircraft icon
                 return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
