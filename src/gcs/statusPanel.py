@@ -130,7 +130,7 @@ class StatusSummaryPanel(QWidget):
         self.setLayout(l)
 
     def updateBatteryStatus(self, voltage, current, remaining):
-        self.battVoltLabel.setText('{:.1f}V/{:.1f}A'.format(voltage, current))
+        self.battVoltLabel.setText('{:.1f}V/{:.1f}A'.format(voltage, abs(current)))
         self.battBar.setValue(remaining)
         if remaining >= 60:
             self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('green'))
