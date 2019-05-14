@@ -514,7 +514,7 @@ class PrimaryFlightDisplay(QWidget):
         pitchPixels = self.pitchAngleToTranslation(mainArea.height(), self.pitch)
         gradientEnd = self.pitchAngleToTranslation(mainArea.height(), 60)
 
-        if self.roll == self.roll: # check for NaN
+        if math.isnan(self.roll) == False: # check for NaN
             painter.rotate(-self.roll)
         painter.translate(0, pitchPixels)
 
@@ -748,10 +748,7 @@ class PrimaryFlightDisplay(QWidget):
             isMajor = tickAlt % self.ALTIMETER_LINEAR_MAJOR_RESOLUTION == 0
             painter.resetTransform()
             painter.translate(area.left(), area.center().y() - y)
-            if tickAlt < 0:
-                pen.setColor(Qt.red)
-            else:
-                pen.setColor(Qt.white)
+            pen.setColor(Qt.red if tickAlt < 0 else Qt.white)
             painter.setPen(pen)
             if isMajor:
                 painter.drawLine(tickmarkLeft, 0, tickmarkRightMajor, 0)
@@ -782,10 +779,8 @@ class PrimaryFlightDisplay(QWidget):
         painter.setPen(pen)
 
         xCenter = (markerTip+rightEdge)/2
-        if primaryAltitude == self.UNKNOWN_ALTITUDE:
-            self.drawTextCenter(painter, '---', self.mediumTextSize, xCenter, 0)
-        else:
-            self.drawTextCenter(painter, '%3.0f' % primaryAltitude, self.mediumTextSize, xCenter, 0)
+        alttxt = '---' if primaryAltitude == self.UNKNOWN_ALTITUDE else '%3.0f' % primaryAltitude
+        self.drawTextCenter(painter, alttxt, self.mediumTextSize, xCenter, 0)
 
         if vv == self.UNKNOWN_ALTITUDE:
             return
@@ -835,11 +830,7 @@ class PrimaryFlightDisplay(QWidget):
         markerTip = (tickmarkLeftMajor+tickmarkRight*2)/3
 
         # Select between air and ground speed:
-        if speed == self.UNKNOWN_SPEED:
-            centerScaleSpeed = 0
-        else:
-            centerScaleSpeed = speed
-
+        centerScaleSpeed = 0 if speed == self.UNKNOWN_SPEED else speed
         start = centerScaleSpeed - self.AIRSPEED_LINEAR_SPAN/2
         end = centerScaleSpeed +self. AIRSPEED_LINEAR_SPAN/2
 
@@ -885,10 +876,8 @@ class PrimaryFlightDisplay(QWidget):
         pen.setColor(Qt.white)
         painter.setPen(pen)
         xCenter = (markerTip+leftEdge)/2
-        if speed == self.UNKNOWN_SPEED:
-            self.drawTextCenter(painter, '---', self.mediumTextSize, xCenter, 0)
-        else:
-            self.drawTextCenter(painter, '%3.1f' % speed, self.mediumTextSize, xCenter, 0)
+        spdtxt = '---' if speed == self.UNKNOWN_SPEED else '%3.1f' % speed
+        self.drawTextCenter(painter, spdtxt, self.mediumTextSize, xCenter, 0)
 
     def shouldDisplayNavigationData(self):
         return True
