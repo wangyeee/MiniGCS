@@ -582,7 +582,7 @@ class PrimaryFlightDisplay(QWidget):
                displayTick ==300 or displayTick ==330:
                 # draw a number
                 painter.setPen(scalePen)
-                self.drawTextCenter(painter, '{0}'.format(displayTick / 10), self.smallTestSize, 0, -innerRadius*0.75)
+                self.drawTextCenter(painter, '{0}'.format(int(displayTick / 10)), self.smallTestSize, 0, -innerRadius*0.75)
             else:
                 if displayTick % self.COMPASS_DISK_ARROWTICK == 0:
                     if displayTick != 0:
