@@ -13,6 +13,8 @@ from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 from UserData import UserData
 
+UINT16_MAX = 0xFFFF
+
 class MiniGCS(QMainWindow):
 
     mav = None
@@ -78,6 +80,8 @@ class MiniGCS(QMainWindow):
         self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
         self.pfd.updateGPSReception(0, msg.time_usec, msg.fix_type, msg.satellites_visible)
+        if msg.vel != UINT16_MAX:
+            self.pfd.updateGPSSpeed(0, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
 
     def droneAltitudeHandler(self, msg):
         self.sts.barometerPanel.setBarometer(msg.press_abs)

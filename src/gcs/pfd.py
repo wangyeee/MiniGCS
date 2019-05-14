@@ -10,8 +10,6 @@ from PyQt5.QtGui import (QBrush, QColor, QFont, QFontMetrics, QLinearGradient,
                          QPainter, QPainterPath, QPen)
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 
-UINT16_MAX = 0xFFFF
-
 class PrimaryFlightDisplay(QWidget):
     ROLL_SCALE_RANGE = 60
     ROLL_SCALE_TICKMARKLENGTH = 0.04
@@ -149,9 +147,8 @@ class PrimaryFlightDisplay(QWidget):
         self.__unused(sourceUAS, timestamp)
 
     def updateGPSSpeed(self, sourceUAS, timestamp, speed):
-        if math.isnan(speed) == False and speed != UINT16_MAX:
-            self.groundspeed = speed
-            self.__unused(sourceUAS, timestamp)
+        self.groundspeed = self.groundspeed if math.isnan(speed) else speed
+        self.__unused(sourceUAS, timestamp)
 
     def paintEvent(self, event):
         self.__unused(event)
@@ -462,13 +459,16 @@ class PrimaryFlightDisplay(QWidget):
         painter.drawLine(QPointF(-side*w, 0), QPointF(-(side-length)*w, 0))
         painter.drawLine(QPointF(side*w, 0), QPointF((side-length)*w, 0))
 
-        # Power usage
         pen.setColor(QColor(255, 255, 255))
         painter.setPen(pen)
         v = abs(self.__getAdditionalParameter('voltage'))
         a = abs(self.__getAdditionalParameter('current'))
+        # Power usage
         self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.smallTestSize, -side*w*0.9, side*w/4)
         self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.smallTestSize, -side*w*0.9, side*w/4 + self.mediumTextSize * 1.1)
+        # GPS groundspeed
+        gs = 'GS ---' if self.groundspeed == self.UNKNOWN_SPEED else'GS {:.1f}'.format(self.groundspeed)
+        self.drawTextLeftCenter(painter, gs, self.smallTestSize, -side*w*0.9, side*w/4 + self.mediumTextSize * 3.3)
         # Number of GPS satellites
         s = self.__getAdditionalParameter('gps_satellite')
         s = 0 if s == 255 else s
