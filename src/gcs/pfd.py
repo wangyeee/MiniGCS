@@ -9,6 +9,11 @@ from PyQt5.QtCore import (QPoint, QPointF, QRectF, Qt, QTimer,
 from PyQt5.QtGui import (QBrush, QColor, QFont, QFontMetrics, QLinearGradient,
                          QPainter, QPainterPath, QPen)
 from PyQt5.QtWidgets import QSizePolicy, QWidget
+from UserData import UserData
+
+UD_PFD_KEY = 'PFD'
+UD_PFD_PRIMARY_SPEED_SOURCE_KEY = 'PRIMARY_SPEED_SOURCE'
+UD_PFD_PRIMARY_ALTITUDE_SOURCE_KEY = 'PRIMARY_ALTITUDE_SOURCE'
 
 class PrimaryFlightDisplay(QWidget):
     ROLL_SCALE_RANGE = 60
@@ -96,6 +101,9 @@ class PrimaryFlightDisplay(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.param = UserData.getInstance().getUserDataEntry(UD_PFD_KEY, {})
+        self.isGPSSpeedPrimary = UserData.getParameterValue(self.param, UD_PFD_PRIMARY_SPEED_SOURCE_KEY) == 'GPS'
+        self.isGPSAltitudePrimary = UserData.getParameterValue(self.param, UD_PFD_PRIMARY_ALTITUDE_SOURCE_KEY) == 'GPS'
         self.setMinimumSize(480, 320)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.smallTestSize = self.SMALL_TEXT_SIZE
@@ -204,8 +212,14 @@ class PrimaryFlightDisplay(QWidget):
         self.drawAICompassDisk(painter, compassArea, compassHalfSpan)
 
         painter.setClipping(hadClip)
-        self.drawAltimeter(painter, altimeterArea, self.primaryAltitude, self.GPSAltitude, self.verticalVelocity)
-        self.drawVelocityMeter(painter, velocityMeterArea, self.primarySpeed, self.groundspeed)
+        if self.isGPSAltitudePrimary:
+            self.drawAltimeter(painter, altimeterArea, self.GPSAltitude, self.primaryAltitude, self.verticalVelocity)
+        else:
+            self.drawAltimeter(painter, altimeterArea, self.primaryAltitude, self.GPSAltitude, self.verticalVelocity)
+        if self.isGPSSpeedPrimary:
+            self.drawVelocityMeter(painter, velocityMeterArea, self.groundspeed, self.primarySpeed)
+        else:
+            self.drawVelocityMeter(painter, velocityMeterArea, self.primarySpeed, self.groundspeed)
         painter.end()
 
     def showEvent(self, event):
@@ -466,9 +480,14 @@ class PrimaryFlightDisplay(QWidget):
         # Power usage
         self.drawTextLeftCenter(painter, '{:.1f}V'.format(v), self.smallTestSize, -side*w*0.9, side*w/4)
         self.drawTextLeftCenter(painter, '{:.1f}A'.format(a), self.smallTestSize, -side*w*0.9, side*w/4 + self.mediumTextSize * 1.1)
-        # GPS groundspeed
-        gs = 'GS ---' if self.groundspeed == self.UNKNOWN_SPEED else'GS {:.1f}'.format(self.groundspeed)
-        self.drawTextLeftCenter(painter, gs, self.smallTestSize, -side*w*0.9, side*w/4 + self.mediumTextSize * 3.3)
+        # GPS groundspeed / IAS
+        spd = ''
+        if self.isGPSSpeedPrimary:
+            # TODO add option to hide air speed when there is no air speed sensor
+            spd = 'IAS ---' if self.primarySpeed == self.UNKNOWN_SPEED else 'IAS {:.1f}'.format(self.primarySpeed)
+        else:
+            spd = 'GS ---' if self.groundspeed == self.UNKNOWN_SPEED else 'GS {:.1f}'.format(self.groundspeed)
+        self.drawTextLeftCenter(painter, spd, self.smallTestSize, -side*w*0.9, side*w/4 + self.mediumTextSize * 3.3)
         # Number of GPS satellites
         s = self.__getAdditionalParameter('gps_satellite')
         s = 0 if s == 255 else s
@@ -716,10 +735,7 @@ class PrimaryFlightDisplay(QWidget):
         tickmarkRightMinor = tickmarkLeft+self.TAPE_GAUGES_TICKWIDTH_MINOR*w
         numbersLeft = 0.42*w
         markerTip = (tickmarkLeft*2+tickmarkRightMajor)/3
-        if self.primaryAltitude == self.UNKNOWN_ALTITUDE:
-            scaleCenterAltitude = 0
-        else:
-            scaleCenterAltitude = self.primaryAltitude
+        scaleCenterAltitude = 0 if primaryAltitude == self.UNKNOWN_ALTITUDE else primaryAltitude
 
         # altitude scale
         start = scaleCenterAltitude - self.ALTIMETER_LINEAR_SPAN/2

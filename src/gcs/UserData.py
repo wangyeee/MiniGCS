@@ -50,8 +50,8 @@ class UserData:
         self.userData[key] = value
         return oldValue
 
-    def getUserDataEntry(self, key):
-        return None if key not in self.userData else self.userData[key]
+    def getUserDataEntry(self, key, defaultValue = None):
+        return defaultValue if key not in self.userData else self.userData[key]
 
     @staticmethod
     def getParameterValue(params, key, defaultValue = None):

@@ -397,9 +397,7 @@ class MAVLinkConnection(QThread):
 
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
-        self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY)
-        if self.param == None:
-            self.param = {}
+        self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY, {})
         self.messageTimeoutThreshold = UserData.getParameterValue(self.param, UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY, self.messageTimeoutThreshold)
         self.txTimeoutmsec = self.messageTimeoutThreshold * 1000000
         self.running = True
