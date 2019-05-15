@@ -598,6 +598,16 @@ class MAVLinkConnection(QThread):
 
     def uploadNewParametersEvent(self, params):
         print('sending parameters:', params)
+        # the params from UI are MAVLink_param_value_message,
+        # which are required to be consistent with all parameters
+        # download upon connection. They will be converted to
+        # MAVLink_param_set_message before sending to UAV
+        for param in params:
+            paramSet = mavutil.mavlink.MAVLink_param_set_message(self.connection.target_system,
+                                                                 self.connection.target_component,
+                                                                 param.param_id.encode('utf-8'),
+                                                                 param.param_value, param.param_type)
+            self.sendMavlinkMessage(paramSet)
 
     def __createLogFile(self):
         if self.enableLog:

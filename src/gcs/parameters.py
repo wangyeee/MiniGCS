@@ -153,12 +153,10 @@ class ParameterPanel(QWidget):
             if (len(self.paramList.changedParams) == 0):
                 QMessageBox.warning(self.window(), 'Warning', 'No changes have been made.', QMessageBox.Ok)
                 return
-            print('Changed params: ', self.paramList.changedParams)
             self.paramList.showChangedParametersOnly()
             self.uploadButton.setText('Confirm Upload')
             self.uploadUAVStep += 1
         elif self.uploadUAVStep == 1:  ## 'Confirm Upload' clicked
-            print('Send parameters... ->', self.paramList.changedParams)
             self.uploadUAVStep = 0
             self.uploadNewParametersSignal.emit(self.paramList.changedParams)
             self.close()
