@@ -16,6 +16,7 @@ from waypoint import Waypoint
 from UserData import UserData
 
 BAUD_RATES = {
+    0 : 'AUTO',
     110 : '110',
     300 : '300',
     600 : '600',
@@ -26,7 +27,7 @@ BAUD_RATES = {
     14400 : '14400',
     19200 : '19200',
     38400 : '38400',
-    56000 : '56000',
+    # 56000 : '56000',
     57600 : '57600',
     115200 : '115200',
     128000 : '128000',
@@ -278,9 +279,13 @@ class SerialConnectionEditTab(QWidget):
 
     portList = {}
 
+    __autoBaudStartSignal = pyqtSignal(object)
+    autoBaud = None
+
     def __init__(self, parent):
         super().__init__(parent)
         self.MAVLinkConnectedSignal = parent.MAVLinkConnectedSignal
+        self.__autoBaudStartSignal.connect(self.__autoBaud)
         self.listSerialPorts()
         l = QGridLayout()
         row = 0
@@ -344,9 +349,45 @@ class SerialConnectionEditTab(QWidget):
     def doConnect(self):
         port = self.portsDropDown.currentData()
         baud = self.baudDropDown.currentData()
+        if baud == 0:
+            self.__autoBaudStartSignal.emit(port)
+            return False  # Keep window open while auto bauding
         connection = mavutil.mavlink_connection(port, int(baud))
         self.MAVLinkConnectedSignal.emit(connection)
         return True
+
+    def __autoBaud(self, port):
+        self.autoBaud = AutoBaudThread(port, self)
+        #                                   This Tab       QTabWidget     QWidget
+        self.autoBaud.finished.connect(self.parentWidget().parentWidget().parentWidget().close)
+        self.autoBaud.start()
+
+class AutoBaudThread(QThread):
+
+    def __init__(self, port, parent):
+        super().__init__(parent)
+        self.MAVLinkConnectedSignal = parent.MAVLinkConnectedSignal
+        self.port = port
+
+    def run(self):
+        for b in BAUD_RATES:
+            if b >= self.__minimumBaudRate():
+                print('AutoBaud: try', b)
+                conn = mavutil.mavlink_connection(self.port, b)
+                hb = conn.wait_heartbeat(timeout=2.0)  # set timeout to 2 second
+                if hb == None:
+                    print('AutoBaud: timeout', b)
+                    conn.close()
+                else:
+                    print('AutoBaud: success', b)
+                    self.MAVLinkConnectedSignal.emit(conn)
+                    return
+        # Fail back to default mavlink baud rate
+        print('AutoBaud: default 57600')
+        self.MAVLinkConnectedSignal.emit(mavutil.mavlink_connection(self.port, 57600))
+
+    def __minimumBaudRate(self):
+        return 4800
 
 class MAVLinkConnection(QThread):
 
