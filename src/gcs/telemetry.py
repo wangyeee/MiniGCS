@@ -27,7 +27,7 @@ BAUD_RATES = {
     14400 : '14400',
     19200 : '19200',
     38400 : '38400',
-    # 56000 : '56000',
+    56000 : '56000',
     57600 : '57600',
     115200 : '115200',
     128000 : '128000',
@@ -383,6 +383,13 @@ class AutoBaudThread(QThread):
                 hb = conn.wait_heartbeat(timeout=2.0)  # set timeout to 2 second
                 if hb == None:
                     self.autoBaudStatusUpdateSignal.emit('AutoBaud: timeout for baud rate {}'.format(b))
+                    # Reset environment variables after a failed attempt
+                    # Otherwise mavutil.auto_mavlink_version may result in
+                    # unexpected behaviour
+                    if 'MAVLINK09' in os.environ:
+                        del os.environ['MAVLINK09']
+                    if 'MAVLINK20' in os.environ:
+                        del os.environ['MAVLINK20']
                     conn.close()
                 else:
                     self.autoBaudStatusUpdateSignal.emit('AutoBaud: correct baud rate is {}'.format(b))
@@ -644,7 +651,6 @@ class MAVLinkConnection(QThread):
         self.connection.set_mode_rtl()
 
     def uploadNewParametersEvent(self, params):
-        print('sending parameters:', params)
         # the params from UI are MAVLink_param_value_message,
         # which are required to be consistent with all parameters
         # download upon connection. They will be converted to
@@ -662,6 +668,7 @@ class MAVLinkConnection(QThread):
             self.mavlinkLogFile = open(os.path.join(self.param[UD_TELEMETRY_LOG_FOLDER_KEY], name), 'wb')
 
     def __setMavlinkDialect(self, ap):
+        mavutil.mavlink = None  # reset previous dialect
         if ap in MAVLINK_DIALECTS:
             print('Set dialect to:', MAVLINK_DIALECTS[ap])
             mavutil.set_dialect(MAVLINK_DIALECTS[ap])
@@ -669,4 +676,10 @@ class MAVLinkConnection(QThread):
             # default to common
             print('Set dialect to common for unknown AP type:', ap)
             mavutil.set_dialect(MAVLINK_DIALECTS[mavlink.MAV_AUTOPILOT_GENERIC])
+        # Hot patch after setting mavlink dialect on the fly
+        self.connection.mav = mavutil.mavlink.MAVLink(self.connection,
+                                                      srcSystem=self.connection.source_system,
+                                                      srcComponent=self.connection.source_component)
+        self.connection.mav.robust_parsing = self.connection.robust_parsing
+        self.connection.WIRE_PROTOCOL_VERSION = mavutil.mavlink.WIRE_PROTOCOL_VERSION
         self.connectedToAPTypeSignal.emit(ap)
