@@ -321,6 +321,9 @@ class SerialConnectionEditTab(QWidget):
         l.addWidget(lbl, row, 2, 1, 1, Qt.AlignRight)
         l.addWidget(self.stopDropDown, row, 3, 1, 1, Qt.AlignLeft)
         row += 1
+        self.autoBaudMessageLabel = QLabel('')
+        l.addWidget(self.autoBaudMessageLabel, row, 0, 1, 3)
+        row += 1
 
         self.setLayout(l)
 
@@ -360,9 +363,12 @@ class SerialConnectionEditTab(QWidget):
         self.autoBaud = AutoBaudThread(port, self)
         #                                   This Tab       QTabWidget     QWidget
         self.autoBaud.finished.connect(self.parentWidget().parentWidget().parentWidget().close)
+        self.autoBaud.autoBaudStatusUpdateSignal.connect(self.autoBaudMessageLabel.setText)
         self.autoBaud.start()
 
 class AutoBaudThread(QThread):
+
+    autoBaudStatusUpdateSignal = pyqtSignal(object)
 
     def __init__(self, port, parent):
         super().__init__(parent)
@@ -372,18 +378,18 @@ class AutoBaudThread(QThread):
     def run(self):
         for b in BAUD_RATES:
             if b >= self.__minimumBaudRate():
-                print('AutoBaud: try', b)
+                self.autoBaudStatusUpdateSignal.emit('AutoBaud: try baud rate {}'.format(b))
                 conn = mavutil.mavlink_connection(self.port, b)
                 hb = conn.wait_heartbeat(timeout=2.0)  # set timeout to 2 second
                 if hb == None:
-                    print('AutoBaud: timeout', b)
+                    self.autoBaudStatusUpdateSignal.emit('AutoBaud: timeout for baud rate {}'.format(b))
                     conn.close()
                 else:
-                    print('AutoBaud: success', b)
+                    self.autoBaudStatusUpdateSignal.emit('AutoBaud: correct baud rate is {}'.format(b))
                     self.MAVLinkConnectedSignal.emit(conn)
                     return
         # Fail back to default mavlink baud rate
-        print('AutoBaud: default 57600')
+        self.autoBaudStatusUpdateSignal.emit('AutoBaud: default 57600')
         self.MAVLinkConnectedSignal.emit(mavutil.mavlink_connection(self.port, 57600))
 
     def __minimumBaudRate(self):
