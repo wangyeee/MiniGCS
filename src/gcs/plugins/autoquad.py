@@ -33,13 +33,25 @@ class AutoQuadControlPanel(AbstractControlPanel):
         self.dIMUTareButton = QPushButton('DIMU Tare')
         self.magCalibButton = QPushButton('MAG Calib.')
         self.calibSaveButton = QPushButton('Calib. Save')
-        self.fromSDButton.clicked.connect(self.__loadParametersFromSDCard)
-        self.toSDButton.clicked.connect(self.__saveParametersToSDCard)
-        self.readFromFlashButton.clicked.connect(self.__loadParametersFromFlash)
-        self.saveToFlashButton.clicked.connect(self.__saveParametersToFlash)
-        self.calibSaveButton.clicked.connect(self.__saveDIMUCalibration)
-        self.dIMUTareButton.clicked.connect(self.__dIMUTare)
-        self.magCalibButton.clicked.connect(self.__magCalib)
+        self.calibReadButton = QPushButton('Calib. Read')
+        self.fromSDButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                                                                param1=3))
+        self.toSDButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                                                              param1=2))
+        self.readFromFlashButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                                                                       param1=0))
+        self.saveToFlashButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                                                                     param1=1))
+        self.calibSaveButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
+                                                                                   command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                                                                   param1=1))
+        self.calibReadButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
+                                                                                   command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                                                                   param1=0))
+        self.dIMUTareButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
+                                                                                  param5=1))
+        self.magCalibButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
+                                                                                  param2=1))
         l.addWidget(self.fromSDButton, row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.toSDButton, row, 2, 1, 1, Qt.AlignLeft)
         row += 1
@@ -50,27 +62,10 @@ class AutoQuadControlPanel(AbstractControlPanel):
         l.addWidget(self.magCalibButton, row, 2, 1, 1, Qt.AlignLeft)
         row += 1
         l.addWidget(self.calibSaveButton, row, 0, 1, 1, Qt.AlignLeft)
+        l.addWidget(self.calibReadButton, row, 2, 1, 1, Qt.AlignLeft)
         row += 1
         l.setRowStretch(row, 1)
         self.setLayout(l)
-
-    def __saveParametersToSDCard(self):
-        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=2)
-
-    def __loadParametersFromSDCard(self):
-        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=3)
-
-    def __saveParametersToFlash(self):
-        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=1)
-
-    def __loadParametersFromFlash(self):
-        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=0)
-
-    def __loadDIMUCalibration(self):
-        self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU, command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=0)
-
-    def __saveDIMUCalibration(self):
-        self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU, command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=1)
 
     def __sendMAVLinkLongMessage(self, target_system = 255, # set target system to 255 to let telemetry.py auto correct the values
                                        target_component = 0,
@@ -90,12 +85,6 @@ class AutoQuadControlPanel(AbstractControlPanel):
         self.__addMessageType('COMMAND_ACK')
         self.cmdSent = command
         self.mavlinkTxSignal.emit(msg)
-
-    def __dIMUTare(self):
-        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION, param5=1)
-
-    def __magCalib(self):
-        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION, param2=1)
 
     def tabName(self):
         return 'AutoQuad'
