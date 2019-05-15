@@ -28,16 +28,23 @@ class AutoQuadControlPanel(AbstractControlPanel):
         row += 1
         self.fromSDButton = QPushButton('From SD')
         self.toSDButton = QPushButton('To SD')
+        self.readFromFlashButton = QPushButton('Reload Params')
+        self.saveToFlashButton = QPushButton('Save Params')
         self.dIMUTareButton = QPushButton('DIMU Tare')
         self.magCalibButton = QPushButton('MAG Calib.')
         self.calibSaveButton = QPushButton('Calib. Save')
         self.fromSDButton.clicked.connect(self.__loadParametersFromSDCard)
         self.toSDButton.clicked.connect(self.__saveParametersToSDCard)
+        self.readFromFlashButton.clicked.connect(self.__loadParametersFromFlash)
+        self.saveToFlashButton.clicked.connect(self.__saveParametersToFlash)
         self.calibSaveButton.clicked.connect(self.__saveDIMUCalibration)
         self.dIMUTareButton.clicked.connect(self.__dIMUTare)
         self.magCalibButton.clicked.connect(self.__magCalib)
         l.addWidget(self.fromSDButton, row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.toSDButton, row, 2, 1, 1, Qt.AlignLeft)
+        row += 1
+        l.addWidget(self.readFromFlashButton, row, 0, 1, 1, Qt.AlignLeft)
+        l.addWidget(self.saveToFlashButton, row, 2, 1, 1, Qt.AlignLeft)
         row += 1
         l.addWidget(self.dIMUTareButton, row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.magCalibButton, row, 2, 1, 1, Qt.AlignLeft)
@@ -52,6 +59,12 @@ class AutoQuadControlPanel(AbstractControlPanel):
 
     def __loadParametersFromSDCard(self):
         self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=3)
+
+    def __saveParametersToFlash(self):
+        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=1)
+
+    def __loadParametersFromFlash(self):
+        self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=0)
 
     def __loadDIMUCalibration(self):
         self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU, command=mavlink.MAV_CMD_PREFLIGHT_STORAGE, param1=0)
