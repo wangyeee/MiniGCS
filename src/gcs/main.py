@@ -15,15 +15,22 @@ from UserData import UserData
 
 UINT16_MAX = 0xFFFF
 
+UD_MAIN_WINDOW_KEY = 'MAIN'
+UD_MAIN_WINDOW_HEIGHT_KEY = 'WINDOW_HEIGHT'
+UD_MAIN_WINDOW_WIDTH_KEY = 'WINDOW_WIDTH'
+
 class MiniGCS(QMainWindow):
 
     mav = None
 
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.param = UserData.getInstance().getUserDataEntry(UD_MAIN_WINDOW_KEY, {})
         current_path = os.path.abspath(os.path.dirname(__file__))
         qmlFile = os.path.join(current_path, 'map.qml')
         self.setWindowTitle('Mini GCS')
+        if UD_MAIN_WINDOW_HEIGHT_KEY in self.param and UD_MAIN_WINDOW_WIDTH_KEY in self.param:
+            self.setFixedSize(self.param[UD_MAIN_WINDOW_WIDTH_KEY], self.param[UD_MAIN_WINDOW_HEIGHT_KEY])
         self.teleWindow = ConnectionEditWindow()
         self.teleWindow.MAVLinkConnectedSignal.connect(self.createConnection)
         self.window = QSplitter()
@@ -98,6 +105,10 @@ class MiniGCS(QMainWindow):
     def closeEvent(self, event):
         print('[MAIN] closeEvent')
         ud = UserData.getInstance()
+        s = self.size()
+        self.param[UD_MAIN_WINDOW_HEIGHT_KEY] = s.height()
+        self.param[UD_MAIN_WINDOW_WIDTH_KEY] = s.width()
+        ud.setUserDataEntry(UD_MAIN_WINDOW_KEY, self.param)
         if self.map != None:
             ps = self.map.getParametersToSave(True)
             for p in ps:
