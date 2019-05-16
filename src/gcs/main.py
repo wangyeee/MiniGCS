@@ -30,7 +30,7 @@ class MiniGCS(QMainWindow):
         qmlFile = os.path.join(current_path, 'map.qml')
         self.setWindowTitle('Mini GCS')
         if UD_MAIN_WINDOW_HEIGHT_KEY in self.param and UD_MAIN_WINDOW_WIDTH_KEY in self.param:
-            self.setFixedSize(self.param[UD_MAIN_WINDOW_WIDTH_KEY], self.param[UD_MAIN_WINDOW_HEIGHT_KEY])
+            self.resize(self.param[UD_MAIN_WINDOW_WIDTH_KEY], self.param[UD_MAIN_WINDOW_HEIGHT_KEY])
         self.teleWindow = ConnectionEditWindow()
         self.teleWindow.MAVLinkConnectedSignal.connect(self.createConnection)
         self.window = QSplitter()
