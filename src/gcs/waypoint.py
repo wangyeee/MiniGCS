@@ -1,37 +1,14 @@
-from PyQt5.QtCore import QObject, QRect, Qt, QVariant, pyqtSignal, QPoint
-from PyQt5.QtPositioning import QGeoCoordinate
-from PyQt5.QtWidgets import (QComboBox, QFormLayout, QHBoxLayout, QHeaderView,
-                             QLabel, QLineEdit, QMessageBox, QPushButton, QButtonGroup, QRadioButton,
-                             QTableWidget, QTableWidgetItem, QWidget, QGridLayout)
-from PyQt5.QtGui import QValidator, QDoubleValidator, QIntValidator, QCursor, QPalette
-from enum import Enum
-
-from pymavlink.dialects.v10 import common as mavlink
 from pymavlink import mavutil
+from pymavlink.dialects.v10 import common as mavlink
+from PyQt5.QtCore import QObject, QPoint, QRect, Qt, QVariant, pyqtSignal
+from PyQt5.QtGui import (QCursor, QDoubleValidator, QIntValidator, QPalette,
+                         QValidator)
+from PyQt5.QtPositioning import QGeoCoordinate
+from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QWidget,
+    QButtonGroup, QComboBox, QFormLayout, QGridLayout, QHBoxLayout,
+    QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton, QRadioButton)
 
-WP_TYPE_NAMES = {
-    mavlink.MAV_CMD_NAV_WAYPOINT : 'Waypoint',
-    mavlink.MAV_CMD_NAV_LOITER_UNLIM : 'Loiter Unlimited',
-    mavlink.MAV_CMD_NAV_LOITER_TURNS : 'Loiter Turns',
-    mavlink.MAV_CMD_NAV_LOITER_TIME : 'Loiter Time',
-    # mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH : 'Return to Launch',
-    mavlink.MAV_CMD_NAV_LAND : 'Land',
-    mavlink.MAV_CMD_NAV_TAKEOFF : 'Takeoff',
-    mavlink.MAV_CMD_NAV_LAND_LOCAL : 'Land Local',
-    mavlink.MAV_CMD_NAV_TAKEOFF_LOCAL : 'Takeoff Local',
-    mavlink.MAV_CMD_NAV_FOLLOW : 'Follow',
-    mavlink.MAV_CMD_NAV_CONTINUE_AND_CHANGE_ALT : 'Change Altitude',
-    mavlink.MAV_CMD_NAV_LOITER_TO_ALT : 'Loiter to Altitude',
-}
-
-class MAVWaypointParameter(Enum):
-    PARAM1 = 0
-    PARAM2 = 1
-    PARAM3 = 2
-    PARAM4 = 3
-    PARAM5 = 4
-    PARAM6 = 5
-    PARAM7 = 6
+from WaypointDefault import WP_DEFAULTS, WP_TYPE_NAMES, MAVWaypointParameter
 
 class Waypoint(QObject):
 
@@ -78,17 +55,34 @@ class Waypoint(QObject):
         return c
 
     def toMavlinkMessage(self, sysId, compId, seq, current = 0, autocontinue = 0):
-        item = mavutil.mavlink.MAVLink_mission_item_message(sysId, compId, seq, mavlink.MAV_FRAME_GLOBAL,
-                                                            self.waypointType, current, autocontinue,
-                                                            None if MAVWaypointParameter.PARAM1 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM1],
-                                                            None if MAVWaypointParameter.PARAM2 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM2],
-                                                            None if MAVWaypointParameter.PARAM3 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM3],
-                                                            None if MAVWaypointParameter.PARAM4 not in self.mavlinkParameters else self.mavlinkParameters[MAVWaypointParameter.PARAM4],
-                                                            self.mavlinkParameters[MAVWaypointParameter.PARAM5],
-                                                            self.mavlinkParameters[MAVWaypointParameter.PARAM6],
-                                                            self.mavlinkParameters[MAVWaypointParameter.PARAM7])
+        item = mavutil.mavlink.MAVLink_mission_item_message(
+            sysId, compId, seq, mavlink.MAV_FRAME_GLOBAL,
+            self.waypointType, current, autocontinue,
+            Waypoint.defaultParameterValue(self.waypointType, MAVWaypointParameter.PARAM1) \
+                if MAVWaypointParameter.PARAM1 not in self.mavlinkParameters \
+                else self.mavlinkParameters[MAVWaypointParameter.PARAM1],
+            Waypoint.defaultParameterValue(self.waypointType, MAVWaypointParameter.PARAM2) \
+                if MAVWaypointParameter.PARAM2 not in self.mavlinkParameters \
+                else self.mavlinkParameters[MAVWaypointParameter.PARAM2],
+            Waypoint.defaultParameterValue(self.waypointType, MAVWaypointParameter.PARAM3) \
+                if MAVWaypointParameter.PARAM3 not in self.mavlinkParameters \
+                else self.mavlinkParameters[MAVWaypointParameter.PARAM3],
+            Waypoint.defaultParameterValue(self.waypointType, MAVWaypointParameter.PARAM4) \
+                if MAVWaypointParameter.PARAM4 not in self.mavlinkParameters \
+                else self.mavlinkParameters[MAVWaypointParameter.PARAM4],
+            self.mavlinkParameters[MAVWaypointParameter.PARAM5],
+            self.mavlinkParameters[MAVWaypointParameter.PARAM6],
+            self.mavlinkParameters[MAVWaypointParameter.PARAM7])
         print(item)
         return item
+
+    @staticmethod
+    def defaultParameterValue(wpType, param):
+        if wpType in WP_DEFAULTS:
+            p = WP_DEFAULTS[wpType]
+            if param in p:
+                return p[param]
+        return None
 
     @staticmethod
     def decimalToDMS(decimal):
