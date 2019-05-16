@@ -1,6 +1,7 @@
 import os, struct
 from enum import Enum
 from time import time, sleep
+from collections import deque
 from pymavlink import mavutil
 from pymavlink.mavutil import mavlogfile
 from pymavlink.mavwp import MAVWPLoader
@@ -436,6 +437,7 @@ class MAVLinkConnection(QThread):
     txTimeoutTimer = QTimer()
     txTimeoutmsec = 200000000  # 2 seconds
     finalWPSent = False
+    txMessageQueue = None
 
     wpLoader = MAVWPLoader()
     onboardWPCount = 0
@@ -454,6 +456,7 @@ class MAVLinkConnection(QThread):
         self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY, {})
         self.messageTimeoutThreshold = UserData.getParameterValue(self.param, UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY, self.messageTimeoutThreshold)
         self.txTimeoutmsec = self.messageTimeoutThreshold * 1000000
+        self.txMessageQueue = deque()
         self.running = True
         self.connection = connection
         self.replayMode = replayMode
@@ -515,6 +518,12 @@ class MAVLinkConnection(QThread):
             if (rs > self.messageTimeoutThreshold):
                 print('Message timeout:', rs)
                 self.messageTimeoutSignal.emit(rs)
+            try:
+                txMsg = self.txMessageQueue.popleft()
+                print('sending mavlink msg:', txMsg)
+                self.connection.mav.send(txMsg)
+            except IndexError:
+                pass
         self.connection.close()
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
@@ -627,14 +636,12 @@ class MAVLinkConnection(QThread):
         print('[CNT] Got response!')
 
     def sendMavlinkMessage(self, msg):
-        # TODO thread-safe check?
-        print('sending msg: {}'.format(msg))
-        # self.txTimeoutTimer.start(self.txTimeoutmsec)
+        ''' Add a mavlink message to the tx queue '''
         if msg.target_system == 255:
             msg.target_system = self.connection.target_system
         if msg.target_component == 255:
             msg.target_component = self.connection.target_component
-        self.connection.mav.send(msg)
+        self.txMessageQueue.append(msg)
 
     def _timerTimeout(self):
         print('Timeout')
