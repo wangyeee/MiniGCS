@@ -238,22 +238,28 @@ class FocusLineEdit(QLineEdit):
     def wheelEvent(self, e):
         if self.isBeingEdited and self.isReadOnly() == False:
             if type(self.validator()) == QDoubleValidator:
-                v = float(self.text())
-                v += e.angleDelta().y() / 120
-                v = self.__constraintValue(v)
-                self.setText('{:.4f}'.format(v))
+                self.addValue(e.angleDelta().y() / 120)
             elif type(self.validator()) == QIntValidator:
-                v = int(self.text())
-                v += int(e.angleDelta().y() / 120)
-                v = self.__constraintValue(v)
-                self.setText(str(v))
+                self.addValue(int(e.angleDelta().y() / 120))
+
+    def addValue(self, value):
+        if type(self.validator()) == QDoubleValidator:
+            v = float(self.text())
+            v += value
+            v = self.__constraintValue(v)
+            self.setText('{:.4f}'.format(v))
+        elif type(self.validator()) == QIntValidator:
+            v = int(self.text())
+            v += value
+            v = self.__constraintValue(v)
+            self.setText(str(int(v)))
 
     def __constraintValue(self, value):
         if value > self.end:
-            self.valueOverflowSignal.emit(value - self.end)
+            self.valueOverflowSignal.emit(1)
             value -= self.end
         elif value < self.start:
-            self.valueOverflowSignal.emit(value - self.start)
+            self.valueOverflowSignal.emit(-1)
             value += self.end
         return value
 
@@ -320,6 +326,9 @@ class WPDegreePanel(WaypointListCell):
         self._setFieldWidth(self.secondsField, 7)
         self.secondsLabel = QLabel(chr(0x201D))
         self.secondsLabel.adjustSize()
+
+        self.secondsField.valueOverflowSignal.connect(self.minutesField.addValue)
+        self.minutesField.valueOverflowSignal.connect(self.degreesField.addValue)
 
         l = QHBoxLayout()
         l.setContentsMargins(5, 0, 5, 0)
