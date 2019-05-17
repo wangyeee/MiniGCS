@@ -221,6 +221,7 @@ class FocusLineEdit(QLineEdit):
 
     focusGainedSignal = pyqtSignal(object)
     focusLostSignal = pyqtSignal(object)
+    valueOverflowSignal = pyqtSignal(float)
 
     def setValueRange(self, start, end, decimals = 0):
         self.start = start
@@ -239,11 +240,22 @@ class FocusLineEdit(QLineEdit):
             if type(self.validator()) == QDoubleValidator:
                 v = float(self.text())
                 v += e.angleDelta().y() / 120
-                self.setText(str(v))
+                v = self.__constraintValue(v)
+                self.setText('{:.4f}'.format(v))
             elif type(self.validator()) == QIntValidator:
                 v = int(self.text())
                 v += int(e.angleDelta().y() / 120)
+                v = self.__constraintValue(v)
                 self.setText(str(v))
+
+    def __constraintValue(self, value):
+        if value > self.end:
+            self.valueOverflowSignal.emit(value - self.end)
+            value -= self.end
+        elif value < self.start:
+            self.valueOverflowSignal.emit(value - self.start)
+            value += self.end
+        return value
 
     def claimFocus(self):
         self.setFocus(Qt.OtherFocusReason)
