@@ -101,10 +101,16 @@ class MavStsKeys(Enum):
     MAVLINK_VER = 6
 
 class RadioControlTelemetryWindow(QWidget):
+
+    isAnyRCChannelsUpdate = False
+    __defaultWidget = None
+
     def __init__(self, parent = None):
         super().__init__(parent)
         self.setWindowTitle('Radio Control Telemetry')
+        self.__createDefaultWidget()
         self.tabs = QTabWidget()
+        self.tabs.addTab(self.__defaultWidget, 'RC Telemetry')
         self.ports = {}
         l = QVBoxLayout()
         l.addWidget(self.tabs)
@@ -112,6 +118,9 @@ class RadioControlTelemetryWindow(QWidget):
 
     def updateRCChannelValues(self, msg):
         if msg.port not in self.ports:
+            if self.isAnyRCChannelsUpdate == False:
+                self.isAnyRCChannelsUpdate = True
+                self.tabs.removeTab(0)
             self.ports[msg.port] = RadioControlTelemetryPanel()
             self.tabs.addTab(self.ports[msg.port], 'Receiver {}'.format(msg.port))
 
@@ -125,6 +134,12 @@ class RadioControlTelemetryWindow(QWidget):
         channels.append(msg.chan7_raw)
         channels.append(msg.chan8_raw)
         self.ports[msg.port].updateValues(channels)
+
+    def __createDefaultWidget(self):
+        self.__defaultWidget = QWidget()
+        l = QVBoxLayout()
+        l.addWidget(QLabel('No RC channel value message has been received.'))
+        self.__defaultWidget.setLayout(l)
 
 class RadioControlTelemetryPanel(QWidget):
     def __init__(self, parent = None):
