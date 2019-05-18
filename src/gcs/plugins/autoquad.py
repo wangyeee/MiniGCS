@@ -19,6 +19,7 @@ class AutoQuadControlPanel(AbstractControlPanel):
 
     __mavlinkMessageTypes = ['AQ_TELEMETRY_F', 'AQ_ESC_TELEMETRY']
     cmdSent = 0
+    syncParamsFromUAV = False
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -28,30 +29,41 @@ class AutoQuadControlPanel(AbstractControlPanel):
         row += 1
         self.fromSDButton = QPushButton('From SD')
         self.toSDButton = QPushButton('To SD')
-        self.readFromFlashButton = QPushButton('Reload Params')
-        self.saveToFlashButton = QPushButton('Save Params')
+        self.readFromFlashButton = QPushButton('Reload Flash')
+        self.saveToFlashButton = QPushButton('Save Flash')
         self.dIMUTareButton = QPushButton('DIMU Tare')
         self.magCalibButton = QPushButton('MAG Calib.')
         self.calibSaveButton = QPushButton('Calib. Save')
         self.calibReadButton = QPushButton('Calib. Read')
-        self.fromSDButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
-                                                                                param1=3))
-        self.toSDButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
-                                                                              param1=2))
-        self.readFromFlashButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
-                                                                                       param1=0))
-        self.saveToFlashButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
-                                                                                     param1=1))
-        self.calibSaveButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
-                                                                                   command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
-                                                                                   param1=1))
-        self.calibReadButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
-                                                                                   command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
-                                                                                   param1=0))
-        self.dIMUTareButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
-                                                                                  param5=1))
-        self.magCalibButton.clicked.connect(lambda: self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
-                                                                                  param2=1))
+        self.fromSDButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                          param1=3,
+                                          syncParams=True))
+        self.toSDButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                          param1=2))
+        self.readFromFlashButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                          param1=0,
+                                          syncParams=True))
+        self.saveToFlashButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                          param1=1))
+        self.calibSaveButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
+                                          command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                          param1=1))
+        self.calibReadButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
+                                          command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
+                                          param1=0,
+                                          syncParams=True))
+        self.dIMUTareButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
+                                          param5=1))
+        self.magCalibButton.clicked.connect(lambda: \
+            self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
+                                          param2=1))
         l.addWidget(self.fromSDButton, row, 0, 1, 1, Qt.AlignLeft)
         l.addWidget(self.toSDButton, row, 2, 1, 1, Qt.AlignLeft)
         row += 1
@@ -77,13 +89,15 @@ class AutoQuadControlPanel(AbstractControlPanel):
                                        param4 = 0,
                                        param5 = 0,
                                        param6 = 0,
-                                       param7 = 0):
+                                       param7 = 0,
+                                       syncParams = False):
         msg = mavlink.MAVLink_command_long_message(target_system, target_component,
                                                    command, confirmation,
                                                    param1, param2, param3,
                                                    param4, param5, param6, param7)
         self.__addMessageType('COMMAND_ACK')
         self.cmdSent = command
+        self.syncParamsFromUAV = syncParams
         self.mavlinkTxSignal.emit(msg)
 
     def tabName(self):
@@ -104,6 +118,9 @@ class AutoQuadControlPanel(AbstractControlPanel):
         if msg.get_type() == 'COMMAND_ACK' and msg.command == self.cmdSent:
             if msg.result in MAV_CMD_ACKS:
                 if msg.result == mavlink.MAV_CMD_ACK_OK:
+                    if self.syncParamsFromUAV:
+                        self.syncParamsFromUAV = False
+                        self.mavlinkTxSignal.emit(mavlink.MAVLink_param_request_list_message(255, 0))
                     QMessageBox.information(self, 'Information', MAV_CMD_ACKS[msg.result], QMessageBox.Ok)
                 else:
                     QMessageBox.critical(self, 'Error', MAV_CMD_ACKS[msg.result], QMessageBox.Ok)
