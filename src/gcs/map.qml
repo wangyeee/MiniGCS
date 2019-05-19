@@ -148,9 +148,7 @@ MapItem {
             line.width: 3
             line.color: "#90FF0000"
             antialiasing: true
-            path: [
-                {latitude: 0, longitude: 0}
-            ]
+            path: []
         }
 
         // The home icon on map
@@ -230,7 +228,6 @@ MapItem {
         if (homeMarker.firstRun) {
             homeMarker.coordinate.latitude = lat
             homeMarker.coordinate.longitude = lng
-            wpLine.replaceCoordinate(0, homeMarker.coordinate)
             homeMarker.firstRun = false
         }
     }
@@ -238,20 +235,19 @@ MapItem {
     onUpdateHomeCoordinate: {
         homeMarker.coordinate.latitude = lat
         homeMarker.coordinate.longitude = lng
-        wpLine.replaceCoordinate(0, homeMarker.coordinate)
     }
 
     onWaypointRemoved: {
-        wpLine.removeCoordinate(wpNumber + 1)  // 0 for home
+        wpLine.removeCoordinate(wpNumber)
     }
 
     onWaypointChanged: {
-        wpLine.replaceCoordinate(wpNumber + 1, QtPositioning.coordinate(latitude, longitude))
+        wpLine.replaceCoordinate(wpNumber, QtPositioning.coordinate(latitude, longitude))
     }
 
     onWaypointChangedInt: {
         var c = navMap.toCoordinate(navMap.mapFromGlobal(x, y))
-        wpLine.replaceCoordinate(wpNumber + 1, c)
+        wpLine.replaceCoordinate(wpNumber, c)
         mapItem.mapDragEvent(wpNumber, c.latitude, c.longitude, 1)
     }
 
@@ -260,7 +256,7 @@ MapItem {
     }
 
     onAllPolylineRemoved: {
-        for (var i = wpLine.path.length - 1; i > 0; i--) {
+        for (var i = 0; i < wpLine.path.length; i++) {
             wpLine.removeCoordinate(i)
         }
     }
