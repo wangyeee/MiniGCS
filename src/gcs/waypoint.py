@@ -223,6 +223,10 @@ class FocusLineEdit(QLineEdit):
     focusLostSignal = pyqtSignal(object)
     valueOverflowSignal = pyqtSignal(float)
 
+    def __init__(self, contents, step = 1.0, parent = None):
+        super().__init__(contents, parent)
+        self.step = step
+
     def setValueRange(self, start, end, decimals = 0):
         self.start = start
         self.end = end
@@ -238,9 +242,9 @@ class FocusLineEdit(QLineEdit):
     def wheelEvent(self, e):
         if self.isBeingEdited and self.isReadOnly() == False:
             if type(self.validator()) == QDoubleValidator:
-                self.addValue(e.angleDelta().y() / 120)
+                self.addValue(self.step * e.angleDelta().y() / 120)
             elif type(self.validator()) == QIntValidator:
-                self.addValue(int(e.angleDelta().y() / 120))
+                self.addValue(int(self.step * e.angleDelta().y() / 120))
 
     def addValue(self, value):
         if type(self.validator()) == QDoubleValidator:
@@ -256,10 +260,10 @@ class FocusLineEdit(QLineEdit):
 
     def __constraintValue(self, value):
         if value > self.end:
-            self.valueOverflowSignal.emit(1)
+            self.valueOverflowSignal.emit(self.step)
             value -= self.end
         elif value < self.start:
-            self.valueOverflowSignal.emit(-1)
+            self.valueOverflowSignal.emit(-self.step)
             value += self.end
         return value
 
