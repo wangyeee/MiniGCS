@@ -125,6 +125,9 @@ class StatusSummaryPanel(QWidget):
         self.localGPSButton.clicked.connect(self.toggleGPSButtonLabel)
         l.addWidget(self.localGPSButton, row, 2, 1, 1, Qt.AlignLeft)
 
+        self.showHUDButton = QPushButton('HUD')
+        l.addWidget(self.showHUDButton, row, 3, 1, 1, Qt.AlignLeft)
+
         l.setColumnStretch(1, 1)
         self.rcTelemetryWindow = RadioControlTelemetryWindow()
         self.setLayout(l)

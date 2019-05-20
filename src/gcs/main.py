@@ -12,6 +12,7 @@ from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 from UserData import UserData
+from HUD import HUD, HUDWindow
 
 UINT16_MAX = 0xFFFF
 
@@ -37,6 +38,8 @@ class MiniGCS(QMainWindow):
         self.left = QSplitter(Qt.Vertical, self.window)
         self.pfd = PrimaryFlightDisplay(self.window)
         self.sts = SystemStatusPanel(self.window)
+        self.hudWindow = HUDWindow()
+        self.hud = self.hudWindow.hud
         self.sts.connectToMAVLink.connect(self.teleWindow.show)
         self.sts.disconnectFromMAVLink.connect(self.disconnect)
         self.left.addWidget(self.pfd)
@@ -55,6 +58,7 @@ class MiniGCS(QMainWindow):
         self.localGPSWindow.connection.locationUpdate.connect(self.map.updateHomeLocationEvent)
         self.sts.connectToLocalGPS.connect(self.localGPSWindow.show)
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
+        self.sts.statusPanel.showHUDButton.clicked.connect(self.hudWindow.show)
         self.teleWindow.MAVLinkConnectedSignal.connect(lambda: self.sts.statusPanel.toggleButtonLabel(True))
         self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.statusPanel.connectButton.setEnabled(True))
         self.setCentralWidget(self.window)
@@ -79,16 +83,19 @@ class MiniGCS(QMainWindow):
     def droneStatusHandler(self, msg):
         # mV mA -> V A
         self.pfd.updateBatteryStatus(0, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
+        self.hud.updateBattery(None, msg.voltage_battery / 1000.0, msg.battery_remaining, 0)
         self.sts.statusPanel.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def droneLocationHandler(self, msg):
         scale = 1E7
         self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
+        self.hud.updateGlobalPosition(None, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0, msg.time_usec)
         self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
         self.pfd.updateGPSReception(0, msg.time_usec, msg.fix_type, msg.satellites_visible)
         if msg.vel != UINT16_MAX:
             self.pfd.updateGPSSpeed(0, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
+            self.hud.updateGroundSpeed(None, msg.vel / 100 * 3.6, msg.time_usec)
 
     def droneAltitudeHandler(self, msg):
         self.sts.barometerPanel.setBarometer(msg.press_abs)
@@ -97,6 +104,7 @@ class MiniGCS(QMainWindow):
         scale = 180 / math.pi
         self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll * scale, msg.pitch * scale, msg.yaw * scale)
         self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed * scale, msg.pitchspeed * scale, msg.yawspeed * scale)
+        self.hud.updateAttitude(None, msg.roll * scale, msg.pitch * scale, msg.yaw * scale, msg.time_boot_ms)
         self.sts.compassPanel.setHeading(msg.yaw * scale)
 
     def disconnect(self):

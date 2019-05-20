@@ -9,7 +9,21 @@ from PyQt5.QtGui import (QBrush, QColor, QFont, QFontDatabase, QFontMetrics,
                          QVector3D)
 from PyQt5.QtOpenGL import QGLWidget
 from PyQt5.QtWidgets import (QAction, QFileDialog, QLabel, QMenu, QSizePolicy,
-                             QWidget)
+                             QWidget, QVBoxLayout)
+
+class HUDWindow(QWidget):
+
+    hud = None
+
+    def __init__(self, hud = None, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle('HUD')
+        self.setMinimumSize(800, 600)
+        if hud == None:
+            self.hud = HUD(self)
+        l = QVBoxLayout()
+        l.addWidget(self.hud)
+        self.setLayout(l)
 
 class HUD(QLabel):
 
@@ -113,13 +127,13 @@ class HUD(QLabel):
 
         # Refresh timer
         self.refreshTimer.setInterval(self.updateInterval)
-        # TODO connect(refreshTimer, SIGNAL(timeout()), this, SLOT(repaint()))
+        self.refreshTimer.timeout.connect(self.repaint)
 
         # Resize to correct size and fill with image
-        QWidget.resize(self.width(), self.height())
+        QWidget.resize(self, self.width(), self.height())
 
         fontDatabase = QFontDatabase()
-        fontFileName = ':/general/vera.ttf' # Font file is part of the QRC file and compiled into the app
+        fontFileName = './res/vera.ttf' # Font file is part of the QRC file and compiled into the app
         fontFamilyName = 'Bitstream Vera Sans'
         # if(!QFile.exists(fontFileName)) qDebug() << "ERROR! font file: " << fontFileName << " DOES NOT EXIST!"
 
@@ -140,20 +154,18 @@ class HUD(QLabel):
 
         # if (UASManager.instance().getActiveUAS() != NULL) setActiveUAS(UASManager.instance().getActiveUAS())
 
-    def __unused(self, *args):
-        pass
-
     def sizeHint(self):
         return QSize(self.width(), (self.width()*3.0)/4)
 
     def styleChanged(self, newTheme = 0):
-        if newTheme == 0:
-            newTheme = self.parent().getStyle()
+        self.__unused(newTheme)
+        # if newTheme == 0:
+        #     newTheme = self.parent().getStyle()
 
         # Generate a background image that's dependent on the current color scheme.
         fill = QImage(self.width(), self.height(), QImage.Format_Indexed8)
         # if (newTheme == MainWindow.QGC_MAINWINDOW_STYLE_LIGHT)
-        fill.fill(255)
+        fill.fill(0)
         self.glImage = QGLWidget.convertToGLFormat(fill)
 
         # Now set the other default colors based on the current color scheme.
@@ -1019,3 +1031,6 @@ class HUD(QLabel):
         else:
             self.imageLoggingEnabled = False
             self.selectSaveDirectoryAction.setChecked(False)
+
+    def __unused(self, *args):
+        pass
