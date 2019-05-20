@@ -247,6 +247,7 @@ class HUD(QLabel):
             self.roll = roll
             self.pitch = pitch*3.35 # Constant here is the 'focal length' of the projection onto the plane
             self.yaw = yaw
+            self.attitudes[0] = QVector3D(roll, pitch*3.35, yaw)
 
     def updateComponentAttitude(self, uas, component, roll, pitch, yaw, timestamp):
         self.__unused(uas, timestamp)
@@ -367,13 +368,11 @@ class HUD(QLabel):
 
     def setupGLView(self, referencePositionX, referencePositionY, referenceWidth, referenceHeight):
         self.__unused(referencePositionX, referencePositionY, referenceWidth, referenceHeight)
-        '''
-        pixelWidth  = int(referenceWidth * self.scalingFactor)
-        pixelHeight = int(referenceHeight * self.scalingFactor)
-        # Translate and scale the GL view in the virtual reference coordinate units on the screen
-        pixelPositionX = int((referencePositionX * self.scalingFactor) + self.xCenterOffset)
-        pixelPositionY = self.height() - (referencePositionY * self.scalingFactor) + self.yCenterOffset - pixelHeight
-        '''
+        # pixelWidth  = int(referenceWidth * self.scalingFactor)
+        # pixelHeight = int(referenceHeight * self.scalingFactor)
+        # # Translate and scale the GL view in the virtual reference coordinate units on the screen
+        # pixelPositionX = int((referencePositionX * self.scalingFactor) + self.xCenterOffset)
+        # pixelPositionY = self.height() - (referencePositionY * self.scalingFactor) + self.yCenterOffset - pixelHeight
 
     def paintRollPitchStrips(self):
         pass

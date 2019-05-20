@@ -104,7 +104,7 @@ class MiniGCS(QMainWindow):
         scale = 180 / math.pi
         self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll * scale, msg.pitch * scale, msg.yaw * scale)
         self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed * scale, msg.pitchspeed * scale, msg.yawspeed * scale)
-        self.hud.updateAttitude(None, msg.roll * scale, msg.pitch * scale, msg.yaw * scale, msg.time_boot_ms)
+        self.hud.updateAttitude(None, msg.roll, msg.pitch, msg.yaw, msg.time_boot_ms)
         self.sts.compassPanel.setHeading(msg.yaw * scale)
 
     def disconnect(self):
