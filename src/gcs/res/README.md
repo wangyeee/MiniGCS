@@ -2,3 +2,5 @@ The following two image files are from [TauLabs project](https://github.com/TauL
 
 1. barometer.svg
 2. compass.svg
+
+The font file `vera.ttf` is copied from [QGroundControl](http://qgroundcontrol.com) project.
