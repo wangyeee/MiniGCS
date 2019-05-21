@@ -97,6 +97,7 @@ class PrimaryFlightDisplay(QWidget):
     latitude = 0.0
     longitude = 0.0
 
+    uas = None
     additionalParameters = {}
 
     def __init__(self, parent):
@@ -112,6 +113,14 @@ class PrimaryFlightDisplay(QWidget):
         self.uiTimer = QTimer(self)
         self.uiTimer.setInterval(40)
         self.uiTimer.timeout.connect(self.update)
+
+    def setActiveUAS(self, uas):
+        uas.updateAttitudeSignal.connect(self.updateAttitude)
+        uas.updateBatterySignal.connect(self.updateBatteryStatus)
+        uas.updateGlobalPositionSignal.connect(self.updateGlobalPosition)
+        uas.updateAirSpeedSignal.connect(self.updatePrimarySpeed)
+        uas.updateGroundSpeedSignal.connect(self.updateGPSSpeed)
+        self.uas = uas
 
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
         self.pitch = self.pitch if math.isnan(pitch) else pitch

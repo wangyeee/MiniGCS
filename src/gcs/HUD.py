@@ -237,6 +237,12 @@ class HUD(QLabel):
         # TODO connect(selectSaveDirectoryAction, SIGNAL(triggered(bool)), this, SLOT(saveImages(bool)))
 
     def setActiveUAS(self, uas):
+        uas.updateAttitudeSignal.connect(self.updateAttitude)
+        uas.updateBatterySignal.connect(self.updateBattery)
+        uas.updateGlobalPositionSignal.connect(self.updateGlobalPosition)
+        uas.updateAirSpeedSignal.connect(self.updateSpeed)
+        uas.updateGroundSpeedSignal.connect(self.updateGroundSpeed)
+        uas.updateVelocitySignal.connect(self.updateVelocity)
         self.uas = uas
 
     def updateAttitude(self, uas, timestamp, roll, pitch, yaw):
@@ -285,7 +291,7 @@ class HUD(QLabel):
         self.lon = lon
         self.alt = altitude
 
-    def updateSpeed(self, uas, timestamp, x, y, z):
+    def updateVelocity(self, uas, timestamp, x, y, z):
         self.__unused(uas)
         self.xSpeed = x
         self.ySpeed = y
@@ -293,6 +299,12 @@ class HUD(QLabel):
         newTotalSpeed = sqrt(self.xSpeed*self.xSpeed + self.ySpeed*self.ySpeed + self.zSpeed*self.zSpeed)
         self.totalAcc = (newTotalSpeed - self.totalSpeed) / ((self.lastSpeedUpdate - timestamp)/1000.0)
         self.totalSpeed = newTotalSpeed
+        self.lastSpeedUpdate = timestamp
+
+    def updateSpeed(self, uas, timestamp, speed):
+        self.__unused(uas)
+        self.totalAcc = (speed - self.totalSpeed) / ((self.lastSpeedUpdate - timestamp)/1000.0)
+        self.totalSpeed = speed
         self.lastSpeedUpdate = timestamp
 
     def updateGroundSpeed(self, uas, timestamp, gndspd):

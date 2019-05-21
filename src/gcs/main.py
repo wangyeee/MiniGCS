@@ -12,7 +12,7 @@ from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 from UserData import UserData
-from HUD import HUD, HUDWindow
+from HUD import HUDWindow
 
 UINT16_MAX = 0xFFFF
 
@@ -83,7 +83,7 @@ class MiniGCS(QMainWindow):
     def droneStatusHandler(self, msg):
         # mV mA -> V A
         self.pfd.updateBatteryStatus(0, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
-        self.hud.updateBattery(None, 0, msg.voltage_battery / 1000.0, msg.battery_remaining)
+        self.hud.updateBattery(None, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
         self.sts.statusPanel.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def droneLocationHandler(self, msg):
