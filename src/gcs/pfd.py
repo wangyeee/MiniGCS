@@ -123,15 +123,17 @@ class PrimaryFlightDisplay(QWidget):
         self.uas = uas
 
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
-        self.pitch = self.pitch if math.isnan(pitch) else pitch
-        self.roll = self.roll if math.isnan(roll) else roll
-        self.yaw = self.yaw if math.isnan(yaw) else yaw
+        scale = 180 / math.pi
+        self.pitch = self.pitch if math.isnan(pitch) else pitch * scale
+        self.roll = self.roll if math.isnan(roll) else roll * scale
+        self.yaw = self.yaw if math.isnan(yaw) else yaw * scale
         self.__unused(sourceUAS, timestamp)
 
     def updateAttitudeSpeed(self, sourceUAS, timestamp, rollspeed, pitchspeed, yawspeed):
-        self.rollspeed = self.rollspeed if math.isnan(rollspeed) else rollspeed
-        self.pitchspeed = self.pitchspeed if math.isnan(pitchspeed) else pitchspeed
-        self.yawspeed = self.yawspeed if math.isnan(yawspeed) else yawspeed
+        scale = 180 / math.pi
+        self.rollspeed = self.rollspeed if math.isnan(rollspeed) else rollspeed * scale
+        self.pitchspeed = self.pitchspeed if math.isnan(pitchspeed) else pitchspeed * scale
+        self.yawspeed = self.yawspeed if math.isnan(yawspeed) else yawspeed * scale
         self.__unused(sourceUAS, timestamp)
 
     def updateGlobalPosition(self, sourceUAS, timestamp, latitude, longitude, altitude):

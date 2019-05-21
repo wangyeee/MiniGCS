@@ -1,3 +1,5 @@
+import math
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import (QGraphicsItem, QGraphicsScene, QGraphicsView,
@@ -47,5 +49,6 @@ class Compass(QWidget):
         super().setLayout(layout)
 
     def setHeading(self, hdr):
-        self.compass.setRotation(360.0 - hdr)
-        self.label.setText('Heading: {:.1f}{}'.format(hdr, u'\u00b0'))
+        if math.isnan(hdr) == False:
+            self.compass.setRotation(360.0 - hdr * 180.0 / math.pi)
+            self.label.setText('Heading: {:.1f}{}'.format(hdr, u'\u00b0'))

@@ -101,11 +101,10 @@ class MiniGCS(QMainWindow):
         self.sts.barometerPanel.setBarometer(msg.press_abs)
 
     def droneAttitudeHandler(self, msg):
-        scale = 180 / math.pi
-        self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll * scale, msg.pitch * scale, msg.yaw * scale)
-        self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed * scale, msg.pitchspeed * scale, msg.yawspeed * scale)
+        self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
+        self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
         self.hud.updateAttitude(None, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
-        self.sts.compassPanel.setHeading(msg.yaw * scale)
+        self.sts.compassPanel.setHeading(msg.yaw)
 
     def disconnect(self):
         self.mav.requestExit()
