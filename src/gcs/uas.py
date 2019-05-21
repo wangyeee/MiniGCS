@@ -1,6 +1,11 @@
 from abc import abstractmethod
+from math import log
 from PyQt5.QtCore import QObject, pyqtSignal
 from pymavlink.dialects.v10 import common as mavlink
+
+UNIVERSAL_GAS_CONSTANT = 8.3144598 # J/(mol·K)
+MOLAR_MASS = 0.0289644 # kg/mol
+gravity = 9.80665 # m/s2
 
 class UASInterface(QObject):
 
@@ -21,6 +26,8 @@ class UASInterface(QObject):
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
         self.messageHandlers['SCALED_PRESSURE'] = self.uasAltitudeHandler
         self.messageHandlers['ATTITUDE'] = self.uasAttitudeHandler
+        self.altitudeReference = 0.0  # meter
+        self.pressureReference = 101325.0  # Pa
 
     def receiveMAVLinkMessage(self, msg):
         if msg != None:
@@ -44,6 +51,10 @@ class UASInterface(QObject):
     def uasAttitudeHandler(self, msg):
         pass
 
+    def getPressureAltitude(self, pressure, temperature):
+        kelvin = temperature + 273.0
+        altitude = self.altitudeReference - (UNIVERSAL_GAS_CONSTANT * kelvin) * log(pressure / self.pressureReference) / (gravity * MOLAR_MASS)
+        return altitude
 
 class StandardMAVLinkInterface(UASInterface):
 
@@ -59,10 +70,11 @@ class StandardMAVLinkInterface(UASInterface):
             self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
 
     def uasAltitudeHandler(self, msg):
-        pass
+        alt = self.getPressureAltitude(msg.press_abs, msg.temperature)
+        self.updatePrimaryAltitudeSignal.emit(self, msg.time_usec, alt)
 
     def uasAttitudeHandler(self, msg):
-        pass
+        self.updateAttitudeSignal.emit(self, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
 
 class UASInterfaceFactory:
     UAS_INTERFACES = {
