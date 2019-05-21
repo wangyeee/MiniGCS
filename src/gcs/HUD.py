@@ -239,7 +239,7 @@ class HUD(QLabel):
     def setActiveUAS(self, uas):
         self.uas = uas
 
-    def updateAttitude(self, uas, roll, pitch, yaw, timestamp):
+    def updateAttitude(self, uas, timestamp, roll, pitch, yaw):
         self.__unused(uas, timestamp)
         if isnan(roll) == False and isinf(roll) == False \
         and isnan(pitch) == False and isinf(pitch)== False \
@@ -249,15 +249,15 @@ class HUD(QLabel):
             self.yaw = yaw
             self.attitudes[0] = QVector3D(roll, pitch*3.35, yaw)
 
-    def updateComponentAttitude(self, uas, component, roll, pitch, yaw, timestamp):
+    def updateComponentAttitude(self, uas, timestamp, component, roll, pitch, yaw):
         self.__unused(uas, timestamp)
         if isnan(roll) == False and isinf(roll) == False \
         and isnan(pitch) == False and isinf(pitch)== False \
         and isnan(yaw) == False and isinf(yaw) == False:
             self.attitudes[component] = QVector3D(roll, pitch*3.35, yaw) # Constant here is the 'focal length' of the projection onto the plane
 
-    def updateBattery(self, uas, voltage, percent, seconds):
-        self.__unused(uas, seconds)
+    def updateBattery(self, uas, timestamp, voltage, current, percent):
+        self.__unused(uas, timestamp, current)
         self.fuelStatus = 'BAT [{}% | {:.1f}V]'.format(percent, voltage)
         if percent < 20.0:
             self.fuelColor = self.warningColor
@@ -273,19 +273,19 @@ class HUD(QLabel):
         self.__unused(uas, thrust)
         #updateValue(uas, "thrust", thrust, MG.TIME.getGroundTimeNow())
 
-    def updateLocalPosition(self, uas, x, y, z, timestamp):
+    def updateLocalPosition(self, uas, timestamp, x, y, z):
         self.__unused(uas, timestamp)
         self.xPos = x
         self.yPos = y
         self.zPos = z
 
-    def updateGlobalPosition(self, uas, lat,  lon, altitude, timestamp):
+    def updateGlobalPosition(self, uas, timestamp, lat,  lon, altitude):
         self.__unused(uas, timestamp)
         self.lat = lat
         self.lon = lon
         self.alt = altitude
 
-    def updateSpeed(self, uas, x, y, z, timestamp):
+    def updateSpeed(self, uas, timestamp, x, y, z):
         self.__unused(uas)
         self.xSpeed = x
         self.ySpeed = y
@@ -295,7 +295,7 @@ class HUD(QLabel):
         self.totalSpeed = newTotalSpeed
         self.lastSpeedUpdate = timestamp
 
-    def updateGroundSpeed(self, uas, gndspd, timestamp):
+    def updateGroundSpeed(self, uas, timestamp, gndspd):
         self.__unused(uas)
         # only update if we haven't gotten a full 3D speed update in a while
         if timestamp - self.lastSpeedUpdate > 1e6:

@@ -83,19 +83,19 @@ class MiniGCS(QMainWindow):
     def droneStatusHandler(self, msg):
         # mV mA -> V A
         self.pfd.updateBatteryStatus(0, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
-        self.hud.updateBattery(None, msg.voltage_battery / 1000.0, msg.battery_remaining, 0)
+        self.hud.updateBattery(None, 0, msg.voltage_battery / 1000.0, msg.battery_remaining)
         self.sts.statusPanel.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def droneLocationHandler(self, msg):
         scale = 1E7
         self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
-        self.hud.updateGlobalPosition(None, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0, msg.time_usec)
+        self.hud.updateGlobalPosition(None, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
         self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
         self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
         self.pfd.updateGPSReception(0, msg.time_usec, msg.fix_type, msg.satellites_visible)
         if msg.vel != UINT16_MAX:
             self.pfd.updateGPSSpeed(0, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
-            self.hud.updateGroundSpeed(None, msg.vel / 100 * 3.6, msg.time_usec)
+            self.hud.updateGroundSpeed(None, msg.time_usec, msg.vel / 100 * 3.6)
 
     def droneAltitudeHandler(self, msg):
         self.sts.barometerPanel.setBarometer(msg.press_abs)
@@ -104,7 +104,7 @@ class MiniGCS(QMainWindow):
         scale = 180 / math.pi
         self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll * scale, msg.pitch * scale, msg.yaw * scale)
         self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed * scale, msg.pitchspeed * scale, msg.yawspeed * scale)
-        self.hud.updateAttitude(None, msg.roll, msg.pitch, msg.yaw, msg.time_boot_ms)
+        self.hud.updateAttitude(None, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
         self.sts.compassPanel.setHeading(msg.yaw * scale)
 
     def disconnect(self):
