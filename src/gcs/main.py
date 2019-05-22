@@ -14,8 +14,6 @@ from telemetry import ConnectionEditWindow, MAVLinkConnection
 from UserData import UserData
 from HUD import HUDWindow
 
-UINT16_MAX = 0xFFFF
-
 UD_MAIN_WINDOW_KEY = 'MAIN'
 UD_MAIN_WINDOW_HEIGHT_KEY = 'WINDOW_HEIGHT'
 UD_MAIN_WINDOW_WIDTH_KEY = 'WINDOW_WIDTH'
@@ -68,42 +66,38 @@ class MiniGCS(QMainWindow):
         self.map.waypointList.requestReturnToHome.connect(self.mav.initializeReturnToHome)
         self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
         self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
+
+        self.mav.connectionEstablishedSignal.connect(lambda: self.sts.statusPanel.editParameterButton.setEnabled(True))
+        self.mav.connectedToAPTypeSignal.connect(self.sts.addAPControlPanel)
+        self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
+        self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
+
         self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
         self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
         self.mav.scaledPressureHandler.connect(self.droneAltitudeHandler)
         self.mav.systemStatusHandler.connect(self.droneStatusHandler)
+
+        self.pfd.setActiveUAS(self.mav.uas)
+        self.hud.setActiveUAS(self.mav.uas)
+
         self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
-        self.mav.connectionEstablishedSignal.connect(lambda: self.sts.statusPanel.editParameterButton.setEnabled(True))
-        self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
-        self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
-        self.mav.connectedToAPTypeSignal.connect(self.sts.addAPControlPanel)
         self.sts.initializaMavlinkForControlPanels(self.mav)
         self.mav.start()
 
     def droneStatusHandler(self, msg):
         # mV mA -> V A
-        self.pfd.updateBatteryStatus(0, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
-        self.hud.updateBattery(None, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
         self.sts.statusPanel.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def droneLocationHandler(self, msg):
         scale = 1E7
         self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
-        self.hud.updateGlobalPosition(None, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
         self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
-        self.pfd.updateGPSAltitude(0, msg.time_usec, msg.alt / 1000.0) # mm -> meter
         self.pfd.updateGPSReception(0, msg.time_usec, msg.fix_type, msg.satellites_visible)
-        if msg.vel != UINT16_MAX:
-            self.pfd.updateGPSSpeed(0, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
-            self.hud.updateGroundSpeed(None, msg.time_usec, msg.vel / 100 * 3.6)
 
     def droneAltitudeHandler(self, msg):
         self.sts.barometerPanel.setBarometer(msg.press_abs)
 
     def droneAttitudeHandler(self, msg):
-        self.pfd.updateAttitude(0, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
-        self.pfd.updateAttitudeSpeed(0, msg.time_boot_ms, msg.rollspeed, msg.pitchspeed, msg.yawspeed)
-        self.hud.updateAttitude(None, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
         self.sts.compassPanel.setHeading(msg.yaw)
 
     def disconnect(self):

@@ -15,6 +15,7 @@ from serial.tools.list_ports import comports
 from parameters import ParameterPanel
 from waypoint import Waypoint
 from UserData import UserData
+from uas import UASInterfaceFactory
 
 BAUD_RATES = {
     0 : 'AUTO',
@@ -476,6 +477,7 @@ class MAVLinkConnection(QThread):
         self.connection = connection
         self.replayMode = replayMode
         self.enableLog = enableLog
+        self.uas = None
         if replayMode:
             self.enableLog = False
             connection.replayCompleteSignal.connect(self.requestExit)
@@ -502,14 +504,14 @@ class MAVLinkConnection(QThread):
 
         self.txTimeoutTimer.timeout.connect(self._timerTimeout)
         self.txTimeoutTimer.setSingleShot(True)
+        # print('waiting for heart beat...')
+        self._establishConnection()
 
     def requestExit(self):
         # print('exit conn thread...')
         self.running = False
 
     def run(self):
-        # print('waiting for heart beat...')
-        self._establishConnection()
         while self.running:
             msg = self.connection.recv_match(blocking=False)
             if msg != None:
@@ -522,6 +524,7 @@ class MAVLinkConnection(QThread):
                     if self.enableLog:
                         ts = int(time() * 1.0e6) & ~3
                         self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
+                    self.uas.receiveMAVLinkMessage(msg)
                     if msgType in self.internalHandlerLookup:
                         self.internalHandlerLookup[msgType](msg)
                     else:
@@ -548,6 +551,7 @@ class MAVLinkConnection(QThread):
         msgType = msg.get_type()
         if msgType in self.handlerLookup:
             self.handlerLookup[msgType].emit(msg)
+            pass
         else:
             print('UNKNOWN MSG:', msg)
 
@@ -691,6 +695,7 @@ class MAVLinkConnection(QThread):
 
     def __setMavlinkDialect(self, ap):
         mavutil.mavlink = None  # reset previous dialect
+        self.uas = UASInterfaceFactory.getUASInterface(ap)
         if ap in MAVLINK_DIALECTS:
             print('Set dialect to:', MAVLINK_DIALECTS[ap])
             mavutil.set_dialect(MAVLINK_DIALECTS[ap])

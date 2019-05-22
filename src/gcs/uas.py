@@ -3,6 +3,7 @@ from math import log
 from PyQt5.QtCore import QObject, pyqtSignal
 from pymavlink.dialects.v10 import common as mavlink
 
+UINT16_MAX = 0xFFFF
 UNIVERSAL_GAS_CONSTANT = 8.3144598 # J/(mol·K)
 MOLAR_MASS = 0.0289644 # kg/mol
 gravity = 9.80665 # m/s2
@@ -30,10 +31,9 @@ class UASInterface(QObject):
         self.pressureReference = 101325.0  # Pa
 
     def receiveMAVLinkMessage(self, msg):
-        if msg != None:
-            tp = msg.get_type()
-            if tp in self.messageHandlers:
-                self.messageHandlers[tp](msg)
+        tp = msg.get_type()
+        if tp in self.messageHandlers:
+            self.messageHandlers[tp](msg)
 
     @abstractmethod
     def uasStatusHandler(self, msg):
@@ -59,10 +59,9 @@ class UASInterface(QObject):
 class StandardMAVLinkInterface(UASInterface):
 
     def uasStatusHandler(self, msg):
-        self.updateAttitudeSignal.emit(self, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
+        self.updateBatterySignal.emit(self, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def uasLocationHandler(self, msg):
-        from main import UINT16_MAX
         scale = 1E7
         self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
         self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
