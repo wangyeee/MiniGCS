@@ -10,6 +10,7 @@ from PyQt5.QtGui import (QBrush, QColor, QFont, QFontMetrics, QLinearGradient,
                          QPainter, QPainterPath, QPen)
 from PyQt5.QtWidgets import QSizePolicy, QWidget
 from UserData import UserData
+from utils import unused
 
 UD_PFD_KEY = 'PFD'
 UD_PFD_PRIMARY_SPEED_SOURCE_KEY = 'PRIMARY_SPEED_SOURCE'
@@ -128,50 +129,50 @@ class PrimaryFlightDisplay(QWidget):
         self.pitch = self.pitch if math.isnan(pitch) else pitch * scale
         self.roll = self.roll if math.isnan(roll) else roll * scale
         self.yaw = self.yaw if math.isnan(yaw) else yaw * scale
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updateAttitudeSpeed(self, sourceUAS, timestamp, rollspeed, pitchspeed, yawspeed):
         scale = 180 / math.pi
         self.rollspeed = self.rollspeed if math.isnan(rollspeed) else rollspeed * scale
         self.pitchspeed = self.pitchspeed if math.isnan(pitchspeed) else pitchspeed * scale
         self.yawspeed = self.yawspeed if math.isnan(yawspeed) else yawspeed * scale
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updateGlobalPosition(self, sourceUAS, timestamp, latitude, longitude, altitude):
         self.latitude = self.latitude if math.isnan(latitude) else latitude
         self.longitude = self.longitude if math.isnan(longitude) else longitude
         self.GPSAltitude = self.GPSAltitude if math.isnan(altitude) else altitude
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updatePrimaryAltitude(self, sourceUAS, timestamp, altitude):
         self.primaryAltitude = self.primaryAltitude if math.isnan(altitude) else altitude
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updateGPSAltitude(self, sourceUAS, timestamp, altitude):
         self.GPSAltitude = self.GPSAltitude if math.isnan(altitude) else altitude
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updatePrimarySpeed(self, sourceUAS, timestamp, speed):
         self.primarySpeed = self.primarySpeed if math.isnan(speed) else speed
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updateBatteryStatus(self, sourceUAS, timestamp, voltage, current, remaining):
         self.additionalParameters['voltage'] = voltage
         self.additionalParameters['current'] = current
         self.additionalParameters['remaining'] = remaining
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def updateGPSReception(self, sourceUAS, timestamp, fixType, hdop, vdop, satelliteCount, hacc, vacc, velacc, hdgacc):
         self.additionalParameters['gps_fix'] = fixType
         self.additionalParameters['gps_satellite'] = satelliteCount
-        self.__unused(sourceUAS, timestamp, hdop, vdop, hacc, vacc, velacc, hdgacc)
+        unused(sourceUAS, timestamp, hdop, vdop, hacc, vacc, velacc, hdgacc)
 
     def updateGPSSpeed(self, sourceUAS, timestamp, speed):
         self.groundspeed = self.groundspeed if math.isnan(speed) else speed
-        self.__unused(sourceUAS, timestamp)
+        unused(sourceUAS, timestamp)
 
     def paintEvent(self, event):
-        self.__unused(event)
+        unused(event)
         compassAIIntrusion = 0
         compassHalfSpan = 180
         painter = QPainter()
@@ -352,7 +353,7 @@ class PrimaryFlightDisplay(QWidget):
         self.drawPitchScale(painter, area, intrusion, True, True)
 
     def drawPitchScale(self, painter, area, intrusion, drawNumbersLeft, drawNumbersRight):
-        self.__unused(intrusion)
+        unused(intrusion)
         # The area should be quadratic but if not width is the major size.
         w = area.width()
         if w < area.height():
@@ -720,7 +721,7 @@ class PrimaryFlightDisplay(QWidget):
             painter.drawLine(QPointF(x, y), QPointF(x, -y))
 
     def drawAltimeter(self, painter, area, primaryAltitude, secondaryAltitude, vv):
-        self.__unused(secondaryAltitude)
+        unused(secondaryAltitude)
         painter.resetTransform()
         self.fillInstrumentBackground(painter, area)
 
@@ -823,7 +824,7 @@ class PrimaryFlightDisplay(QWidget):
         painter.drawLine(vvArrowHead, vvArrowEnd)
 
     def drawVelocityMeter(self, painter, area, speed, secondarySpeed):
-        self.__unused(secondarySpeed)
+        unused(secondarySpeed)
         painter.resetTransform()
         self.fillInstrumentBackground(painter, area)
 

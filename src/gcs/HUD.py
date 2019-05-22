@@ -10,6 +10,7 @@ from PyQt5.QtGui import (QBrush, QColor, QFont, QFontDatabase, QFontMetrics,
 from PyQt5.QtOpenGL import QGLWidget
 from PyQt5.QtWidgets import (QAction, QFileDialog, QLabel, QMenu, QSizePolicy,
                              QWidget, QVBoxLayout)
+from utils import unused
 
 class HUDWindow(QWidget):
 
@@ -158,7 +159,7 @@ class HUD(QLabel):
         return QSize(self.width(), (self.width()*3.0)/4)
 
     def styleChanged(self, newTheme = 0):
-        self.__unused(newTheme)
+        unused(newTheme)
         # if newTheme == 0:
         #     newTheme = self.parent().getStyle()
 
@@ -246,7 +247,7 @@ class HUD(QLabel):
         self.uas = uas
 
     def updateAttitude(self, uas, timestamp, roll, pitch, yaw):
-        self.__unused(uas, timestamp)
+        unused(uas, timestamp)
         if isnan(roll) == False and isinf(roll) == False \
         and isnan(pitch) == False and isinf(pitch)== False \
         and isnan(yaw) == False and isinf(yaw) == False:
@@ -256,14 +257,14 @@ class HUD(QLabel):
             self.attitudes[0] = QVector3D(roll, pitch*3.35, yaw)
 
     def updateComponentAttitude(self, uas, timestamp, component, roll, pitch, yaw):
-        self.__unused(uas, timestamp)
+        unused(uas, timestamp)
         if isnan(roll) == False and isinf(roll) == False \
         and isnan(pitch) == False and isinf(pitch)== False \
         and isnan(yaw) == False and isinf(yaw) == False:
             self.attitudes[component] = QVector3D(roll, pitch*3.35, yaw) # Constant here is the 'focal length' of the projection onto the plane
 
     def updateBattery(self, uas, timestamp, voltage, current, percent):
-        self.__unused(uas, timestamp, current)
+        unused(uas, timestamp, current)
         self.fuelStatus = 'BAT [{}% | {:.1f}V]'.format(percent, voltage)
         if percent < 20.0:
             self.fuelColor = self.warningColor
@@ -273,26 +274,26 @@ class HUD(QLabel):
             self.fuelColor = self.infoColor
 
     def receiveHeartbeat(self, uas):
-        self.__unused(uas)
+        unused(uas)
 
     def updateThrust(self, uas, thrust):
-        self.__unused(uas, thrust)
+        unused(uas, thrust)
         #updateValue(uas, "thrust", thrust, MG.TIME.getGroundTimeNow())
 
     def updateLocalPosition(self, uas, timestamp, x, y, z):
-        self.__unused(uas, timestamp)
+        unused(uas, timestamp)
         self.xPos = x
         self.yPos = y
         self.zPos = z
 
     def updateGlobalPosition(self, uas, timestamp, lat,  lon, altitude):
-        self.__unused(uas, timestamp)
+        unused(uas, timestamp)
         self.lat = lat
         self.lon = lon
         self.alt = altitude
 
     def updateVelocity(self, uas, timestamp, x, y, z):
-        self.__unused(uas)
+        unused(uas)
         self.xSpeed = x
         self.ySpeed = y
         self.zSpeed = z
@@ -302,13 +303,13 @@ class HUD(QLabel):
         self.lastSpeedUpdate = timestamp
 
     def updateSpeed(self, uas, timestamp, speed):
-        self.__unused(uas)
+        unused(uas)
         self.totalAcc = (speed - self.totalSpeed) / ((self.lastSpeedUpdate - timestamp)/1000.0)
         self.totalSpeed = speed
         self.lastSpeedUpdate = timestamp
 
     def updateGroundSpeed(self, uas, timestamp, gndspd):
-        self.__unused(uas)
+        unused(uas)
         # only update if we haven't gotten a full 3D speed update in a while
         if timestamp - self.lastSpeedUpdate > 1e6:
             self.totalAcc = (gndspd - self.totalSpeed) / ((self.lastSpeedUpdate - timestamp)/1000.0)
@@ -321,7 +322,7 @@ class HUD(QLabel):
         :param uas: the system the state message originates from
         :param state: short state text, displayed in HUD
         '''
-        self.__unused(uas)
+        unused(uas)
         # Only one UAS is connected at a time
         self.state = state
 
@@ -331,12 +332,12 @@ class HUD(QLabel):
         :param uas: the system the state message originates from
         :param mode: short mode text, displayed in HUD
         '''
-        self.__unused(uas)
+        unused(uas)
         # Only one UAS is connected at a time
         self.mode = mode
 
     def updateLoad(self, uas, load):
-        self.__unused(uas)
+        unused(uas)
         self.load = load
         # updateValue(uas, "load", load, MG.TIME.getGroundTimeNow())
 
@@ -379,7 +380,7 @@ class HUD(QLabel):
         painter.setPen(prevPen)
 
     def setupGLView(self, referencePositionX, referencePositionY, referenceWidth, referenceHeight):
-        self.__unused(referencePositionX, referencePositionY, referenceWidth, referenceHeight)
+        unused(referencePositionX, referencePositionY, referenceWidth, referenceHeight)
         # pixelWidth  = int(referenceWidth * self.scalingFactor)
         # pixelHeight = int(referenceHeight * self.scalingFactor)
         # # Translate and scale the GL view in the virtual reference coordinate units on the screen
@@ -390,7 +391,7 @@ class HUD(QLabel):
         pass
 
     def paintEvent(self, event):
-        self.__unused(event)
+        unused(event)
         if self.isVisible():
             # static quint64 interval = 0
             # qDebug() << "INTERVAL:" << MG.TIME.getGroundTimeNow() - interval 
@@ -867,7 +868,7 @@ class HUD(QLabel):
                          QPoint(self.refToScreenX(refX2), self.refToScreenY(refY2)))
 
     def drawEllipse(self, refX, refY, radiusX, radiusY, startDeg, endDeg, lineWidth, color, painter):
-        self.__unused(startDeg, endDeg)
+        unused(startDeg, endDeg)
         pen = QPen(painter.pen().style())
         pen.setWidth(self.refLineWidthToPen(lineWidth))
         pen.setColor(color)
@@ -878,7 +879,7 @@ class HUD(QLabel):
         self.drawEllipse(refX, refY, radius, radius, startDeg, endDeg, lineWidth, color, painter)
 
     def selectWaypoint(self, uasId, wpid):
-        self.__unused(uasId)
+        unused(uasId)
         self.waypointName = 'WP{}'.format(wpid)
 
     def setImageSize(self, width, height, depth, channels):
@@ -941,7 +942,7 @@ class HUD(QLabel):
             #resize(receivedWidth, receivedHeight)
 
     def startImage(self, imgid, width, height, depth, channels):
-        self.__unused(imgid)
+        unused(imgid)
         # qDebug() << "HUD: starting image (" << width << "x" << height << ", " << depth << "bits) with " << channels << "channels";
         # Copy previous image to screen if it hasn't been finished properly
         self.finishImage()
@@ -993,7 +994,7 @@ class HUD(QLabel):
         self.videoEnabled = enabled
 
     def setPixels(self, imgid, imageData, length, startIndex):
-        self.__unused(imgid)
+        unused(imgid)
         # qDebug() << 'at'  << ': Received startindex' << startIndex << 'and length' << length << '(' << startIndex+length << 'of' << rawExpectedBytes << 'bytes)';
         if self.imageStarted:
             if self.rawLastIndex != startIndex:
