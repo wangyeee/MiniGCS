@@ -53,9 +53,13 @@ class SystemStatusPanel(QWidget):
 
     def initializaMavlinkForControlPanels(self, mav: MAVLinkConnection):
         self.__linkTelemetryForControlPanel(self.genericControlPanel, mav)
-        mav.rcChannelRawHandler.connect(self.statusPanel.rcTelemetryWindow.updateRCChannelValues)
+        mav.externalMessageHandler.connect(self.__updateRCChannelValues)
         for ap in self.apControlPanels:
             self.__linkTelemetryForControlPanel(self.apControlPanels[ap], mav)
+
+    def __updateRCChannelValues(self, msg):
+        if msg.get_type() == 'RC_CHANNELS_RAW':
+            self.statusPanel.rcTelemetryWindow.updateRCChannelValues(msg)
 
     def addAPControlPanel(self, apType):
         if apType in self.apControlPanels:

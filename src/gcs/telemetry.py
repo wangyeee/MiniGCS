@@ -421,18 +421,6 @@ class AutoBaudThread(QThread):
 
 class MAVLinkConnection(QThread):
 
-    gpsRawIntHandler = pyqtSignal(object)
-    localPositionNEDHandler = pyqtSignal(object)
-    navControllerOutputHandler = pyqtSignal(object)
-    radioStatusHandler = pyqtSignal(object)
-    rcChannelRawHandler = pyqtSignal(object)
-    servoOutputRawHandler = pyqtSignal(object)
-    scaledIMUHandler = pyqtSignal(object)
-    scaledPressureHandler = pyqtSignal(object)
-    heartBeatHandler = pyqtSignal(object)
-    altitudeHandler = pyqtSignal(object)
-    systemStatusHandler = pyqtSignal(object)
-    statusTextHandler = pyqtSignal(object)
     externalMessageHandler = pyqtSignal(object)  # pass any types of message to an external handler
 
     connectionEstablishedSignal = pyqtSignal()
@@ -481,19 +469,6 @@ class MAVLinkConnection(QThread):
         if replayMode:
             self.enableLog = False
             connection.replayCompleteSignal.connect(self.requestExit)
-        self.handlerLookup['HEARTBEAT'] = self.heartBeatHandler
-        self.handlerLookup['ATTITUDE'] = self.altitudeHandler
-        self.handlerLookup['GPS_RAW_INT'] = self.gpsRawIntHandler
-        self.handlerLookup['LOCAL_POSITION_NED'] = self.localPositionNEDHandler
-        self.handlerLookup['NAV_CONTROLLER_OUTPUT'] = self.navControllerOutputHandler
-        self.handlerLookup['RADIO_STATUS'] = self.radioStatusHandler
-        self.handlerLookup['RC_CHANNELS_RAW'] = self.rcChannelRawHandler
-        self.handlerLookup['SERVO_OUTPUT_RAW'] = self.servoOutputRawHandler
-        self.handlerLookup['SCALED_IMU'] = self.scaledIMUHandler
-        self.handlerLookup['SCALED_PRESSURE'] = self.scaledPressureHandler
-        self.handlerLookup['SYS_STATUS'] = self.systemStatusHandler
-        self.handlerLookup['STATUSTEXT'] = self.statusTextHandler
-
         self.internalHandlerLookup['PARAM_VALUE'] = self.receiveOnboardParameter
         self.internalHandlerLookup['MISSION_REQUEST'] = self.receiveMissionRequest
         self.internalHandlerLookup['MISSION_ACK'] = self.receiveMissionAcknowledge
@@ -518,13 +493,16 @@ class MAVLinkConnection(QThread):
                 msgType = msg.get_type()
                 if msgType != 'BAD_DATA':
                     # exclude BAD_DATA from any other messages
-                    self.externalMessageHandler.emit(msg)
                     self.lastMessageReceivedTimestamp = time()
                     self.lastMessages[msgType] = (msg, self.lastMessageReceivedTimestamp)
                     if self.enableLog:
                         ts = int(time() * 1.0e6) & ~3
                         self.mavlinkLogFile.write(struct.pack('>Q', ts) + msg.get_msgbuf())
+                    # 1. send message to external destination
+                    self.externalMessageHandler.emit(msg)
+                    # 2. process message with internal UASInterface
                     self.uas.receiveMAVLinkMessage(msg)
+                    # 3. process message with other internal handlers
                     if msgType in self.internalHandlerLookup:
                         self.internalHandlerLookup[msgType](msg)
                     else:
@@ -551,9 +529,6 @@ class MAVLinkConnection(QThread):
         msgType = msg.get_type()
         if msgType in self.handlerLookup:
             self.handlerLookup[msgType].emit(msg)
-            pass
-        else:
-            print('UNKNOWN MSG:', msg)
 
     def _establishConnection(self):
         hb = self.connection.wait_heartbeat()
