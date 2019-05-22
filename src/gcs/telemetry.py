@@ -429,7 +429,6 @@ class MAVLinkConnection(QThread):
     messageTimeoutSignal = pyqtSignal(float)  # pass number of seconds without receiving any messages
     connectedToAPTypeSignal = pyqtSignal(int)  # pass auto pilot type as parameter, which is used to setup AP-specific tools
 
-    handlerLookup = {}
     internalHandlerLookup = {}
     mavStatus = {MavStsKeys.AP_SYS_ID : 1}
     isConnected = False
@@ -505,8 +504,6 @@ class MAVLinkConnection(QThread):
                     # 3. process message with other internal handlers
                     if msgType in self.internalHandlerLookup:
                         self.internalHandlerLookup[msgType](msg)
-                    else:
-                        self._msgDispatcher(msg)
                 else:
                     # TODO handle BAD_DATA?
                     print('BAD_DATA:', msg)
@@ -524,11 +521,6 @@ class MAVLinkConnection(QThread):
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
         self.newTextMessageSignal.emit('Disconnected')
-
-    def _msgDispatcher(self, msg):
-        msgType = msg.get_type()
-        if msgType in self.handlerLookup:
-            self.handlerLookup[msgType].emit(msg)
 
     def _establishConnection(self):
         hb = self.connection.wait_heartbeat()

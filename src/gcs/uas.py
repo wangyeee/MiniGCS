@@ -36,6 +36,8 @@ class UASInterface(QObject):
         tp = msg.get_type()
         if tp in self.messageHandlers:
             self.messageHandlers[tp](msg)
+        else:
+            print('UNKNOWN MSG:', msg)
 
     @abstractmethod
     def uasStatusHandler(self, msg):
