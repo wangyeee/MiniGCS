@@ -217,8 +217,11 @@ MapItem {
         droneMarker.coordinate.longitude = lng
         droneRadius.center.latitude = lat
         droneRadius.center.longitude = lng
-        droneRadius.radius = hacc
         droneMarker.visible = true
+    }
+
+    onUpdateDroneLocationUncertainty: {
+        droneRadius.radius = hacc
         droneRadius.visible = (hacc > 5.0)
     }
 

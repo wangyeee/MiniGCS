@@ -97,7 +97,6 @@ class PrimaryFlightDisplay(QWidget):
     latitude = 0.0
     longitude = 0.0
 
-    uas = None
     additionalParameters = {}
 
     def __init__(self, parent):
@@ -113,6 +112,7 @@ class PrimaryFlightDisplay(QWidget):
         self.uiTimer = QTimer(self)
         self.uiTimer.setInterval(40)
         self.uiTimer.timeout.connect(self.update)
+        self.uas = None
 
     def setActiveUAS(self, uas):
         uas.updateAttitudeSignal.connect(self.updateAttitude)
@@ -120,6 +120,7 @@ class PrimaryFlightDisplay(QWidget):
         uas.updateGlobalPositionSignal.connect(self.updateGlobalPosition)
         uas.updateAirSpeedSignal.connect(self.updatePrimarySpeed)
         uas.updateGroundSpeedSignal.connect(self.updateGPSSpeed)
+        uas.updateGPSStatusSignal.connect(self.updateGPSReception)
         self.uas = uas
 
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
@@ -160,10 +161,10 @@ class PrimaryFlightDisplay(QWidget):
         self.additionalParameters['remaining'] = remaining
         self.__unused(sourceUAS, timestamp)
 
-    def updateGPSReception(self, sourceUAS, timestamp, fixType, satelliteCount):
+    def updateGPSReception(self, sourceUAS, timestamp, fixType, hdop, vdop, satelliteCount, hacc, vacc, velacc, hdgacc):
         self.additionalParameters['gps_fix'] = fixType
         self.additionalParameters['gps_satellite'] = satelliteCount
-        self.__unused(sourceUAS, timestamp)
+        self.__unused(sourceUAS, timestamp, hdop, vdop, hacc, vacc, velacc, hdgacc)
 
     def updateGPSSpeed(self, sourceUAS, timestamp, speed):
         self.groundspeed = self.groundspeed if math.isnan(speed) else speed

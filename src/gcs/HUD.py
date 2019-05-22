@@ -13,14 +13,14 @@ from PyQt5.QtWidgets import (QAction, QFileDialog, QLabel, QMenu, QSizePolicy,
 
 class HUDWindow(QWidget):
 
-    hud = None
-
     def __init__(self, hud = None, parent = None):
         super().__init__(parent)
         self.setWindowTitle('HUD')
         self.setMinimumSize(800, 600)
         if hud == None:
             self.hud = HUD(self)
+        else:
+            self.hud = hud
         l = QVBoxLayout()
         l.addWidget(self.hud)
         self.setLayout(l)
@@ -105,12 +105,12 @@ class HUD(QLabel):
     selectVideoChannelAction: QAction = None
     selectSaveDirectoryAction: QAction = None
 
-    uas = None
     attitudes = {}
 
     def __init__(self, parent = None):
         super().__init__(parent)
 
+        self.uas = None
         self.refreshTimer = QTimer(self)
         # Set auto fill to False
         self.setAutoFillBackground(False)

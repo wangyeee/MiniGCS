@@ -3,10 +3,12 @@ from PyQt5.QtGui import QColor, QFont, QTextOption, QTransform
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import (QGraphicsItem, QGraphicsScene, QGraphicsTextItem,
                              QGraphicsView, QVBoxLayout, QWidget)
+from utils import unused
 
 class Barometer(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
+        self.uas = None
         svgRenderer = QSvgRenderer('res/barometer.svg')
 
         bkgnd = QGraphicsSvgItem()
@@ -54,3 +56,11 @@ class Barometer(QWidget):
         self.digitalBaro.setPlainText('{:.1f}'.format(hbar))
         self.digitalBaro.adjustSize()
         self.digitalBaro.setX(0 - self.digitalBaro.textWidth() / 2)
+
+    def updateAirPressure(self, sourceUAS, timestamp, absPressure, diffPressure, temperature):
+        unused(sourceUAS, timestamp, diffPressure, temperature)
+        self.setBarometer(absPressure)
+
+    def setActiveUAS(self, uas):
+        uas.updateAirPressureSignal.connect(self.updateAirPressure)
+        self.uas = uas

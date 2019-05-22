@@ -13,11 +13,13 @@ class UASInterface(QObject):
     updateAttitudeSignal = pyqtSignal(object, int, float, float, float) # uas, timestamp, roll, pitch, yaw
     updateBatterySignal = pyqtSignal(object, int, float, float, float) # uas, timestamp, voltage, current, percent
     updateGlobalPositionSignal = pyqtSignal(object, int, float, float, float) # uas, timestamp, lat, lng, altitude
+    updateGPSStatusSignal = pyqtSignal(object, int, int, int, int, int, int, int, int, int) # uas, timestamp, fix type, HDOP, VDOP, satellites visible, h acc, v acc, vel acc, hdg acc
     updateAirSpeedSignal = pyqtSignal(object, int, float) # uas, timestamp, speed
     updateGroundSpeedSignal = pyqtSignal(object, int, float) # uas, timestamp, speed
     updateVelocitySignal = pyqtSignal(object, int, float, float, float) # uas, timestamp, x, y, z
     updatePrimaryAltitudeSignal = pyqtSignal(object, int, float) # uas, timestamp, altitude
     updateGPSAltitudeSignal = pyqtSignal(object, int, float) # uas, timestamp, altitude
+    updateAirPressureSignal = pyqtSignal(object, int, float, float, float) # uas, timestamp, abs press, diff press, temperature
 
     def __init__(self, name, parent = None):
         super().__init__(parent)
@@ -65,19 +67,32 @@ class StandardMAVLinkInterface(UASInterface):
         scale = 1E7
         self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
         self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
+        self.updateGPSStatusSignal.emit(self, msg.fix_type, msg.time_usec, msg.eph, msg.epv, msg.satellites_visible, 0, 0, 0, 0)
         if msg.vel != UINT16_MAX:
             self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
 
     def uasAltitudeHandler(self, msg):
+        self.updateAirPressureSignal.emit(self, msg.time_usec, msg.press_abs, msg.press_diff, msg.temperature)
         alt = self.getPressureAltitude(msg.press_abs, msg.temperature)
         self.updatePrimaryAltitudeSignal.emit(self, msg.time_usec, alt)
 
     def uasAttitudeHandler(self, msg):
         self.updateAttitudeSignal.emit(self, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
 
+class AutoQuadMAVLinkInterface(StandardMAVLinkInterface):
+
+    def uasLocationHandler(self, msg):
+        scale = 1E7
+        self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+        self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
+        self.updateGPSStatusSignal.emit(self, msg.fix_type, msg.time_usec, UINT16_MAX, UINT16_MAX, msg.satellites_visible, int(msg.eph / 100), int(msg.epv / 100), 0, 0)
+        if msg.vel != UINT16_MAX:
+            self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
+
 class UASInterfaceFactory:
     UAS_INTERFACES = {
-        mavlink.MAV_AUTOPILOT_GENERIC : StandardMAVLinkInterface('Generic MAVLink Interface')
+        mavlink.MAV_AUTOPILOT_GENERIC : StandardMAVLinkInterface('Generic MAVLink Interface'),
+        mavlink.MAV_AUTOPILOT_AUTOQUAD : AutoQuadMAVLinkInterface('AutoQuad MAVLink Interface')
     }
 
     @staticmethod

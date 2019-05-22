@@ -19,6 +19,7 @@ from adsb import AircraftsModel, ADSBSource
 from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
 from pymavlink.dialects.v10 import common as mavlink
 from telemetry import UD_TELEMETRY_KEY, UD_TELEMETRY_LOG_FOLDER_KEY
+from utils import unused
 
 DEFAULT_LATITUDE = 0.0
 DEFAULT_LONGITUDE = 0.0
@@ -39,7 +40,8 @@ class MapItem(QQuickItem):
     updateCoordinate = pyqtSignal(float, float, arguments=['lat', 'lng'])
     updateHomeCoordinate = pyqtSignal(float, float, arguments=['lat', 'lng'])
     updateZoomLevel = pyqtSignal(int, arguments=['zoom'])
-    updateDroneLocation = pyqtSignal(float, float, float, float, arguments=['lat', 'lng', 'hacc', 'vacc'])
+    updateDroneLocation = pyqtSignal(float, float, arguments=['lat', 'lng'])
+    updateDroneLocationUncertainty = pyqtSignal(float, float, arguments=['hacc', 'vacc'])
 
     waypointRemoved = pyqtSignal(int, arguments=['wpNumber'])  # signal sent to qml to remove wp in polyline, wpNumber starts from 1 (0 is resvered for home)
     waypointChanged = pyqtSignal(int, float, float, arguments=['wpNumber', 'latitude', 'longitude'])  # signal sent to qml to update wp in polyline
@@ -349,16 +351,19 @@ class MapView(QQuickView):
         # print('New home location: {0}, {1}'.format(lat, lng))
         self.moveHomeEvent.emit(QGeoCoordinate(lat, lng))
 
-    def updateDroneLocation(self, lat, lng, hacc, vacc):
-        # print('Drone location updated: {}, {}'.format(lat, lng))
-        self.map.moveDroneLocation(lat, lng, hacc, vacc)
+    def updateDroneLocation(self, sourceUAS, timestamp, latitude, longitude, altitude):
+        unused(sourceUAS, timestamp, altitude)
+        self.map.updateDroneLocation.emit(latitude, longitude)
+
+    def updateDroneLocationUncertainty(self, sourceUAS, timestamp, fixtype, hdop, vdop, nosv, hacc, vacc, velacc, hdgacc):
+        unused(sourceUAS, timestamp, fixtype, hdop, vdop, nosv, velacc, hdgacc)
+        self.map.updateDroneLocationUncertainty.emit(hacc, vacc)
 
     def minimumSize(self):
         return QSize(600, 480)
 
 class MapWidget(QSplitter):
 
-    mapView = None
     waypointList = None
     horizonLine = -1
     defaultLatitude = 30.0
@@ -372,6 +377,7 @@ class MapWidget(QSplitter):
         super().__init__(Qt.Vertical, parent)
         self.mapView = MapView(QUrl.fromLocalFile(mapQmlFile))
         self.waypointList = WaypointList(self.mapView.wpModel.allWaypoints, parent)
+        self.uas = None
 
         container = QWidget.createWindowContainer(self.mapView)
         container.setMinimumSize(self.mapView.minimumSize())
@@ -412,6 +418,11 @@ class MapWidget(QSplitter):
 
         self.addWidget(container)
         self.addWidget(self.lowerPanel)
+
+    def setActiveUAS(self, uas):
+        uas.updateGlobalPositionSignal.connect(self.mapView.updateDroneLocation)
+        uas.updateGPSStatusSignal.connect(self.mapView.updateDroneLocationUncertainty)
+        self.uas = uas
 
     def __setupTextMessageLogging(self):
         tconf = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY)

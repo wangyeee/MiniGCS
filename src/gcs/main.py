@@ -72,33 +72,16 @@ class MiniGCS(QMainWindow):
         self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
         self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
 
-        self.mav.gpsRawIntHandler.connect(self.droneLocationHandler)
-        self.mav.altitudeHandler.connect(self.droneAttitudeHandler)
-        self.mav.scaledPressureHandler.connect(self.droneAltitudeHandler)
-        self.mav.systemStatusHandler.connect(self.droneStatusHandler)
-
         self.pfd.setActiveUAS(self.mav.uas)
         self.hud.setActiveUAS(self.mav.uas)
+        self.map.setActiveUAS(self.mav.uas)
+        self.sts.statusPanel.setActiveUAS(self.mav.uas)
+        self.sts.compassPanel.setActiveUAS(self.mav.uas)
+        self.sts.barometerPanel.setActiveUAS(self.mav.uas)
 
         self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
         self.sts.initializaMavlinkForControlPanels(self.mav)
         self.mav.start()
-
-    def droneStatusHandler(self, msg):
-        # mV mA -> V A
-        self.sts.statusPanel.updateBatteryStatus(msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
-
-    def droneLocationHandler(self, msg):
-        scale = 1E7
-        self.map.mapView.updateDroneLocation(msg.lat / scale, msg.lon / scale, msg.eph / 100, msg.epv / 100)
-        self.sts.statusPanel.updateGPSFixStatus(msg.fix_type)
-        self.pfd.updateGPSReception(0, msg.time_usec, msg.fix_type, msg.satellites_visible)
-
-    def droneAltitudeHandler(self, msg):
-        self.sts.barometerPanel.setBarometer(msg.press_abs)
-
-    def droneAttitudeHandler(self, msg):
-        self.sts.compassPanel.setHeading(msg.yaw)
 
     def disconnect(self):
         self.mav.requestExit()

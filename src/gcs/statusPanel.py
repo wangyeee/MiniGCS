@@ -9,6 +9,7 @@ from barometer import Barometer
 from plugins.autoquad import AutoQuadControlPanel
 from plugins.common import GenericControlPanel
 from telemetry import MAVLinkConnection, RadioControlTelemetryWindow
+from utils import unused
 
 GPS_FIX_LABELS = {
     mavlink.GPS_FIX_TYPE_NO_GPS : 'No GPS',
@@ -73,6 +74,7 @@ class StatusSummaryPanel(QWidget):
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.uas = None
         self.connectToMAVLink = parent.connectToMAVLink
         self.disconnectFromMAVLink = parent.disconnectFromMAVLink
         self.connectToLocalGPS = parent.connectToLocalGPS
@@ -132,7 +134,13 @@ class StatusSummaryPanel(QWidget):
         self.rcTelemetryWindow = RadioControlTelemetryWindow()
         self.setLayout(l)
 
-    def updateBatteryStatus(self, voltage, current, remaining):
+    def setActiveUAS(self, uas):
+        uas.updateBatterySignal.connect(self.updateBatteryStatus)
+        uas.updateGPSStatusSignal.connect(self.updateGPSFixStatus)
+        self.uas = uas
+
+    def updateBatteryStatus(self, sourceUAS, timestamp, voltage, current, remaining):
+        unused(sourceUAS, timestamp)
         self.battVoltLabel.setText('{:.1f}V/{:.1f}A'.format(voltage, abs(current)))
         self.battBar.setValue(remaining)
         if remaining >= 60:
@@ -142,7 +150,8 @@ class StatusSummaryPanel(QWidget):
         else:
             self.battBar.setStyleSheet(BATTERY_BAR_STYLE_TEMPLATE.format('red'))
 
-    def updateGPSFixStatus(self, fix):
+    def updateGPSFixStatus(self, sourceUAS, timestamp, fix, hdop, vdop, nosv, hacc, vacc, velacc, hdgacc):
+        unused(sourceUAS, timestamp, hdop, vdop, nosv, hacc, vacc, velacc, hdgacc)
         if fix in GPS_FIX_LABELS:
             self.gpsLbl.setText(GPS_FIX_LABELS[fix])
         else:
