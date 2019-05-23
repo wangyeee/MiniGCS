@@ -52,7 +52,8 @@ class Compass(QWidget):
 
     def setHeading(self, hdr):
         if math.isnan(hdr) == False:
-            self.compass.setRotation(360.0 - hdr * 180.0 / math.pi)
+            hdr *= 180.0 / math.pi
+            self.compass.setRotation(360.0 - hdr)
             self.label.setText('Heading: {:.1f}{}'.format(hdr, u'\u00b0'))
 
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
