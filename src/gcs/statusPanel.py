@@ -61,6 +61,7 @@ class SystemStatusPanel(QWidget):
             self.statusPanel.rcTelemetryWindow.updateRCChannelValues(msg)
 
     def addAPControlPanel(self, apType):
+        print('Search control panel available for AP:', apType)
         if apType in self.apControlPanels:
             t = self.apControlPanels[apType]
             print('Add control panel for AP: {} ({})'.format(t.tabName(), apType))

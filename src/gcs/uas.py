@@ -24,6 +24,7 @@ class UASInterface(QObject):
     def __init__(self, name, parent = None):
         super().__init__(parent)
         self.uasName = name
+        self.autopilotClass = mavlink.MAV_AUTOPILOT_GENERIC
         self.messageHandlers = {}
         self.messageHandlers['SYS_STATUS'] = self.uasStatusHandler
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
@@ -91,6 +92,10 @@ class StandardMAVLinkInterface(UASInterface):
         self.updateAttitudeSignal.emit(self, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
 
 class AutoQuadMAVLinkInterface(StandardMAVLinkInterface):
+
+    def __init__(self, name, parent = None):
+        super().__init__(name, parent)
+        self.autopilotClass = mavlink.MAV_AUTOPILOT_AUTOQUAD
 
     def uasLocationHandler(self, msg):
         scale = 1E7

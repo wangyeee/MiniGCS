@@ -65,8 +65,9 @@ class MiniGCS(QMainWindow):
         self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
         self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
 
-        self.mav.connectionEstablishedSignal.connect(lambda: self.sts.statusPanel.editParameterButton.setEnabled(True))
-        self.mav.connectedToAPTypeSignal.connect(self.sts.addAPControlPanel)
+        self.mav.connectionEstablishedSignal.connect(lambda: \
+            self.sts.statusPanel.editParameterButton.setEnabled(True))
+        self.sts.addAPControlPanel(self.mav.uas.autopilotClass)
         self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
         self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
 

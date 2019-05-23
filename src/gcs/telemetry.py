@@ -425,7 +425,8 @@ class MAVLinkConnection(QThread):
     onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
     newTextMessageSignal = pyqtSignal(object)
     messageTimeoutSignal = pyqtSignal(float)  # pass number of seconds without receiving any messages
-    connectedToAPTypeSignal = pyqtSignal(int)  # pass auto pilot type as parameter, which is used to setup AP-specific tools
+
+    DEFAULT_MESSAGE_TIMEOUT_THRESHOLD = 2.0
 
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
@@ -450,7 +451,9 @@ class MAVLinkConnection(QThread):
         self.lastMessages = {} # type = (msg, timestamp)
 
         self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY, {})
-        self.messageTimeoutThreshold = UserData.getParameterValue(self.param, UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY, self.messageTimeoutThreshold)
+        self.messageTimeoutThreshold = UserData.getParameterValue(self.param,
+                                                                  UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY,
+                                                                  MAVLinkConnection.DEFAULT_MESSAGE_TIMEOUT_THRESHOLD)
         self.txTimeoutmsec = self.messageTimeoutThreshold * 1000000
         self.txMessageQueue = deque()
         self.running = True
@@ -657,7 +660,7 @@ class MAVLinkConnection(QThread):
         mavutil.mavlink = None  # reset previous dialect
         self.uas = UASInterfaceFactory.getUASInterface(ap)
         if ap in MAVLINK_DIALECTS:
-            print('Set dialect to:', MAVLINK_DIALECTS[ap])
+            print('Set dialect to: {}({})'.format(MAVLINK_DIALECTS[ap], ap))
             mavutil.set_dialect(MAVLINK_DIALECTS[ap])
         elif ap != mavlink.MAV_AUTOPILOT_INVALID:
             # default to common
@@ -669,4 +672,3 @@ class MAVLinkConnection(QThread):
                                                       srcComponent=self.connection.source_component)
         self.connection.mav.robust_parsing = self.connection.robust_parsing
         self.connection.WIRE_PROTOCOL_VERSION = mavutil.mavlink.WIRE_PROTOCOL_VERSION
-        self.connectedToAPTypeSignal.emit(ap)
