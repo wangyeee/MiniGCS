@@ -10,6 +10,7 @@ from PyQt5.QtPositioning import QGeoCoordinate
 
 # https://github.com/kanflo/ADS-B-funhouse
 from sbs1 import SBS1Message
+from utils import unused
 
 class AircraftsModel(QAbstractListModel):
 
@@ -22,6 +23,7 @@ class AircraftsModel(QAbstractListModel):
         self.callsignRole = Qt.UserRole + 3
 
     def rowCount(self, parent=QModelIndex()):
+        unused(parent)
         return len(self.allAircrafts)
 
     def __findByICAO(self, icao):
@@ -78,6 +80,7 @@ class AircraftsModel(QAbstractListModel):
         return QVariant()
 
     def flags(self, index):
+        unused(index)
         return Qt.NoItemFlags
 
     def roleNames(self):

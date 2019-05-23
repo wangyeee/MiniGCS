@@ -117,6 +117,7 @@ class WaypointsModel(QAbstractListModel):
         self.createWaypointAction.emit(mrk)
 
     def rowCount(self, parent=QModelIndex()):
+        unused(parent)
         return len(self.allWaypoints)
 
     def data(self, index, role=Qt.DisplayRole):
