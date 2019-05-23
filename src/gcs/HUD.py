@@ -1043,6 +1043,3 @@ class HUD(QLabel):
         else:
             self.imageLoggingEnabled = False
             self.selectSaveDirectoryAction.setChecked(False)
-
-    def __unused(self, *args):
-        pass

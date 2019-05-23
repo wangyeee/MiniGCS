@@ -899,6 +899,3 @@ class PrimaryFlightDisplay(QWidget):
         if param in self.additionalParameters:
             return self.additionalParameters[param]
         return defaultValue
-
-    def __unused(self, *args):
-        pass

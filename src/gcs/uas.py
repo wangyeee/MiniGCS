@@ -29,6 +29,12 @@ class UASInterface(QObject):
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
         self.messageHandlers['SCALED_PRESSURE'] = self.uasAltitudeHandler
         self.messageHandlers['ATTITUDE'] = self.uasAttitudeHandler
+
+        self.messageHandlers['RADIO_STATUS'] = self.uasDefaultMessageHandler
+        self.messageHandlers['LOCAL_POSITION_NED'] = self.uasDefaultMessageHandler
+        self.messageHandlers['NAV_CONTROLLER_OUTPUT'] = self.uasDefaultMessageHandler
+        self.messageHandlers['PARAM_VALUE'] = self.uasDefaultMessageHandler
+        self.messageHandlers['HEARTBEAT'] = self.uasDefaultMessageHandler
         self.altitudeReference = 0.0  # meter
         self.pressureReference = 101325.0  # Pa
 
@@ -53,6 +59,9 @@ class UASInterface(QObject):
 
     @abstractmethod
     def uasAttitudeHandler(self, msg):
+        pass
+
+    def uasDefaultMessageHandler(self, msg):
         pass
 
     def getPressureAltitude(self, pressure, temperature):
