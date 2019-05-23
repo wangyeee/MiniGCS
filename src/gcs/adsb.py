@@ -14,12 +14,13 @@ from utils import unused
 
 class AircraftsModel(QAbstractListModel):
 
+    positionRole = Qt.UserRole + 1
+    headingRole = Qt.UserRole + 2
+    callsignRole = Qt.UserRole + 3
+
     def __init__(self, parent = None):
         super().__init__(parent)
         self.allAircrafts = []
-        self.positionRole = Qt.UserRole + 1
-        self.headingRole = Qt.UserRole + 2
-        self.callsignRole = Qt.UserRole + 3
 
     def rowCount(self, parent=QModelIndex()):
         unused(parent)
@@ -55,7 +56,7 @@ class AircraftsModel(QAbstractListModel):
         idx = index.row()
         if idx < 0 or idx > len(self.allAircrafts) - 1:
             return QVariant()
-        if role == self.positionRole:
+        if role == AircraftsModel.positionRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon and self.allAircrafts[idx].altitude:
                 # 3D position, altitude is displayed next to aircraft icon
                 # Altitude from dump1090 is in feet, convert to meters by default
@@ -65,12 +66,12 @@ class AircraftsModel(QAbstractListModel):
                 # 2D position, 'Unknown Altitude' is displayed next to aircraft icon
                 return QVariant(QGeoCoordinate(self.allAircrafts[idx].lat, self.allAircrafts[idx].lon))
             return QVariant(QGeoCoordinate())
-        if role == self.headingRole:
+        if role == AircraftsModel.headingRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
                 if self.allAircrafts[idx].track:
                     return QVariant(self.allAircrafts[idx].track)
             return QVariant(0)
-        if role == self.callsignRole:
+        if role == AircraftsModel.callsignRole:
             if self.allAircrafts[idx].lat and self.allAircrafts[idx].lon:
                 if self.allAircrafts[idx].callsign:
                     return QVariant(self.allAircrafts[idx].callsign)
@@ -84,9 +85,9 @@ class AircraftsModel(QAbstractListModel):
 
     def roleNames(self):
         return {
-            self.positionRole : QByteArray(b'position'),
-            self.headingRole : QByteArray(b'heading'),
-            self.callsignRole : QByteArray(b'callsign')
+            AircraftsModel.positionRole : QByteArray(b'position'),
+            AircraftsModel.headingRole : QByteArray(b'heading'),
+            AircraftsModel.callsignRole : QByteArray(b'callsign')
         }
 
 class ADSBSource(QThread):

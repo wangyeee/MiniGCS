@@ -85,16 +85,16 @@ class MapItem(QQuickItem):
 
 class WaypointsModel(QAbstractListModel):
 
+    positionRole = Qt.UserRole + 1
+    dotColorRole = Qt.UserRole + 2
+    rowNumberRole = Qt.UserRole + 3
+    loiterRadiusRole = Qt.UserRole + 4
     createWaypointAction = pyqtSignal(object)
 
     def __init__(self, parent = None):
         super().__init__(parent)
         self.allWaypoints = [] # [Waypoint(0, 0, 0, 0)]
         self.redWPIdx = -1
-        self.positionRole = Qt.UserRole + 1
-        self.dotColorRole = Qt.UserRole + 2
-        self.rowNumberRole = Qt.UserRole + 3
-        self.loiterRadiusRole = Qt.UserRole + 4
 
     def markWaypoint(self, wp: Waypoint):
         idx = self.index(wp.rowNumber)
@@ -123,16 +123,16 @@ class WaypointsModel(QAbstractListModel):
         idx = index.row()
         if idx < 0 or idx > len(self.allWaypoints) - 1:
             return QVariant()
-        if role == self.positionRole:
+        if role == WaypointsModel.positionRole:
             return QVariant(self.allWaypoints[idx].getCoordinate())
-        if role == self.dotColorRole:
+        if role == WaypointsModel.dotColorRole:
             if self.allWaypoints[idx].rowNumber == self.redWPIdx:
                 self.redWPIdx = -1
                 return QVariant('red')
             return QVariant('green')
-        if role == self.rowNumberRole:
+        if role == WaypointsModel.rowNumberRole:
             return QVariant(self.allWaypoints[idx].rowNumber)
-        if role == self.loiterRadiusRole:
+        if role == WaypointsModel.loiterRadiusRole:
             if self.allWaypoints[idx].waypointType in (mavlink.MAV_CMD_NAV_LOITER_TIME, mavlink.MAV_CMD_NAV_LOITER_TURNS,
                                                        mavlink.MAV_CMD_NAV_LOITER_UNLIM, mavlink.MAV_CMD_NAV_LOITER_TO_ALT):
                 return QVariant(self.allWaypoints[idx].mavlinkParameters[MAVWaypointParameter.PARAM3])
@@ -146,10 +146,10 @@ class WaypointsModel(QAbstractListModel):
 
     def roleNames(self):
         return {
-            self.positionRole : QByteArray(b'position'),
-            self.dotColorRole : QByteArray(b'dotColor'),
-            self.rowNumberRole : QByteArray(b'rowNumber'),
-            self.loiterRadiusRole : QByteArray(b'loiterRadius')
+            WaypointsModel.positionRole : QByteArray(b'position'),
+            WaypointsModel.dotColorRole : QByteArray(b'dotColor'),
+            WaypointsModel.rowNumberRole : QByteArray(b'rowNumber'),
+            WaypointsModel.loiterRadiusRole : QByteArray(b'loiterRadius')
         }
 
     def updateWaypointCoordinate(self, rowNumber, newCoordinate: QGeoCoordinate):
