@@ -9,11 +9,10 @@ class NMEAReceiver(QThread):
 
     locationUpdate = pyqtSignal(object)
 
-    serialPort = Serial()
-    running = False
-
     def __init__(self, port = None, baud = 9600):
         super().__init__()
+        self.serialPort = Serial()
+        self.running = False
         self.configureSerialPort(port, baud)
 
     def configureSerialPort(self, port, baud):
@@ -44,10 +43,9 @@ class NMEAReceiver(QThread):
 
 class GPSConfigurationWindow(ConnectionEditWindow):
 
-    connection = NMEAReceiver()
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.connection = NMEAReceiver()
         self.setWindowTitle('GPS Configuration')
 
     def _createTabs(self):

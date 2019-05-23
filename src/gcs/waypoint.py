@@ -12,14 +12,6 @@ from WaypointDefault import WP_DEFAULTS, WP_TYPE_NAMES, MAVWaypointParameter
 
 class Waypoint(QObject):
 
-    rowNumber = 0
-    latitude = 0.0
-    longitude = 0.0
-    altitude = 0.0
-    # default to "navigate to waypoint (16)"
-    waypointType = -1
-    mavlinkParameters = None  # used to store different parameters based of waypoint type
-
     def __init__(self, rowNumber, latitude, longitude, altitude, waypointType = mavlink.MAV_CMD_NAV_WAYPOINT, parent = None):
         super().__init__(parent)
         self.rowNumber = rowNumber
@@ -107,11 +99,11 @@ class Waypoint(QObject):
         return n * (degrees + minutes / 60 + seconds / 3600)
 
 class WaypointListCell(QWidget):
-    moveCursorWhenFocus = False
-    editEnable = True
 
     def __init__(self, moveCursorWhenFocus = False, parent = None):
         super().__init__(parent)
+        self.moveCursorWhenFocus = False
+        self.editEnable = True
         self.moveCursorWhenFocus = moveCursorWhenFocus
 
     def nextFocus(self):
@@ -147,12 +139,6 @@ class WaypointListCell(QWidget):
 
 class WaypointEditPanel(QWidget):
 
-    editBtn : QPushButton = None
-    delBtn : QPushButton = None
-    # dupBtn = None
-    edtCb = None
-    delCb = None
-
     def __init__(self, wp: Waypoint, edtLbl = 'Edit', delLbl = 'Remove', edtCb = None, delCb = None, parent = None):
         super().__init__(parent)
         self.waypoint = wp
@@ -174,8 +160,6 @@ class WaypointEditPanel(QWidget):
         self.setLayout(l)
 
 class WPDropDownPanel(WaypointListCell):
-
-    dropDownList = None
 
     def __init__(self, dropDownList: dict, currentSelection = 0, parent = None):
         super().__init__(True, parent)
@@ -214,17 +198,16 @@ class WPDropDownPanel(WaypointListCell):
 
 class FocusLineEdit(QLineEdit):
 
-    start = 0
-    end = 0
-    valueValidator = None
-    isBeingEdited = False
-
     focusGainedSignal = pyqtSignal(object)
     focusLostSignal = pyqtSignal(object)
     valueOverflowSignal = pyqtSignal(float)
 
     def __init__(self, contents, step = 1.0, parent = None):
         super().__init__(contents, parent)
+        self.start = 0
+        self.end = 0
+        self.valueValidator = None
+        self.isBeingEdited = False
         self.step = step
 
     def setValueRange(self, start, end, decimals = 0):
@@ -285,14 +268,8 @@ class WPDegreePanel(WaypointListCell):
     LATITUDE_TYPE = 'LAT'
     LONGITUDE_TYPE = 'LNG'
 
-    decimalValue = 0.0
-
     valueChanged = pyqtSignal(object)
     focusInSignal = pyqtSignal(object)
-    dirType = None
-    cachedWP = None
-    cachedCellLocation = None
-    currentInFocusEdit = None
 
     def __init__(self, decimalValue, ctype, cachedWP = None, parent = None):
         '''
@@ -300,6 +277,8 @@ class WPDegreePanel(WaypointListCell):
         [deg][min][sec][EW/NS]
         '''
         super().__init__(True, parent)
+        self.cachedCellLocation = None
+        self.currentInFocusEdit = None
         self.decimalValue = decimalValue
         self.cachedWP = cachedWP
         # Degrees Minutes Seconds
@@ -464,9 +443,6 @@ class WPDegreePanel(WaypointListCell):
 
 class WPNumberPanel(WaypointListCell):
 
-    value = 0.0
-    isInteger = False
-
     valueChanged = pyqtSignal(object)
 
     def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, parent = None):
@@ -530,20 +506,18 @@ class WPNumberPanel(WaypointListCell):
 
 class WaypointList(QTableWidget):
 
-    homeLocation = Waypoint(0, 0, 0, 0, mavlink.MAV_CMD_DO_SET_HOME)
-    wpList = None
     requestReturnToHome = pyqtSignal()
     editWaypoint = pyqtSignal(object)  # show popup window to edit the waypoint
     deleteWaypoint = pyqtSignal(object)  # remove a waypoint
     preDeleteWaypoint = pyqtSignal(object)  # signal sent before removing a waypoint
     cancelDeleteWaypoint = pyqtSignal(object)  # signal sent for cancelled waypoint removal
     afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
-    currentInFocusCell = None
-    homeEditWindow = None
-    manualSetHomeLocationSource = False
 
     def __init__(self, wpList, parent = None):
         super().__init__(parent)
+        self.homeLocation = Waypoint(0, 0, 0, 0, mavlink.MAV_CMD_DO_SET_HOME)
+        self.currentInFocusCell = None
+        self.manualSetHomeLocationSource = False
         # self.verticalHeader().setVisible(False)
         self.createTableHeader()
         self.wpList = wpList
@@ -884,8 +858,6 @@ class WaypointEditWindowFactory:
         return dropDown
 
 class WaypointEditWindow(QWidget):
-
-    waypoint = None
 
     updateWaypoint = pyqtSignal(object)  # send value in popup window to application
 

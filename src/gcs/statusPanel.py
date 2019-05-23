@@ -33,10 +33,9 @@ class SystemStatusPanel(QWidget):
     connectToLocalGPS = pyqtSignal()
     disconnectFromLocalGPS = pyqtSignal()
 
-    apControlPanels = {}
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.apControlPanels = {}
         self.tabs = QTabWidget(self)
         self.statusPanel = StatusSummaryPanel(self)
         self.tabs.addTab(self.statusPanel, 'Summary')

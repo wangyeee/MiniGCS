@@ -70,38 +70,32 @@ class PrimaryFlightDisplay(QWidget):
     compassWindNames = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
     visibilityChanged = pyqtSignal(bool)
 
-    instrumentOpagueBackground = QBrush(QColor.fromHsvF(0, 0, 0.3, 1.0))
-    instrumentBackground = QBrush(QColor.fromHsvF(0, 0, 0.3, 0.3))
-    instrumentEdgePen = QPen(QColor.fromHsvF(0, 0, 0.65, 0.5))
-
-    font = QFont()
-    lineWidth = 2
-    fineLineWidth = 1
-
-    navigationTargetBearing = UNKNOWN_ATTITUDE
-    navigationCrosstrackError = 0
-
-    primaryAltitude = UNKNOWN_ALTITUDE
-    GPSAltitude = UNKNOWN_ALTITUDE
-    verticalVelocity = UNKNOWN_ALTITUDE
-
-    primarySpeed = UNKNOWN_SPEED
-    groundspeed = UNKNOWN_SPEED
-
-    roll = 0.0
-    pitch = 0.0
-    yaw = 0.0
-    rollspeed = 0.0
-    pitchspeed = 0.0
-    yawspeed = 0.0
-
-    latitude = 0.0
-    longitude = 0.0
-
-    additionalParameters = {}
-
     def __init__(self, parent):
         super().__init__(parent)
+        self.instrumentOpagueBackground = QBrush(QColor.fromHsvF(0, 0, 0.3, 1.0))
+        self.instrumentBackground = QBrush(QColor.fromHsvF(0, 0, 0.3, 0.3))
+        self.instrumentEdgePen = QPen(QColor.fromHsvF(0, 0, 0.65, 0.5))
+        self.font = QFont()
+        self.lineWidth = 2
+        self.fineLineWidth = 1
+
+        self.navigationTargetBearing = PrimaryFlightDisplay.UNKNOWN_ATTITUDE
+        self.navigationCrosstrackError = 0
+        self.primaryAltitude = PrimaryFlightDisplay.UNKNOWN_ALTITUDE
+        self.GPSAltitude = PrimaryFlightDisplay.UNKNOWN_ALTITUDE
+        self.verticalVelocity = PrimaryFlightDisplay.UNKNOWN_ALTITUDE
+        self.primarySpeed = PrimaryFlightDisplay.UNKNOWN_SPEED
+        self.groundspeed = PrimaryFlightDisplay.UNKNOWN_SPEED
+        self.roll = 0.0
+        self.pitch = 0.0
+        self.yaw = 0.0
+        self.rollspeed = 0.0
+        self.pitchspeed = 0.0
+        self.yawspeed = 0.0
+        self.latitude = 0.0
+        self.longitude = 0.0
+        self.additionalParameters = {}
+
         self.param = UserData.getInstance().getUserDataEntry(UD_PFD_KEY, {})
         self.isGPSSpeedPrimary = UserData.getParameterValue(self.param, UD_PFD_PRIMARY_SPEED_SOURCE_KEY) == 'GPS'
         self.isGPSAltitudePrimary = UserData.getParameterValue(self.param, UD_PFD_PRIMARY_ALTITUDE_SOURCE_KEY) == 'GPS'

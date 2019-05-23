@@ -28,89 +28,86 @@ class HUDWindow(QWidget):
 
 class HUD(QLabel):
 
-    yawInt = 0.0
-    mode = 'UNKNOWN MODE'
-    state = 'UNKNOWN STATE'
-    fuelStatus = '00.0V (00m:00s)'
-    xCenterOffset = 0.0
-    yCenterOffset = 0.0
-    vwidth = 200.0
-    vheight = 150.0
-    vGaugeSpacing = 65.0
-    vPitchPerDeg = 6.0 # 4 mm y translation per degree
-    rawBuffer1 = None
-    rawBuffer2 = None
-    rawImage = None
-    rawLastIndex = 0
-    rawExpectedBytes = 0
-    bytesPerLine = 1
-    imageStarted = False
-    receivedDepth = 8
-    receivedChannels = 1
-    receivedWidth = 640
-    receivedHeight = 480
-    warningBlinkRate = 5
-    refreshTimer = None
-
-    noCamera = True
-    hardwareAcceleration = True
-    strongStrokeWidth = 1.5
-    normalStrokeWidth = 1.0
-    fineStrokeWidth = 0.5
-    waypointName = ''
-    roll = 0.0
-    pitch = 0.0
-    yaw = 0.0
-    rollLP = 0.0
-    pitchLP = 0.0
-    yawLP = 0.0
-    yawDiff = 0.0
-    xPos = 0.0
-    yPos = 0.0
-    zPos = 0.0
-    xSpeed = 0.0
-    ySpeed = 0.0
-    zSpeed = 0.0
-    lastSpeedUpdate = 0
-    totalSpeed = 0.0
-    totalAcc = 0.0
-    lat = 0.0
-    lon = 0.0
-    alt = 0.0
-    load = 0.0
-    offlineDirectory = ''
-    nextOfflineImage = ''
-    HUDInstrumentsEnabled = True
-    videoEnabled = False
-    imageLoggingEnabled = False
-    imageLogCounter = 0
-    imageLogDirectory = None
-    xImageFactor = 1.0
-    yImageFactor = 1.0
-    imageRequested = False
-
-    glImage = None
-    image = None
-    updateInterval = 100
-
-    defaultColor = None
-    setPointColor = None
-    warningColor = None
-    criticalColor = None
-    infoColor = None
-    fuelColor = None
-
-    enableHUDAction: QAction = None
-    enableVideoAction: QAction = None
-    selectOfflineDirectoryAction: QAction = None
-    selectVideoChannelAction: QAction = None
-    selectSaveDirectoryAction: QAction = None
-
-    attitudes = {}
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.yawInt = 0.0
+        self.mode = 'UNKNOWN MODE'
+        self.state = 'UNKNOWN STATE'
+        self.fuelStatus = '00.0V (00m:00s)'
+        self.xCenterOffset = 0.0
+        self.yCenterOffset = 0.0
+        self.vwidth = 200.0
+        self.vheight = 150.0
+        self.vGaugeSpacing = 65.0
+        self.vPitchPerDeg = 6.0 # 4 mm y translation per degree
+        self.rawBuffer1 = None
+        self.rawBuffer2 = None
+        self.rawImage = None
+        self.rawLastIndex = 0
+        self.rawExpectedBytes = 0
+        self.bytesPerLine = 1
+        self.imageStarted = False
+        self.receivedDepth = 8
+        self.receivedChannels = 1
+        self.receivedWidth = 640
+        self.receivedHeight = 480
+        self.warningBlinkRate = 5
 
+        self.noCamera = True
+        self.hardwareAcceleration = True
+        self.strongStrokeWidth = 1.5
+        self.normalStrokeWidth = 1.0
+        self.fineStrokeWidth = 0.5
+        self.waypointName = ''
+        self.roll = 0.0
+        self.pitch = 0.0
+        self.yaw = 0.0
+        self.rollLP = 0.0
+        self.pitchLP = 0.0
+        self.yawLP = 0.0
+        self.yawDiff = 0.0
+        self.xPos = 0.0
+        self.yPos = 0.0
+        self.zPos = 0.0
+        self.xSpeed = 0.0
+        self.ySpeed = 0.0
+        self.zSpeed = 0.0
+        self.lastSpeedUpdate = 0
+        self.totalSpeed = 0.0
+        self.totalAcc = 0.0
+        self.lat = 0.0
+        self.lon = 0.0
+        self.alt = 0.0
+        self.load = 0.0
+        self.offlineDirectory = ''
+        self.nextOfflineImage = ''
+        self.HUDInstrumentsEnabled = True
+        self.videoEnabled = False
+        self.imageLoggingEnabled = False
+        self.imageLogCounter = 0
+        self.imageLogDirectory = None
+        self.xImageFactor = 1.0
+        self.yImageFactor = 1.0
+        self.imageRequested = False
+
+        self.glImage = None
+        self.image = None
+        self.updateInterval = 100
+
+        self.defaultColor = None
+        self.setPointColor = None
+        self.warningColor = None
+        self.criticalColor = None
+        self.infoColor = None
+        self.fuelColor = None
+
+        self.enableHUDAction: QAction = None
+        self.enableVideoAction: QAction = None
+        self.selectOfflineDirectoryAction: QAction = None
+        self.selectVideoChannelAction: QAction = None
+        self.selectSaveDirectoryAction: QAction = None
+
+        self.attitudes = {}
         self.uas = None
         self.refreshTimer = QTimer(self)
         # Set auto fill to False

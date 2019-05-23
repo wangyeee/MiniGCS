@@ -19,10 +19,9 @@ UD_MAIN_WINDOW_WIDTH_KEY = 'WINDOW_WIDTH'
 
 class MiniGCS(QMainWindow):
 
-    mav = None
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.mav = None
         self.param = UserData.getInstance().getUserDataEntry(UD_MAIN_WINDOW_KEY, {})
         current_path = os.path.abspath(os.path.dirname(__file__))
         qmlFile = os.path.join(current_path, 'map.qml')

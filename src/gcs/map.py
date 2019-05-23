@@ -87,11 +87,10 @@ class WaypointsModel(QAbstractListModel):
 
     createWaypointAction = pyqtSignal(object)
 
-    allWaypoints = [] # [Waypoint(0, 0, 0, 0)]
-    redWPIdx = -1
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.allWaypoints = [] # [Waypoint(0, 0, 0, 0)]
+        self.redWPIdx = -1
         self.positionRole = Qt.UserRole + 1
         self.dotColorRole = Qt.UserRole + 2
         self.rowNumberRole = Qt.UserRole + 3
@@ -200,15 +199,11 @@ class WaypointsModel(QAbstractListModel):
 
 class WaypointDragTracking(QThread):
 
-    mapView = None
-    delay = 0.0
-    wpIndex = 0
-    prevX = 0
-    prevY = 0
-    threshold = 0
-
     def __init__(self, mapView, hertz = 50, threshold = 2, parent = None):
         super().__init__(parent)
+        self.wpIndex = 0
+        self.prevX = 0
+        self.prevY = 0
         self.mapView = mapView
         self.delay = 1 / hertz
         self.threshold = threshold
@@ -232,13 +227,11 @@ class MapView(QQuickView):
     updateWaypointCoordinateEvent = pyqtSignal(int, object)  # WP row#, new coordinate
     moveHomeEvent = pyqtSignal(object)
 
-    dragStart = False
-    dragTracker = None
-    map = None
-    mapConf = {}
-
     def __init__(self, qml):
         super().__init__()
+        self.dragStart = False
+        self.dragTracker = None
+        self.mapConf = None
         qmlRegisterType(MapItem, 'MapItem', 1, 0, 'MapItem')
         self.setResizeMode(QQuickView.SizeRootObjectToView)
         self.wpModel = WaypointsModel()
@@ -365,20 +358,18 @@ class MapView(QQuickView):
 
 class MapWidget(QSplitter):
 
-    waypointList = None
-    horizonLine = -1
-    defaultLatitude = 30.0
-    editWPpopup = []
-
     uploadWaypointsToUAVEvent = pyqtSignal(object)  # pass the waypoint list as parameter
     downloadWaypointsFromUAVSignal = pyqtSignal()
-    textMessageLogFile = None  # log of messages displayed on messageLabel
 
     def __init__(self, mapQmlFile, parent = None):
         super().__init__(Qt.Vertical, parent)
         self.mapView = MapView(QUrl.fromLocalFile(mapQmlFile))
         self.waypointList = WaypointList(self.mapView.wpModel.allWaypoints, parent)
         self.uas = None
+        self.horizonLine = -1
+        self.defaultLatitude = 30.0
+        self.editWPpopup = []
+        self.textMessageLogFile = None  # log of messages displayed on messageLabel
 
         container = QWidget.createWindowContainer(self.mapView)
         container.setMinimumSize(self.mapView.minimumSize())

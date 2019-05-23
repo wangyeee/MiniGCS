@@ -7,9 +7,6 @@ class UserData:
 
     __singleton = None
 
-    userData = {}
-    confDir = None
-
     @staticmethod
     def getInstance():
         if UserData.__singleton == None:
@@ -18,6 +15,7 @@ class UserData:
 
     def __init__(self):
         if UserData.__singleton == None:
+            self.userData = None
             self.confDir = self.defaultConfigurationFileDirectory()
             UserData.__singleton = self
         else:

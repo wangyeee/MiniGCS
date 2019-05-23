@@ -103,11 +103,10 @@ class MavStsKeys(Enum):
 
 class RadioControlTelemetryWindow(QWidget):
 
-    isAnyRCChannelsUpdate = False
-    __defaultWidget = None
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.isAnyRCChannelsUpdate = False
+        self.__defaultWidget = None
         self.setWindowTitle('Radio Control Telemetry')
         self.__createDefaultWidget()
         self.tabs = QTabWidget()
@@ -230,11 +229,11 @@ class LogFileReplaySpeedControl(mavlogfile, QObject):
 
     replayCompleteSignal = pyqtSignal()
 
-    replaySpeed = 1.0
 
     def __init__(self, filename):
         mavlogfile.__init__(self, filename)
         QObject.__init__(self)
+        self.replaySpeed = 1.0
 
     def pre_message(self):
         super().pre_message()
@@ -294,13 +293,12 @@ class LogFileReplayEditTab(QWidget):
 
 class SerialConnectionEditTab(QWidget):
 
-    portList = {}
-
     __autoBaudStartSignal = pyqtSignal(object)
-    autoBaud = None
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.portList = {}
+        self.autoBaud = None
         self.MAVLinkConnectedSignal = parent.MAVLinkConnectedSignal
         self.__autoBaudStartSignal.connect(self.__autoBaud)
         self.listSerialPorts()
@@ -429,33 +427,28 @@ class MAVLinkConnection(QThread):
     messageTimeoutSignal = pyqtSignal(float)  # pass number of seconds without receiving any messages
     connectedToAPTypeSignal = pyqtSignal(int)  # pass auto pilot type as parameter, which is used to setup AP-specific tools
 
-    internalHandlerLookup = {}
-    mavStatus = {MavStsKeys.AP_SYS_ID : 1}
-    isConnected = False
-    paramList = []
-    paramPanel = None
-
-    txLock = QMutex()  # uplink lock
-    txResponseCond = QWaitCondition()
-    txTimeoutTimer = QTimer()
-    txTimeoutmsec = 200000000  # 2 seconds
-    finalWPSent = False
-    txMessageQueue = None
-
-    wpLoader = MAVWPLoader()
-    onboardWPCount = 0
-    numberOfonboardWP = 0
-    onboardWP = []
-
-    enableLog = True
-    replayMode = False
-    mavlinkLogFile = None
-    lastMessageReceivedTimestamp = 0.0
-    messageTimeoutThreshold = 2.0  # two seconds
-    lastMessages = {} # type = (msg, timestamp)
-
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
+        self.internalHandlerLookup = {}
+        self.mavStatus = {MavStsKeys.AP_SYS_ID : 1}
+        self.isConnected = False
+        self.paramList = []
+        self.paramPanel = None
+
+        self.txLock = QMutex()  # uplink lock
+        self.txResponseCond = QWaitCondition()
+        self.txTimeoutTimer = QTimer()
+        self.finalWPSent = False
+
+        self.wpLoader = MAVWPLoader()
+        self.onboardWPCount = 0
+        self.numberOfonboardWP = 0
+        self.onboardWP = []
+
+        self.mavlinkLogFile = None
+        self.lastMessageReceivedTimestamp = 0.0
+        self.lastMessages = {} # type = (msg, timestamp)
+
         self.param = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY, {})
         self.messageTimeoutThreshold = UserData.getParameterValue(self.param, UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY, self.messageTimeoutThreshold)
         self.txTimeoutmsec = self.messageTimeoutThreshold * 1000000

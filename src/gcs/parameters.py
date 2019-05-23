@@ -21,14 +21,11 @@ PARAM_TYPE_RAW_ROLE = Qt.UserRole + 1
 
 class ParameterList(QTableWidget):
 
-    paramList = None
-    paramNameIndexCache = {}
-
-    allParams = {}
-    changedParams = []
-
     def __init__(self, paramList, parent = None):
         super().__init__(parent)
+        self.paramNameIndexCache = {}
+        self.allParams = {}
+        self.changedParams = []
         self.paramList = sorted(paramList, key = lambda p: p.param_id)
         print('Init param list with {} params.'.format(len(self.paramList)))
         self.createTableHeader()
@@ -125,10 +122,9 @@ class ParameterPanel(QWidget):
 
     uploadNewParametersSignal = pyqtSignal(object)  # list of MAVLink_param_value_message
 
-    uploadUAVStep = 0
-
     def __init__(self, params, parent = None):
         super().__init__(parent)
+        self.uploadUAVStep = 0
         l = QVBoxLayout()
         self.paramList = ParameterList(params, parent)
         l.addWidget(self.paramList)

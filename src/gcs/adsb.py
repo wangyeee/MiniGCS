@@ -14,10 +14,9 @@ from utils import unused
 
 class AircraftsModel(QAbstractListModel):
 
-    allAircrafts = []
-
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.allAircrafts = []
         self.positionRole = Qt.UserRole + 1
         self.headingRole = Qt.UserRole + 2
         self.callsignRole = Qt.UserRole + 3
@@ -96,8 +95,10 @@ class ADSBSource(QThread):
     aircraftUpdateSignal = pyqtSignal(object)
     aircraftDeleteSignal = pyqtSignal(object)
 
-    running = True
-    param = None
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.running = True
+        self.param = None
 
     def run(self):
         self.doLazyInit()
@@ -134,13 +135,12 @@ class Dump1090NetClient(ADSBSource):
 
     DEFAULT_TIMEOUT = 10
 
-    aircrafts = {}
-    sckt = None
-    timeout = DEFAULT_TIMEOUT  # default timeout, 10 seconds
-
     def __init__ (self, host = None, port = 0, parent = None):
         super().__init__(parent)
-        self.lazyInit({'HOST' : host, 'PORT' : port, 'TIMEOUT' : self.DEFAULT_TIMEOUT})
+        self.aircrafts = {}
+        self.sckt = None
+        self.timeout = Dump1090NetClient.DEFAULT_TIMEOUT  # default timeout, 10 seconds
+        self.lazyInit({'HOST' : host, 'PORT' : port, 'TIMEOUT' : self.timeout})
 
     def doLazyInit(self):
         host = self.param['HOST']
@@ -216,12 +216,11 @@ class Dump1090NetClient(ADSBSource):
 
 class Dump1090NetLocal(Dump1090NetClient):
 
-    isBiasTeeSupported = False
-    binCheckPass = False
-    receiverProcess = None
-
     def __init__(self, dump1090BinPath = None, parent = None):
         super().__init__(parent)
+        self.isBiasTeeSupported = False
+        self.binCheckPass = False
+        self.receiverProcess = None
         self.lazyInit({
             'DUMP1090_BIN' : dump1090BinPath,
             'DEVICE_IDX' : 0,
