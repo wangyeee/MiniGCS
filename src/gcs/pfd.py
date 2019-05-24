@@ -116,10 +116,11 @@ class PrimaryFlightDisplay(QWidget):
         uas.updateAirSpeedSignal.connect(self.updatePrimarySpeed)
         uas.updateGroundSpeedSignal.connect(self.updateGPSSpeed)
         uas.updateGPSStatusSignal.connect(self.updateGPSReception)
+        uas.updateRCStatusSignal.connect(self.updateRCStatus)
         self.uas = uas
 
-    def updateRCStatus(self, rcType, rssi, noise, errors):
-        unused(rcType)
+    def updateRCStatus(self, sourceUAS, rcType, rssi, noise, errors):
+        unused(sourceUAS, rcType)
         self.additionalParameters['rc_rssi'] = rssi
         self.additionalParameters['rc_noise'] = noise
         self.additionalParameters['rc_errors'] = errors
@@ -505,10 +506,11 @@ class PrimaryFlightDisplay(QWidget):
         s = self.__getAdditionalParameter('gps_satellite')
         s = 0 if s == 255 else s
         self.drawTextRightCenter(painter, '{} {}'.format(chr(0x1F6F0), s), self.smallTestSize, side*w*0.9, side*w/4)
+        # RC receiver RSSI
         s = self.__getAdditionalParameter('rc_rssi')
         s = 0 if s == 255 else s
-        s /= 255.0
-        self.drawTextRightCenter(painter, '{} {}'.format(chr(0x1F4F6), int(s)), self.smallTestSize, side*w*0.9, side*w/4 + self.smallTestSize * 1.5)
+        s /= 254.0
+        self.drawTextRightCenter(painter, '{} {}'.format(chr(0x1F4F6), int(s * 100.0)), self.smallTestSize, side*w*0.9, side*w/4 + self.smallTestSize * 1.5)
 
         pen.setColor(QColor(255, 0, 0))
         painter.setPen(pen)
