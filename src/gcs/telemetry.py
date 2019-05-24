@@ -89,6 +89,7 @@ MAVLINK_DIALECTS = {
 UD_TELEMETRY_KEY = 'TELEMETRY'
 UD_TELEMETRY_LOG_FOLDER_KEY = 'LOG_FOLDER'
 UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY = 'TIMEOUT_THRESHOLD'
+UD_TELEMETRY_HEARTBEAT_TIMEOUT_KEY = 'HB_TIMEOUT'
 
 DEFAULT_RC_AUTO_SCALE_SAMPLES = 10
 
@@ -425,8 +426,10 @@ class MAVLinkConnection(QThread):
     onboardWaypointsReceivedSignal = pyqtSignal(object)  # pass the list of waypoints as parameter
     newTextMessageSignal = pyqtSignal(object)
     messageTimeoutSignal = pyqtSignal(float)  # pass number of seconds without receiving any messages
+    heartbeatTimeoutSignal = pyqtSignal()
 
     DEFAULT_MESSAGE_TIMEOUT_THRESHOLD = 2.0
+    DEFAULT_HEARTBEAT_TIMEOUT= 5.0
 
     def __init__(self, connection, replayMode = False, enableLog = True):
         super().__init__()
@@ -455,6 +458,10 @@ class MAVLinkConnection(QThread):
                                                                   UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY,
                                                                   MAVLinkConnection.DEFAULT_MESSAGE_TIMEOUT_THRESHOLD)
         self.txTimeoutmsec = self.messageTimeoutThreshold * 1000000
+        # timeout for wait initial heartbeat signal
+        self.initHeartbeatTimeout = UserData.getParameterValue(self.param,
+                                                               UD_TELEMETRY_HEARTBEAT_TIMEOUT_KEY,
+                                                               MAVLinkConnection.DEFAULT_HEARTBEAT_TIMEOUT)
         self.txMessageQueue = deque()
         self.running = True
         self.connection = connection
@@ -475,7 +482,7 @@ class MAVLinkConnection(QThread):
         self.txTimeoutTimer.timeout.connect(self._timerTimeout)
         self.txTimeoutTimer.setSingleShot(True)
         # print('waiting for heart beat...')
-        self._establishConnection()
+        # self._establishConnection()
 
     def requestExit(self):
         # print('exit conn thread...')
@@ -513,13 +520,21 @@ class MAVLinkConnection(QThread):
                 self.connection.mav.send(txMsg)
             except IndexError:
                 pass
+        self.__doDisconnect()
+
+    def __doDisconnect(self, txtmsg = 'Disconnected'):
         self.connection.close()
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
-        self.newTextMessageSignal.emit('Disconnected')
+        self.newTextMessageSignal.emit(txtmsg)
 
-    def _establishConnection(self):
-        hb = self.connection.wait_heartbeat()
+    def establishConnection(self):
+        hb = self.connection.wait_heartbeat(timeout=self.initHeartbeatTimeout)
+        if hb == None:
+            self.running = False
+            self.__doDisconnect('Connection timeout')
+            self.heartbeatTimeoutSignal.emit()
+            return
         self.lastMessageReceivedTimestamp = time()
         self.__createLogFile()
         self.__setMavlinkDialect(hb.autopilot)

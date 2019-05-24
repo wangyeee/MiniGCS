@@ -3,7 +3,7 @@ import sys
 import pymavlink
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QSplitter
+from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QSplitter, QMessageBox
 
 from LocalGPS import GPSConfigurationWindow
 from map import MapWidget
@@ -55,16 +55,22 @@ class MiniGCS(QMainWindow):
         self.sts.connectToLocalGPS.connect(self.localGPSWindow.show)
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
         self.sts.statusPanel.showHUDButton.clicked.connect(self.hudWindow.show)
-        self.teleWindow.MAVLinkConnectedSignal.connect(lambda: self.sts.statusPanel.toggleButtonLabel(True))
         self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.statusPanel.connectButton.setEnabled(True))
         self.setCentralWidget(self.window)
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
+        self.mav.heartbeatTimeoutSignal.connect(self.sts.statusPanel.resetConnectionButton)
+        self.mav.establishConnection()
+        if self.mav.running == False:
+            QMessageBox.critical(self, 'Error', 'MAVLink connection timeout', QMessageBox.Ok)
+            return
         self.map.waypointList.requestReturnToHome.connect(self.mav.initializeReturnToHome)
         self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
         self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
 
+        self.mav.connectionEstablishedSignal.connect(lambda: \
+            self.sts.statusPanel.toggleButtonLabel(True))
         self.mav.connectionEstablishedSignal.connect(lambda: \
             self.sts.statusPanel.editParameterButton.setEnabled(True))
         self.sts.addAPControlPanel(self.mav.uas.autopilotClass)
