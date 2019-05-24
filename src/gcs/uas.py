@@ -20,6 +20,7 @@ class UASInterface(QObject):
     updatePrimaryAltitudeSignal = pyqtSignal(object, int, float) # uas, timestamp, altitude
     updateGPSAltitudeSignal = pyqtSignal(object, int, float) # uas, timestamp, altitude
     updateAirPressureSignal = pyqtSignal(object, int, float, float, float) # uas, timestamp, abs press, diff press, temperature
+    updateRCStatusSignal = pyqtSignal(object, int, int, int, int) # uas, type(local, remote), rssi, noise, errors
 
     def __init__(self, name, parent = None):
         super().__init__(parent)
@@ -31,7 +32,7 @@ class UASInterface(QObject):
         self.messageHandlers['SCALED_PRESSURE'] = self.uasAltitudeHandler
         self.messageHandlers['ATTITUDE'] = self.uasAttitudeHandler
 
-        self.messageHandlers['RADIO_STATUS'] = self.uasDefaultMessageHandler
+        self.messageHandlers['RADIO_STATUS'] = self.uasRadioStatusHandler
         self.messageHandlers['LOCAL_POSITION_NED'] = self.uasDefaultMessageHandler
         self.messageHandlers['NAV_CONTROLLER_OUTPUT'] = self.uasDefaultMessageHandler
         self.messageHandlers['PARAM_VALUE'] = self.uasDefaultMessageHandler
@@ -62,6 +63,10 @@ class UASInterface(QObject):
     def uasAttitudeHandler(self, msg):
         pass
 
+    @abstractmethod
+    def uasRadioStatusHandler(self, msg):
+        pass
+
     def uasDefaultMessageHandler(self, msg):
         pass
 
@@ -90,6 +95,9 @@ class StandardMAVLinkInterface(UASInterface):
 
     def uasAttitudeHandler(self, msg):
         self.updateAttitudeSignal.emit(self, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
+
+    def uasRadioStatusHandler(self, msg):
+        self.updateRCStatusSignal.emit(self, 0, msg.rssi, msg.noise, msg.rxerrors)
 
 class AutoQuadMAVLinkInterface(StandardMAVLinkInterface):
 

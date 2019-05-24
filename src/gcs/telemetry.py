@@ -660,7 +660,7 @@ class MAVLinkConnection(QThread):
         mavutil.mavlink = None  # reset previous dialect
         self.uas = UASInterfaceFactory.getUASInterface(ap)
         if ap in MAVLINK_DIALECTS:
-            print('Set dialect to: {}({})'.format(MAVLINK_DIALECTS[ap], ap))
+            print('Set dialect to: {} ({})'.format(MAVLINK_DIALECTS[ap], ap))
             mavutil.set_dialect(MAVLINK_DIALECTS[ap])
         elif ap != mavlink.MAV_AUTOPILOT_INVALID:
             # default to common
