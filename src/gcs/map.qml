@@ -170,7 +170,6 @@ MapItem {
                         onActiveChanged: {
                             if (!drag.active) {
                                 homeMarker.coordinate = drag.target.coordinate
-                                wpLine.replaceCoordinate(0, homeMarker.coordinate)
                                 mapItem.updateHomeLocation(drag.target.coordinate.latitude, drag.target.coordinate.longitude)
                             }
                         }

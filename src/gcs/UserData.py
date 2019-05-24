@@ -55,4 +55,5 @@ class UserData:
     def getParameterValue(params, key, defaultValue = None):
         if key in params:
             return params[key]
+        params[key] = defaultValue
         return defaultValue
