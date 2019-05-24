@@ -90,6 +90,8 @@ class HUD(QLabel):
         self.yImageFactor = 1.0
         self.imageRequested = False
 
+        self.videoSrc = None
+        self.videoStarted = False
         self.glImage = None
         self.image = None
         self.updateInterval = 100
@@ -188,12 +190,20 @@ class HUD(QLabel):
         self.styleChanged()
         self.refreshTimer.start(self.updateInterval)
         # TODO emit visibilityChanged(True)
+        if self.videoSrc != None:
+            if self.videoStarted == False:
+                print('starting video...')
+                self.videoStarted = True
+                self.videoSrc.start()
+            self.videoSrc.pauseVideo(False)
 
     def hideEvent(self, event):
         # React only to internal (pre-display) events
         self.refreshTimer.stop()
         QWidget.hideEvent(self, event)
         # TODO emit visibilityChanged(False)
+        if self.videoSrc != None:
+            self.videoSrc.pauseVideo(True)
 
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)
@@ -242,6 +252,10 @@ class HUD(QLabel):
         uas.updateGroundSpeedSignal.connect(self.updateGroundSpeed)
         uas.updateVelocitySignal.connect(self.updateVelocity)
         self.uas = uas
+
+    def setVideoSource(self, videoSrc):
+        videoSrc.newFrameAvailable.connect(self.setImageExternal)
+        self.videoSrc = videoSrc
 
     def updateAttitude(self, uas, timestamp, roll, pitch, yaw):
         unused(uas, timestamp)
@@ -878,6 +892,11 @@ class HUD(QLabel):
     def selectWaypoint(self, uasId, wpid):
         unused(uasId)
         self.waypointName = 'WP{}'.format(wpid)
+
+    def setImageExternal(self, img):
+        print('new frame arrived:', img)
+        self.image = img
+        self.glImage = img
 
     def setImageSize(self, width, height, depth, channels):
         # Allocate raw image in correct size
