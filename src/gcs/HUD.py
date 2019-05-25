@@ -17,7 +17,7 @@ class HUDWindow(QWidget):
     def __init__(self, hud = None, parent = None):
         super().__init__(parent)
         self.setWindowTitle('HUD')
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(640, 480)
         if hud == None:
             self.hud = HUD(self)
         else:
@@ -28,6 +28,8 @@ class HUDWindow(QWidget):
 
 class HUD(QLabel):
 
+    DEFAULT_VWIDTH = 320.0
+
     def __init__(self, parent = None):
         super().__init__(parent)
         self.yawInt = 0.0
@@ -36,7 +38,7 @@ class HUD(QLabel):
         self.fuelStatus = '00.0V (00m:00s)'
         self.xCenterOffset = 0.0
         self.yCenterOffset = 0.0
-        self.vwidth = 200.0
+        self.vwidth = HUD.DEFAULT_VWIDTH
         self.vheight = 150.0
         self.vGaugeSpacing = 65.0
         self.vPitchPerDeg = 6.0 # 4 mm y translation per degree
@@ -90,6 +92,8 @@ class HUD(QLabel):
         self.yImageFactor = 1.0
         self.imageRequested = False
 
+        self.videoSrc = None
+        self.videoStarted = False
         self.glImage = None
         self.image = None
         self.updateInterval = 100
@@ -133,7 +137,6 @@ class HUD(QLabel):
         fontDatabase = QFontDatabase()
         fontFileName = './res/vera.ttf' # Font file is part of the QRC file and compiled into the app
         fontFamilyName = 'Bitstream Vera Sans'
-        # if(!QFile.exists(fontFileName)) qDebug() << "ERROR! font file: " << fontFileName << " DOES NOT EXIST!"
 
         fontDatabase.addApplicationFont(fontFileName)
         font = fontDatabase.font(fontFamilyName, 'Roman', max(5, int(10.0 * self.scalingFactor * 1.2 + 0.5)))
@@ -141,62 +144,50 @@ class HUD(QLabel):
             print('ERROR! FONT NOT LOADED!')
         if font.family() != fontFamilyName:
             print('ERROR! WRONG FONT LOADED: {}'.format(fontFamilyName))
-
-        # Connect the themeChanged signal from the MainWindow to this widget, so it can change it's styling accordingly.
-        # TODO connect((MainWindow*)parent, SIGNAL(styleChanged(int)), this, SLOT(styleChanged(int)))
-
-        # Connect with UAS
-        # TODO connect(UASManager.instance(), SIGNAL(activeUASSet(UASInterface*)), this, SLOT(setActiveUAS(UASInterface*)))
-
         # TODO self.createActions()
-
-        # if (UASManager.instance().getActiveUAS() != NULL) setActiveUAS(UASManager.instance().getActiveUAS())
 
     def sizeHint(self):
         return QSize(self.width(), (self.width()*3.0)/4)
 
     def styleChanged(self, newTheme = 0):
         unused(newTheme)
-        # if newTheme == 0:
-        #     newTheme = self.parent().getStyle()
-
         # Generate a background image that's dependent on the current color scheme.
         fill = QImage(self.width(), self.height(), QImage.Format_Indexed8)
-        # if (newTheme == MainWindow.QGC_MAINWINDOW_STYLE_LIGHT)
         fill.fill(0)
         self.glImage = QGLWidget.convertToGLFormat(fill)
 
         # Now set the other default colors based on the current color scheme.
-        # if (newTheme == MainWindow.QGC_MAINWINDOW_STYLE_LIGHT)
-        self.defaultColor = QColor(0x01, 0x47, 0x01)
+        self.defaultColor = QColor(0x66, 0xff, 0x00)  # bright green
         self.setPointColor = QColor(0x82, 0x17, 0x82)
-        self.warningColor = Qt.darkYellow
-        self.criticalColor = Qt.darkRed
-        self.infoColor = QColor(0x07, 0x82, 0x07)
+        self.warningColor = QColor(0xff, 0xff, 0x00)
+        self.criticalColor = QColor(0xff, 0x00, 0x00)
+        self.infoColor = self.defaultColor
         self.fuelColor = self.criticalColor
-
-        # self.defaultColor = QColor(70, 200, 70)
-        # self.setPointColor = QColor(200, 20, 200)
-        # self.warningColor = Qt.yellow
-        # self.criticalColor = Qt.red
-        # self.infoColor = QColor(20, 200, 20)
-        # self.fuelColor = self.criticalColor
 
     def showEvent(self, event):
         # React only to internal (pre-display) events
         QWidget.showEvent(self, event)
         self.styleChanged()
         self.refreshTimer.start(self.updateInterval)
-        # TODO emit visibilityChanged(True)
+        if self.videoSrc != None:
+            if self.videoStarted == False:
+                print('starting video...')
+                self.videoStarted = True
+                self.videoSrc.start()
+            self.videoSrc.pauseVideo(False)
 
     def hideEvent(self, event):
         # React only to internal (pre-display) events
         self.refreshTimer.stop()
         QWidget.hideEvent(self, event)
-        # TODO emit visibilityChanged(False)
+        if self.videoSrc != None:
+            self.videoSrc.pauseVideo(True)
 
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)
+        self.scalingFactor = self.width() / HUD.DEFAULT_VWIDTH
+        self.vwidth = self.width() / self.scalingFactor
+        self.vheight = self.height() / self.scalingFactor
         self.styleChanged()
 
     def contextMenuEvent(self, event):
@@ -242,6 +233,10 @@ class HUD(QLabel):
         uas.updateGroundSpeedSignal.connect(self.updateGroundSpeed)
         uas.updateVelocitySignal.connect(self.updateVelocity)
         self.uas = uas
+
+    def setVideoSource(self, videoSrc):
+        videoSrc.newFrameAvailable.connect(self.setImageExternal)
+        self.videoSrc = videoSrc
 
     def updateAttitude(self, uas, timestamp, roll, pitch, yaw):
         unused(uas, timestamp)
@@ -339,11 +334,9 @@ class HUD(QLabel):
         # updateValue(uas, "load", load, MG.TIME.getGroundTimeNow())
 
     def refToScreenX(self, x):
-        # print('sX: {}, Orig:{}'.format(scalingFactor * x, x))
         return self.scalingFactor * x
 
     def refToScreenY(self, y):
-        # print('sY: {}, Orig:{}'.format(scalingFactor * y, y))
         return self.scalingFactor * y
 
     def paintText(self, text, color, fontSize, refX, refY, painter):
@@ -376,23 +369,12 @@ class HUD(QLabel):
                          Qt.AlignCenter | Qt.TextWordWrap, text)
         painter.setPen(prevPen)
 
-    def setupGLView(self, referencePositionX, referencePositionY, referenceWidth, referenceHeight):
-        unused(referencePositionX, referencePositionY, referenceWidth, referenceHeight)
-        # pixelWidth  = int(referenceWidth * self.scalingFactor)
-        # pixelHeight = int(referenceHeight * self.scalingFactor)
-        # # Translate and scale the GL view in the virtual reference coordinate units on the screen
-        # pixelPositionX = int((referencePositionX * self.scalingFactor) + self.xCenterOffset)
-        # pixelPositionY = self.height() - (referencePositionY * self.scalingFactor) + self.yCenterOffset - pixelHeight
-
     def paintRollPitchStrips(self):
         pass
 
     def paintEvent(self, event):
         unused(event)
         if self.isVisible():
-            # static quint64 interval = 0
-            # qDebug() << "INTERVAL:" << MG.TIME.getGroundTimeNow() - interval 
-            # interval = MG.TIME.getGroundTimeNow()
 
             # Read out most important values to limit hash table lookups
             # Low-pass roll, pitch and yaw
@@ -431,17 +413,8 @@ class HUD(QLabel):
 
             # Negate to correct direction
             yawTrans = -yawTrans
-
             yawTrans = 0
-
             #qDebug() << "yaw translation" << yawTrans << "integral" << yawInt << "difference" << yawDiff << "yaw" << yaw
-
-            # Update scaling factor
-            # adjust scaling to fit both horizontally and vertically
-            self.scalingFactor = self.width()/self.vwidth
-            scalingFactorH = self.height()/self.vheight
-            if scalingFactorH < self.scalingFactor:
-                self.scalingFactor = scalingFactorH
 
             # And if either video or the data stream is enabled, draw the next frame.
             if self.videoEnabled:
@@ -515,9 +488,11 @@ class HUD(QLabel):
                 # SETPOINT
                 _centerWidth = 8.0
                 # TODO
-                # painter.drawEllipse(QPointF(refToScreenX(qMin(10.0, values.value("roll desired", 0.0) * 10.0)),
-                # refToScreenY(qMin(10.0, values.value("pitch desired", 0.0) * 10.0))),
-                # refToScreenX(_centerWidth/2.0), refToScreenX(_centerWidth/2.0))
+                painter.drawEllipse(
+                    QPointF(
+                        self.refToScreenX(min(10.0, 0.5 * 10.0)),  # roll desired
+                        self.refToScreenY(min(10.0, 0.6 * 10.0))),#pitch desired
+                    self.refToScreenX(_centerWidth/2.0), self.refToScreenX(_centerWidth/2.0))
 
                 _centerCrossWidth = 20.0
                 # left
@@ -577,17 +552,7 @@ class HUD(QLabel):
                     self.paintText(self.waypointName, self.defaultColor, 2.0, (-self.vwidth/3.0) + 10, +self.vheight/3.0 + 15, painter)
 
                 # MOVING PARTS
-
                 painter.translate(self.refToScreenX(yawTrans), 0)
-
-                # # Old single-component pitch drawing
-                # # Rotate view and draw all roll-dependent indicators
-                # painter.rotate((rollLP/M_PI)* -180.0)
-                # painter.translate(0, (-pitchLP/(float)M_PI)* -180.0 * refToScreenY(1.8f))
-                # # qDebug() << "ROLL" << roll << "PITCH" << pitch << "YAW DIFF" << valuesDot.value("roll", 0.0)
-                # # PITCH
-                # paintPitchLines(pitchLP, painter)
-
                 attColor = painter.pen().color()
 
                 # Draw multi-component attitude
@@ -878,6 +843,10 @@ class HUD(QLabel):
     def selectWaypoint(self, uasId, wpid):
         unused(uasId)
         self.waypointName = 'WP{}'.format(wpid)
+
+    def setImageExternal(self, img):
+        self.image = img
+        self.glImage = img
 
     def setImageSize(self, width, height, depth, channels):
         # Allocate raw image in correct size

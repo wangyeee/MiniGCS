@@ -12,6 +12,7 @@ from statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection
 from UserData import UserData
 from HUD import HUDWindow
+from fpv import FileVideoSource
 
 UD_MAIN_WINDOW_KEY = 'MAIN'
 UD_MAIN_WINDOW_HEIGHT_KEY = 'WINDOW_HEIGHT'
@@ -79,6 +80,9 @@ class MiniGCS(QMainWindow):
 
         self.pfd.setActiveUAS(self.mav.uas)
         self.hud.setActiveUAS(self.mav.uas)
+        # self.hud.enableVideo(True)
+        # fpv = FileVideoSource('test.mp4')  # test only
+        # self.hud.setVideoSource(fpv)
         self.map.setActiveUAS(self.mav.uas)
         self.sts.statusPanel.setActiveUAS(self.mav.uas)
         self.sts.compassPanel.setActiveUAS(self.mav.uas)
