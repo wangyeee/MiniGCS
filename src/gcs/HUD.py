@@ -17,7 +17,7 @@ class HUDWindow(QWidget):
     def __init__(self, hud = None, parent = None):
         super().__init__(parent)
         self.setWindowTitle('HUD')
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(640, 480)
         if hud == None:
             self.hud = HUD(self)
         else:
@@ -28,6 +28,8 @@ class HUDWindow(QWidget):
 
 class HUD(QLabel):
 
+    DEFAULT_VWIDTH = 320.0
+
     def __init__(self, parent = None):
         super().__init__(parent)
         self.yawInt = 0.0
@@ -36,7 +38,7 @@ class HUD(QLabel):
         self.fuelStatus = '00.0V (00m:00s)'
         self.xCenterOffset = 0.0
         self.yCenterOffset = 0.0
-        self.vwidth = 200.0
+        self.vwidth = HUD.DEFAULT_VWIDTH
         self.vheight = 150.0
         self.vGaugeSpacing = 65.0
         self.vPitchPerDeg = 6.0 # 4 mm y translation per degree
@@ -159,30 +161,18 @@ class HUD(QLabel):
 
     def styleChanged(self, newTheme = 0):
         unused(newTheme)
-        # if newTheme == 0:
-        #     newTheme = self.parent().getStyle()
-
         # Generate a background image that's dependent on the current color scheme.
         fill = QImage(self.width(), self.height(), QImage.Format_Indexed8)
-        # if (newTheme == MainWindow.QGC_MAINWINDOW_STYLE_LIGHT)
         fill.fill(0)
         self.glImage = QGLWidget.convertToGLFormat(fill)
 
         # Now set the other default colors based on the current color scheme.
-        # if (newTheme == MainWindow.QGC_MAINWINDOW_STYLE_LIGHT)
-        self.defaultColor = QColor(0x01, 0x47, 0x01)
+        self.defaultColor = QColor(0x66, 0xff, 0x00)  # bright green
         self.setPointColor = QColor(0x82, 0x17, 0x82)
-        self.warningColor = Qt.darkYellow
-        self.criticalColor = Qt.darkRed
-        self.infoColor = QColor(0x07, 0x82, 0x07)
+        self.warningColor = QColor(0xff, 0xff, 0x00)
+        self.criticalColor = QColor(0xff, 0x00, 0x00)
+        self.infoColor = self.defaultColor
         self.fuelColor = self.criticalColor
-
-        # self.defaultColor = QColor(70, 200, 70)
-        # self.setPointColor = QColor(200, 20, 200)
-        # self.warningColor = Qt.yellow
-        # self.criticalColor = Qt.red
-        # self.infoColor = QColor(20, 200, 20)
-        # self.fuelColor = self.criticalColor
 
     def showEvent(self, event):
         # React only to internal (pre-display) events
@@ -207,6 +197,9 @@ class HUD(QLabel):
 
     def resizeEvent(self, event):
         QWidget.resizeEvent(self, event)
+        self.scalingFactor = self.width() / HUD.DEFAULT_VWIDTH
+        self.vwidth = self.width() / self.scalingFactor
+        self.vheight = self.height() / self.scalingFactor
         self.styleChanged()
 
     def contextMenuEvent(self, event):
@@ -452,10 +445,10 @@ class HUD(QLabel):
 
             # Update scaling factor
             # adjust scaling to fit both horizontally and vertically
-            self.scalingFactor = self.width()/self.vwidth
-            scalingFactorH = self.height()/self.vheight
-            if scalingFactorH < self.scalingFactor:
-                self.scalingFactor = scalingFactorH
+            # self.scalingFactor = self.width()/self.vwidth
+            # scalingFactorH = self.height()/self.vheight
+            # if scalingFactorH < self.scalingFactor:
+            #     self.scalingFactor = scalingFactorH
 
             # And if either video or the data stream is enabled, draw the next frame.
             if self.videoEnabled:

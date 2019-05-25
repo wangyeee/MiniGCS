@@ -1,7 +1,7 @@
-from PyQt5.QtCore import Qt, pyqtSignal, QThread
+from PyQt5.QtCore import pyqtSignal, QThread
 from PyQt5.QtGui import QImage
-from cv2 import VideoCapture, cvtColor, COLOR_BGR2RGB
-from time import sleep
+from cv2 import VideoCapture, cvtColor, COLOR_BGR2RGB, CAP_PROP_FPS
+from time import sleep, time
 
 class VideoSource(QThread):
 
@@ -23,22 +23,24 @@ class FileVideoSource(VideoSource):
     def __init__(self, fileName, parent = None):
         super().__init__(parent)
         self.cap = VideoCapture(fileName)
+        self.frameRate = self.cap.get(CAP_PROP_FPS)
+        self.__delay = 1.0 / self.frameRate
 
     def run(self):
         self.running = True
         while self.cap.isOpened():
             if self.pause:
                 continue
+            _s0 = time()
             ret, frame = self.cap.read()
             if ret == True:
                 rgbImage = cvtColor(frame, COLOR_BGR2RGB)
                 h, w, ch = rgbImage.shape
                 bytesPerLine = ch * w
                 convertToQtFormat = QImage(rgbImage.data, w, h, bytesPerLine, QImage.Format_RGB888)
-                # TODO scale video size based on HUD size
-                p = convertToQtFormat.scaled(640, 480, Qt.KeepAspectRatio)
-                self.newFrameAvailable.emit(p)
-            sleep(0.04) # TODO check video frame rate
+                self.newFrameAvailable.emit(convertToQtFormat)
+            _s0 = time() - _s0
+            sleep(0 if _s0 >= self.__delay else self.__delay - _s0)
         self.running = False
         self.__cleanup()
 
