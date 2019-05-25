@@ -99,8 +99,6 @@ class HUD(QLabel):
 
         self.videoSrc = None
         self.videoStarted = False
-        self.glImage = None
-        self.image = None
         self.updateInterval = 100
 
         self.defaultColor = None
@@ -109,6 +107,7 @@ class HUD(QLabel):
         self.criticalColor = None
         self.infoColor = None
         self.fuelColor = None
+        self.DEFAULT_BACKGROUND_IMAGE = None
 
         self.enableHUDAction: QAction = None
         self.enableVideoAction: QAction = None
@@ -129,6 +128,7 @@ class HUD(QLabel):
         # Set up the initial color theme. This can be updated by a styleChanged
         # signal from MainWindow.
         self.styleChanged()
+        self.glImage = self.DEFAULT_BACKGROUND_IMAGE
 
         # Refresh timer
         self.refreshTimer.setInterval(self.updateInterval)
@@ -157,9 +157,7 @@ class HUD(QLabel):
         # Generate a background image that's dependent on the current color scheme.
         fill = QImage(self.width(), self.height(), QImage.Format_Indexed8)
         fill.fill(0)
-        self.glImage = QGLWidget.convertToGLFormat(fill)
-
-        # Now set the other default colors based on the current color scheme.
+        self.DEFAULT_BACKGROUND_IMAGE = QGLWidget.convertToGLFormat(fill)
         self.defaultColor = QColor(0x66, 0xff, 0x00)  # bright green
         self.setPointColor = QColor(0x82, 0x17, 0x82)
         self.warningColor = QColor(0xff, 0xff, 0x00)
@@ -848,8 +846,10 @@ class HUD(QLabel):
         self.waypointName = 'WP{}'.format(wpid)
 
     def setImageExternal(self, img):
-        self.image = img
-        self.glImage = img
+        if self.videoEnabled:
+            self.glImage = img
+        else:
+            self.glImage = self.DEFAULT_BACKGROUND_IMAGE
 
     def enableHUDInstruments(self, enabled):
         self.HUDInstrumentsEnabled = enabled
