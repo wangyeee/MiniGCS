@@ -86,7 +86,7 @@ class HUD(QLabel):
         self.targetBearing = 0.0
         self.wpDist = 0.0
         self.load = 0.0
-        self.offlineDirectory = ''
+        self.videoRecording = ''
         self.nextOfflineImage = ''
         self.HUDInstrumentsEnabled = True
         self.videoEnabled = False
@@ -113,8 +113,6 @@ class HUD(QLabel):
         self.enableHUDAction: QAction = None
         self.enableVideoAction: QAction = None
         self.selectOfflineDirectoryAction: QAction = None
-        self.selectVideoChannelAction: QAction = None
-        self.selectSaveDirectoryAction: QAction = None
 
         self.attitudes = {}
         self.uas = None
@@ -149,7 +147,7 @@ class HUD(QLabel):
             print('ERROR! FONT NOT LOADED!')
         if font.family() != fontFamilyName:
             print('ERROR! WRONG FONT LOADED: {}'.format(fontFamilyName))
-        # TODO self.createActions()
+        self.createActions()
 
     def sizeHint(self):
         return QSize(self.width(), (self.width()*3.0)/4)
@@ -202,10 +200,8 @@ class HUD(QLabel):
         self.enableVideoAction.setChecked(self.videoEnabled)
 
         menu.addAction(self.enableHUDAction)
-        #menu.addAction(self.selectHUDColorAction)
         menu.addAction(self.enableVideoAction)
         menu.addAction(self.selectOfflineDirectoryAction)
-        menu.addAction(self.selectSaveDirectoryAction)
         menu.exec(event.globalPos())
 
     def createActions(self):
@@ -213,22 +209,17 @@ class HUD(QLabel):
         self.enableHUDAction.setStatusTip('Show the HUD instruments in this window')
         self.enableHUDAction.setCheckable(True)
         self.enableHUDAction.setChecked(self.HUDInstrumentsEnabled)
-        # TODO connect(enableHUDAction, SIGNAL(triggered(bool)), this, SLOT(enableHUDInstruments(bool)))
+        self.enableHUDAction.triggered.connect(self.enableHUDInstruments)
 
         self.enableVideoAction = QAction('Enable Video Live feed', self)
         self.enableVideoAction.setStatusTip('Show the video live feed')
         self.enableVideoAction.setCheckable(True)
         self.enableVideoAction.setChecked(self.videoEnabled)
-        # TODO connect(enableVideoAction, SIGNAL(triggered(bool)), this, SLOT(enableVideo(bool)))
+        self.enableVideoAction.triggered.connect(self.enableVideo)
 
         self.selectOfflineDirectoryAction = QAction('Load image log', self)
         self.selectOfflineDirectoryAction.setStatusTip('Load previously logged images into simulation / replay')
-        # TODO connect(selectOfflineDirectoryAction, SIGNAL(triggered()), this, SLOT(selectOfflineDirectory()))
-
-        self.selectSaveDirectoryAction = QAction('Save images to directory', self)
-        self.selectSaveDirectoryAction.setStatusTip('Save images from image stream to a directory')
-        self.selectSaveDirectoryAction.setCheckable(True)
-        # TODO connect(selectSaveDirectoryAction, SIGNAL(triggered(bool)), this, SLOT(saveImages(bool)))
+        self.selectOfflineDirectoryAction.triggered.connect(self.selectOfflineDirectory)
 
     def setActiveUAS(self, uas):
         uas.updateAttitudeSignal.connect(self.updateAttitude)
@@ -501,7 +492,6 @@ class HUD(QLabel):
 
                 # SETPOINT
                 _centerWidth = 8.0
-                # TODO
                 painter.drawEllipse(
                     QPointF(self.refToScreenX(min(10.0, self.desiredRoll * 10.0)),
                             self.refToScreenY(min(10.0, self.desiredPitch * 10.0))),
@@ -861,164 +851,14 @@ class HUD(QLabel):
         self.image = img
         self.glImage = img
 
-    def setImageSize(self, width, height, depth, channels):
-        # Allocate raw image in correct size
-        if width != self.receivedWidth or height != self.receivedHeight or depth != self.receivedDepth or channels != self.receivedChannels or self.image == None:
-            # Set new size
-            if width > 0:
-                self.receivedWidth = width
-            if height > 0:
-                self.receivedHeight = height
-            if depth > 1:
-                self.receivedDepth = depth
-            if channels > 1:
-                self.receivedChannels = channels
-
-            self.rawExpectedBytes = (self.receivedWidth * self.receivedHeight * self.receivedDepth * self.receivedChannels) / 8
-            self.bytesPerLine = self.rawExpectedBytes / self.receivedHeight
-            # Delete old buffers if necessary
-            self.rawImage = None
-            if self.rawBuffer1 != None:
-                self.rawBuffer1 = None
-            if self.rawBuffer2 != None:
-                self.rawBuffer2 = None
-
-            self.rawBuffer1 = [] #(unsigned char*)malloc(rawExpectedBytes)
-            self.rawBuffer2 = [] #(unsigned char*)malloc(rawExpectedBytes)
-            self.rawImage = self.rawBuffer1
-            if self.image != None:
-                self.image = None
-
-            # Set image format
-            # 8 BIT GREYSCALE IMAGE
-            if depth <= 8 and channels == 1:
-                self.image = QImage(self.receivedWidth, self.receivedHeight, QImage.Format_Indexed8)
-                # Create matching color table
-                self.image.setColorCount(256)
-                for i in range(256):
-                    self.image.setColor(i, QColor(i, i, i))
-                    #qDebug()  << std.hex << i
-
-            # 32 BIT COLOR IMAGE WITH ALPHA VALUES (#ARGB)
-            else:
-                self.image = QImage(self.receivedWidth, self.receivedHeight, QImage.Format_ARGB32)
-
-            # Fill first channel of image with black pixels
-            self.image.fill(255)
-            # if (MainWindow.instance().getStyle() == MainWindow.QGC_MAINWINDOW_STYLE_LIGHT)
-            # else
-            #     image.fill(0)
-            self.glImage = self.image
-
-            # qDebug()  << "Setting up image"
-
-            # Set size once
-            self.setFixedSize(self.receivedWidth, self.receivedHeight)
-            self.setMinimumSize(self.receivedWidth, self.receivedHeight)
-            self.setMaximumSize(self.receivedWidth, self.receivedHeight)
-            # Lock down the size
-            #setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed))
-            #resize(receivedWidth, receivedHeight)
-
-    def startImage(self, imgid, width, height, depth, channels):
-        unused(imgid)
-        # qDebug() << "HUD: starting image (" << width << "x" << height << ", " << depth << "bits) with " << channels << "channels";
-        # Copy previous image to screen if it hasn't been finished properly
-        self.finishImage()
-        # Reset image size if necessary
-        self.setImageSize(width, height, depth, channels)
-        self.imageStarted = True
-
-    def finishImage(self):
-        if self.imageStarted:
-            self.commitRawDataToGL()
-            self.imageStarted = False
-
-    def commitRawDataToGL(self):
-        if self.image != None:
-            print('Copying raw data to GL buffer: {}, {}, {}, {}'.format(self.rawImage, self.receivedWidth, self.receivedHeight, self.image.format()))
-            fmt = self.image.format()
-            newImage = QImage(bytes(self.rawImage), self.receivedWidth, self.receivedHeight, fmt)
-            if fmt == QImage.Format_Indexed8:
-                # Create matching color table
-                newImage.setColorCount(256)
-                for i in range(256):
-                    newImage.setColor(i, QColor(i, i, i))
-                    #qDebug()  << std.hex << i
-
-            self.glImage = newImage
-            self.image = newImage
-            # Switch buffers
-            if self.rawImage == self.rawBuffer1:
-                self.rawImage = self.rawBuffer2
-                #qDebug() << 'Now buffer 2'
-            else:
-                self.rawImage = self.rawBuffer1
-                #qDebug() << 'Now buffer 1'
-        self.update()
-
-    def saveImage(self, fileName = 'output.png'):
-        self.image.save(fileName)
-
-    def selectOfflineDirectory(self):
-        fileName = QFileDialog.getExistingDirectory(self, 'Select image directory',
-                                                    QStandardPaths.writableLocation(QStandardPaths.DesktopLocation))
-        if fileName != '':
-            self.offlineDirectory = fileName
-
     def enableHUDInstruments(self, enabled):
         self.HUDInstrumentsEnabled = enabled
 
     def enableVideo(self, enabled):
         self.videoEnabled = enabled
 
-    def setPixels(self, imgid, imageData, length, startIndex):
-        unused(imgid)
-        # qDebug() << 'at'  << ': Received startindex' << startIndex << 'and length' << length << '(' << startIndex+length << 'of' << rawExpectedBytes << 'bytes)';
-        if self.imageStarted:
-            if self.rawLastIndex != startIndex:
-                print('PACKET LOSS!')
-
-            if (startIndex+length > self.rawExpectedBytes):
-                print('HUD: OVERFLOW! startIndex:{}, length:{}, image raw size: {}'.format(startIndex, length, ((self.receivedWidth * self.receivedHeight * self.receivedChannels * self.receivedDepth) / 8) - 1 ))
-            else:
-                for i in range(length):
-                    self.rawImage[startIndex + i] = imageData[i]
-                self.rawLastIndex = startIndex+length
-                # Check if we just reached the end of the image
-                if startIndex+length == self.rawExpectedBytes:
-                    # print('HUD: END OF IMAGE REACHED!')
-                    self.finishImage()
-                    self.rawLastIndex = 0
-            # for i in range(length):
-            #     for j in range(self.receivedChannels):
-            #         x = (startIndex+i) % self.receivedWidth
-            #         y = int((startIndex+i) / self.receivedWidth)
-            #         print('Setting pixel ({}, {}) to {}'.format(x, y, self.rawImage+startIndex+i))
-
-    def copyImage(self, uas):
-        temp_im = uas.getImage()
-        if temp_im.byteCount() > 0:
-            self.glImage = temp_im
-
-        # Save to directory if logging is enabled
-        if self.imageLoggingEnabled:
-            uas.getImage().save('{}/{}.png'.format(self.imageLogDirectory, self.imageLogCounter))
-            self.imageLogCounter += 1
-
-    def saveImages(self, save):
-        if save:
-            self.imageLogDirectory = QFileDialog.getExistingDirectory(self, 'Select image log directory',
-                                                                      QStandardPaths.writableLocation(QStandardPaths.DesktopLocation))
-            print('Logging to:', self.imageLogDirectory)
-
-            if self.imageLogDirectory != '':
-                self.imageLogCounter = 0
-                self.imageLoggingEnabled = True
-                print('Logging on')
-            else:
-                self.imageLoggingEnabled = False
-                self.selectSaveDirectoryAction.setChecked(False)
-        else:
-            self.imageLoggingEnabled = False
-            self.selectSaveDirectoryAction.setChecked(False)
+    def selectOfflineDirectory(self):
+        fileName = QFileDialog.getExistingDirectory(self, 'Select image directory',
+                                                    QStandardPaths.writableLocation(QStandardPaths.DesktopLocation))
+        if fileName != '':
+            self.videoRecording = fileName
