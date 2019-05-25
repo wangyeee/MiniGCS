@@ -137,7 +137,6 @@ class HUD(QLabel):
         fontDatabase = QFontDatabase()
         fontFileName = './res/vera.ttf' # Font file is part of the QRC file and compiled into the app
         fontFamilyName = 'Bitstream Vera Sans'
-        # if(!QFile.exists(fontFileName)) qDebug() << "ERROR! font file: " << fontFileName << " DOES NOT EXIST!"
 
         fontDatabase.addApplicationFont(fontFileName)
         font = fontDatabase.font(fontFamilyName, 'Roman', max(5, int(10.0 * self.scalingFactor * 1.2 + 0.5)))
@@ -145,16 +144,7 @@ class HUD(QLabel):
             print('ERROR! FONT NOT LOADED!')
         if font.family() != fontFamilyName:
             print('ERROR! WRONG FONT LOADED: {}'.format(fontFamilyName))
-
-        # Connect the themeChanged signal from the MainWindow to this widget, so it can change it's styling accordingly.
-        # TODO connect((MainWindow*)parent, SIGNAL(styleChanged(int)), this, SLOT(styleChanged(int)))
-
-        # Connect with UAS
-        # TODO connect(UASManager.instance(), SIGNAL(activeUASSet(UASInterface*)), this, SLOT(setActiveUAS(UASInterface*)))
-
         # TODO self.createActions()
-
-        # if (UASManager.instance().getActiveUAS() != NULL) setActiveUAS(UASManager.instance().getActiveUAS())
 
     def sizeHint(self):
         return QSize(self.width(), (self.width()*3.0)/4)
@@ -179,7 +169,6 @@ class HUD(QLabel):
         QWidget.showEvent(self, event)
         self.styleChanged()
         self.refreshTimer.start(self.updateInterval)
-        # TODO emit visibilityChanged(True)
         if self.videoSrc != None:
             if self.videoStarted == False:
                 print('starting video...')
@@ -191,7 +180,6 @@ class HUD(QLabel):
         # React only to internal (pre-display) events
         self.refreshTimer.stop()
         QWidget.hideEvent(self, event)
-        # TODO emit visibilityChanged(False)
         if self.videoSrc != None:
             self.videoSrc.pauseVideo(True)
 
@@ -346,11 +334,9 @@ class HUD(QLabel):
         # updateValue(uas, "load", load, MG.TIME.getGroundTimeNow())
 
     def refToScreenX(self, x):
-        # print('sX: {}, Orig:{}'.format(scalingFactor * x, x))
         return self.scalingFactor * x
 
     def refToScreenY(self, y):
-        # print('sY: {}, Orig:{}'.format(scalingFactor * y, y))
         return self.scalingFactor * y
 
     def paintText(self, text, color, fontSize, refX, refY, painter):
@@ -383,23 +369,12 @@ class HUD(QLabel):
                          Qt.AlignCenter | Qt.TextWordWrap, text)
         painter.setPen(prevPen)
 
-    def setupGLView(self, referencePositionX, referencePositionY, referenceWidth, referenceHeight):
-        unused(referencePositionX, referencePositionY, referenceWidth, referenceHeight)
-        # pixelWidth  = int(referenceWidth * self.scalingFactor)
-        # pixelHeight = int(referenceHeight * self.scalingFactor)
-        # # Translate and scale the GL view in the virtual reference coordinate units on the screen
-        # pixelPositionX = int((referencePositionX * self.scalingFactor) + self.xCenterOffset)
-        # pixelPositionY = self.height() - (referencePositionY * self.scalingFactor) + self.yCenterOffset - pixelHeight
-
     def paintRollPitchStrips(self):
         pass
 
     def paintEvent(self, event):
         unused(event)
         if self.isVisible():
-            # static quint64 interval = 0
-            # qDebug() << "INTERVAL:" << MG.TIME.getGroundTimeNow() - interval 
-            # interval = MG.TIME.getGroundTimeNow()
 
             # Read out most important values to limit hash table lookups
             # Low-pass roll, pitch and yaw
@@ -438,17 +413,8 @@ class HUD(QLabel):
 
             # Negate to correct direction
             yawTrans = -yawTrans
-
             yawTrans = 0
-
             #qDebug() << "yaw translation" << yawTrans << "integral" << yawInt << "difference" << yawDiff << "yaw" << yaw
-
-            # Update scaling factor
-            # adjust scaling to fit both horizontally and vertically
-            # self.scalingFactor = self.width()/self.vwidth
-            # scalingFactorH = self.height()/self.vheight
-            # if scalingFactorH < self.scalingFactor:
-            #     self.scalingFactor = scalingFactorH
 
             # And if either video or the data stream is enabled, draw the next frame.
             if self.videoEnabled:
@@ -522,9 +488,11 @@ class HUD(QLabel):
                 # SETPOINT
                 _centerWidth = 8.0
                 # TODO
-                # painter.drawEllipse(QPointF(refToScreenX(qMin(10.0, values.value("roll desired", 0.0) * 10.0)),
-                # refToScreenY(qMin(10.0, values.value("pitch desired", 0.0) * 10.0))),
-                # refToScreenX(_centerWidth/2.0), refToScreenX(_centerWidth/2.0))
+                painter.drawEllipse(
+                    QPointF(
+                        self.refToScreenX(min(10.0, 0.5 * 10.0)),  # roll desired
+                        self.refToScreenY(min(10.0, 0.6 * 10.0))),#pitch desired
+                    self.refToScreenX(_centerWidth/2.0), self.refToScreenX(_centerWidth/2.0))
 
                 _centerCrossWidth = 20.0
                 # left
@@ -584,17 +552,7 @@ class HUD(QLabel):
                     self.paintText(self.waypointName, self.defaultColor, 2.0, (-self.vwidth/3.0) + 10, +self.vheight/3.0 + 15, painter)
 
                 # MOVING PARTS
-
                 painter.translate(self.refToScreenX(yawTrans), 0)
-
-                # # Old single-component pitch drawing
-                # # Rotate view and draw all roll-dependent indicators
-                # painter.rotate((rollLP/M_PI)* -180.0)
-                # painter.translate(0, (-pitchLP/(float)M_PI)* -180.0 * refToScreenY(1.8f))
-                # # qDebug() << "ROLL" << roll << "PITCH" << pitch << "YAW DIFF" << valuesDot.value("roll", 0.0)
-                # # PITCH
-                # paintPitchLines(pitchLP, painter)
-
                 attColor = painter.pen().color()
 
                 # Draw multi-component attitude
@@ -887,7 +845,6 @@ class HUD(QLabel):
         self.waypointName = 'WP{}'.format(wpid)
 
     def setImageExternal(self, img):
-        print('new frame arrived:', img)
         self.image = img
         self.glImage = img
 
