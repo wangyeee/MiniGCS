@@ -80,6 +80,11 @@ class HUD(QLabel):
         self.lat = 0.0
         self.lon = 0.0
         self.alt = 0.0
+        self.desiredRoll = 0.0
+        self.desiredPitch = 0.0
+        self.desiredHeading = 0.0
+        self.targetBearing = 0.0
+        self.wpDist = 0.0
         self.load = 0.0
         self.offlineDirectory = ''
         self.nextOfflineImage = ''
@@ -232,6 +237,7 @@ class HUD(QLabel):
         uas.updateAirSpeedSignal.connect(self.updateSpeed)
         uas.updateGroundSpeedSignal.connect(self.updateGroundSpeed)
         uas.updateVelocitySignal.connect(self.updateVelocity)
+        uas.updateNavigationControllerOutputSignal.connect(self.updateNavigationControllerOutput)
         self.uas = uas
 
     def setVideoSource(self, videoSrc):
@@ -332,6 +338,14 @@ class HUD(QLabel):
         unused(uas)
         self.load = load
         # updateValue(uas, "load", load, MG.TIME.getGroundTimeNow())
+
+    def updateNavigationControllerOutput(self, uas, desiredRoll, desiredPitch, desiredHeading, targetBearing, wpDist):
+        unused(uas)
+        self.desiredRoll = desiredRoll
+        self.desiredPitch = desiredPitch
+        self.desiredHeading = desiredHeading
+        self.targetBearing = targetBearing
+        self.wpDist = wpDist
 
     def refToScreenX(self, x):
         return self.scalingFactor * x
@@ -489,9 +503,8 @@ class HUD(QLabel):
                 _centerWidth = 8.0
                 # TODO
                 painter.drawEllipse(
-                    QPointF(
-                        self.refToScreenX(min(10.0, 0.5 * 10.0)),  # roll desired
-                        self.refToScreenY(min(10.0, 0.6 * 10.0))),#pitch desired
+                    QPointF(self.refToScreenX(min(10.0, self.desiredRoll * 10.0)),
+                            self.refToScreenY(min(10.0, self.desiredPitch * 10.0))),
                     self.refToScreenX(_centerWidth/2.0), self.refToScreenX(_centerWidth/2.0))
 
                 _centerCrossWidth = 20.0
