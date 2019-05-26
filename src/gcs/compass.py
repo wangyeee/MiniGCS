@@ -3,14 +3,13 @@ import math
 from PyQt5.QtCore import Qt
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import (QGraphicsItem, QGraphicsScene, QGraphicsView,
-                             QLabel, QVBoxLayout, QWidget)
+                             QVBoxLayout, QWidget)
 from utils import unused
 
 class Compass(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.uas = None
-        self.label = QLabel('Heading: 0.0' + u'\u00b0')
         svgRenderer = QSvgRenderer('res/compass.svg')
         self.compass = QGraphicsSvgItem()
         self.compass.setSharedRenderer(svgRenderer)
@@ -46,7 +45,6 @@ class Compass(QWidget):
         view.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.label)
         layout.addWidget(view)
         super().setLayout(layout)
 
@@ -54,7 +52,6 @@ class Compass(QWidget):
         if math.isnan(hdr) == False:
             hdr *= 180.0 / math.pi
             self.compass.setRotation(360.0 - hdr)
-            self.label.setText('Heading: {:.1f}{}'.format(hdr, u'\u00b0'))
 
     def updateAttitude(self, sourceUAS, timestamp, roll, pitch, yaw):
         unused(sourceUAS, timestamp, roll, pitch)
