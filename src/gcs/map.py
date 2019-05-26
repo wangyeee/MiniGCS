@@ -77,7 +77,7 @@ class MapItem(QQuickItem):
     def moveMap(self, deltaLat, deltaLng):
         lat = self.lat + deltaLat
         lng = self.lng + deltaLng
-        if -90.0 <= lat <= 90.0 and 0.0 <= lng <= 180.0:
+        if -90.0 <= lat <= 90.0 and -180.0 <= lng <= 180.0:
             self.moveMapToCoordinate(lat, lng)
 
     def moveDroneLocation(self, lat, lng, hacc, vacc):

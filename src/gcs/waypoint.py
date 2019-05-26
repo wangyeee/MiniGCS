@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (QTableWidget, QTableWidgetItem, QWidget,
     QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton, QRadioButton)
 
 from WaypointDefault import WP_DEFAULTS, WP_TYPE_NAMES, MAVWaypointParameter
+from UserData import UserData
 
 class Waypoint(QObject):
 
@@ -514,8 +515,18 @@ class WaypointList(QTableWidget):
     afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
 
     def __init__(self, wpList, parent = None):
+        from map import UD_MAP_KEY, UD_MAP_INIT_LATITUDE_KEY, UD_MAP_INIT_LONGITUDE_KEY
         super().__init__(parent)
-        self.homeLocation = Waypoint(0, 0, 0, 0, mavlink.MAV_CMD_DO_SET_HOME)
+        lat0 = 0.0
+        lng0 = 0.0
+        try:
+            mapConf = UserData.getInstance().getUserDataEntry(UD_MAP_KEY)
+            if mapConf != None:
+                lat0 = float(mapConf[UD_MAP_INIT_LATITUDE_KEY])
+                lng0 = float(mapConf[UD_MAP_INIT_LONGITUDE_KEY])
+        except (TypeError, ValueError):
+            pass
+        self.homeLocation = Waypoint(0, lat0, lng0, 0, mavlink.MAV_CMD_DO_SET_HOME)
         self.currentInFocusCell = None
         self.manualSetHomeLocationSource = False
         # self.verticalHeader().setVisible(False)
