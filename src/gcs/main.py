@@ -3,7 +3,7 @@ import sys
 import pymavlink
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QSplitter, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QSplitter, QMessageBox, QAction, qApp
 
 from LocalGPS import GPSConfigurationWindow
 from map import MapWidget
@@ -57,7 +57,16 @@ class MiniGCS(QMainWindow):
         self.sts.disconnectFromLocalGPS.connect(self.localGPSWindow.connection.disconnect)
         self.sts.statusPanel.showHUDButton.clicked.connect(self.hudWindow.show)
         self.teleWindow.cancelConnectionSignal.connect(lambda: self.sts.statusPanel.connectButton.setEnabled(True))
+
+        self.__createMenus()
         self.setCentralWidget(self.window)
+
+    def __createMenus(self):
+        self.exitAction = QAction('Exit', self)
+        self.exitAction.triggered.connect(qApp.exit)
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(self.exitAction)
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
