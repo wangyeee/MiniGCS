@@ -68,6 +68,14 @@ class MiniGCS(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(self.exitAction)
 
+        self.localGPSAction = QAction('Local GPS', self)
+        self.localGPSAction.triggered.connect(self.sts.statusPanel.toggleGPSButtonLabel)
+        self.showHUDAction = QAction('HUD', self)
+        self.showHUDAction.triggered.connect(self.hudWindow.show)
+        toolsMenu = menubar.addMenu('&Tools')
+        toolsMenu.addAction(self.localGPSAction)
+        toolsMenu.addAction(self.showHUDAction)
+
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
         self.mav.heartbeatTimeoutSignal.connect(self.sts.statusPanel.resetConnectionButton)
