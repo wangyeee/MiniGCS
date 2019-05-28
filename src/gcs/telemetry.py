@@ -1,4 +1,5 @@
 import os, struct
+from secrets import token_bytes
 from enum import Enum
 from time import time, sleep
 from collections import deque
@@ -10,6 +11,7 @@ from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant, QObject,
                           QWaitCondition, pyqtSignal)
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
                              QSizePolicy, QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QMessageBox, QProgressBar)
+from PyQt5.QtGui import QFontMetrics
 from serial.tools.list_ports import comports
 
 from parameters import ParameterPanel
@@ -92,6 +94,7 @@ UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY = 'TIMEOUT_THRESHOLD'
 UD_TELEMETRY_HEARTBEAT_TIMEOUT_KEY = 'HB_TIMEOUT'
 
 DEFAULT_RC_AUTO_SCALE_SAMPLES = 10
+MAVLINKV2_MESSAGE_SIGNING_KEY_LEN = 32 # bytes
 
 class MavStsKeys(Enum):
     AP_SYS_ID = 0
@@ -132,16 +135,29 @@ class MessageSigningSetupWindow(QWidget):
             l.addWidget(QLabel('Secret Key'), row, 0, 1, 1)
             self.msgSignSecretField = QLineEdit()
             l.addWidget(self.msgSignSecretField, row, 1, 1, 1)
+            self.generateButton = QPushButton('Random')
+            self.generateButton.clicked.connect(self.__generateRandomSigningKey)
+            l.addWidget(self.generateButton, row, 2, 1, 1)
             row += 1
-            l.addWidget(QLabel('Initial Timestamp'), row, 1, 1, 1)
+            l.addWidget(QLabel('Initial Timestamp'), row, 0, 1, 1)
             self.msgSignTimeField = QLineEdit()
             l.addWidget(self.msgSignTimeField, row, 1, 1, 1)
+            self.nowButton = QPushButton('Now')
+            self.nowButton.clicked.connect(self.__getCurrentMavlinkV2Time)
+            l.addWidget(self.nowButton, row, 2, 1, 1)
             row += 1
             self.okayButton = QPushButton('OK')
             self.cancelButton.setText('Cancel')
             self.okayButton.clicked.connect(self.__processMsgSigningSetup)
             l.addWidget(self.okayButton, row, 0, 1, 1, Qt.AlignRight)
             l.addWidget(self.cancelButton, row, 1, 1, 1, Qt.AlignRight)
+            ft = self.msgSignSecretField.font()
+            if ft != None:
+                metrics = QFontMetrics(ft)
+                # metrics.height() ~ metrics.width() x 2
+                w = metrics.height() * MAVLINKV2_MESSAGE_SIGNING_KEY_LEN
+                self.msgSignSecretField.setFixedWidth(w)
+                self.msgSignTimeField.setFixedWidth(w)
         elif self.__mavlinkVersion == -1.0:
             self.__errorMessage('Connect to MAVLink first')
         else:
@@ -154,6 +170,16 @@ class MessageSigningSetupWindow(QWidget):
             self.layout().addWidget(QLabel(msg), 0, 0, 1, 1)
         else:
             msgLabel.widget().setText(msg)
+
+    def __generateRandomSigningKey(self):
+        key = token_bytes(MAVLINKV2_MESSAGE_SIGNING_KEY_LEN).hex()
+        self.msgSignSecretField.setText(key)
+
+    def __getCurrentMavlinkV2Time(self):
+        # units of 10 microseconds since 01-JAN-2015 GMT
+        # https://mavlink.io/en/guide/message_signing.html#timestamp
+        tm = int((time() * 1420070400) * 100 * 1000)
+        self.msgSignTimeField.setText(str(tm))
 
     def __processMsgSigningSetup(self):
         print('secret key = {}, initial timestamp = {}'.format(self.msgSignSecretField.text(), self.msgSignTimeField.text()))
