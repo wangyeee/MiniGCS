@@ -9,7 +9,7 @@ from LocalGPS import GPSConfigurationWindow
 from map import MapWidget
 from pfd import PrimaryFlightDisplay
 from statusPanel import SystemStatusPanel
-from telemetry import ConnectionEditWindow, MAVLinkConnection
+from telemetry import ConnectionEditWindow, MAVLinkConnection, MessageSigningSetupWindow
 from UserData import UserData
 from HUD import HUDWindow
 from fpv import FileVideoSource
@@ -35,6 +35,7 @@ class MiniGCS(QMainWindow):
         self.left = QSplitter(Qt.Vertical, self.window)
         self.pfd = PrimaryFlightDisplay(self.window)
         self.sts = SystemStatusPanel(self.window)
+        self.msgSignWindow = MessageSigningSetupWindow()
         self.hudWindow = HUDWindow()
         self.hud = self.hudWindow.hud
         self.sts.connectToMAVLink.connect(self.teleWindow.show)
@@ -72,9 +73,12 @@ class MiniGCS(QMainWindow):
         self.localGPSAction.triggered.connect(self.sts.statusPanel.toggleGPSButtonLabel)
         self.showHUDAction = QAction('HUD', self)
         self.showHUDAction.triggered.connect(self.hudWindow.show)
+        self.showMsgSignAction = QAction('Message Signing', self)
+        self.showMsgSignAction.triggered.connect(self.msgSignWindow.show)
         toolsMenu = menubar.addMenu('&Tools')
         toolsMenu.addAction(self.localGPSAction)
         toolsMenu.addAction(self.showHUDAction)
+        toolsMenu.addAction(self.showMsgSignAction)
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
@@ -104,6 +108,7 @@ class MiniGCS(QMainWindow):
         self.sts.statusPanel.setActiveUAS(self.mav.uas)
         self.sts.compassPanel.setActiveUAS(self.mav.uas)
         self.sts.barometerPanel.setActiveUAS(self.mav.uas)
+        self.msgSignWindow.setMAVLinkVersion(self.mav.connection.WIRE_PROTOCOL_VERSION)
 
         self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
         self.sts.initializaMavlinkForControlPanels(self.mav)

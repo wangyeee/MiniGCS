@@ -102,6 +102,62 @@ class MavStsKeys(Enum):
     AP_SYS_STS = 5
     MAVLINK_VER = 6
 
+class MessageSigningSetupWindow(QWidget):
+
+    __mavlinkVersionUpdated = pyqtSignal()
+
+    def __init__(self, mavlinkVersion = -1.0, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle('Message Signing')
+        self.__mavlinkVersion = mavlinkVersion
+        self.setLayout(QGridLayout())
+        self.__initUI()
+        self.__mavlinkVersionUpdated.connect(self.__initUI)
+
+    def setMAVLinkVersion(self, mavlinkVersion):
+        print('Set MAVLink version to:', mavlinkVersion)
+        self.__mavlinkVersion = float(mavlinkVersion)
+        self.__mavlinkVersionUpdated.emit()
+
+    def __initUI(self):
+        l = self.layout()
+        self.cancelButton = QPushButton('Close')
+        self.cancelButton.clicked.connect(self.close)
+        row = 0
+        if self.__mavlinkVersion == 1.0:
+            self.__errorMessage('Message signing is not available in MAVLink v1')
+        elif self.__mavlinkVersion == 2.0:
+            self.__errorMessage('Setup Message Signing')
+            row += 1
+            l.addWidget(QLabel('Secret Key'), row, 0, 1, 1)
+            self.msgSignSecretField = QLineEdit()
+            l.addWidget(self.msgSignSecretField, row, 1, 1, 1)
+            row += 1
+            l.addWidget(QLabel('Initial Timestamp'), row, 1, 1, 1)
+            self.msgSignTimeField = QLineEdit()
+            l.addWidget(self.msgSignTimeField, row, 1, 1, 1)
+            row += 1
+            self.okayButton = QPushButton('OK')
+            self.cancelButton.setText('Cancel')
+            self.okayButton.clicked.connect(self.__processMsgSigningSetup)
+            l.addWidget(self.okayButton, row, 0, 1, 1, Qt.AlignRight)
+            l.addWidget(self.cancelButton, row, 1, 1, 1, Qt.AlignRight)
+        elif self.__mavlinkVersion == -1.0:
+            self.__errorMessage('Connect to MAVLink first')
+        else:
+            self.__errorMessage('Unknown MAVLink version: {}'.format(self.__mavlinkVersion))
+        self.setLayout(l)
+
+    def __errorMessage(self, msg):
+        msgLabel = self.layout().itemAt(0)
+        if msgLabel == None:
+            self.layout().addWidget(QLabel(msg), 0, 0, 1, 1)
+        else:
+            msgLabel.widget().setText(msg)
+
+    def __processMsgSigningSetup(self):
+        print('secret key = {}, initial timestamp = {}'.format(self.msgSignSecretField.text(), self.msgSignTimeField.text()))
+
 class RadioControlTelemetryWindow(QWidget):
 
     def __init__(self, parent = None):
