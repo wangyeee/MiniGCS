@@ -6,20 +6,22 @@ import os
 import sys
 import time
 
+from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
-                          Qt, QUrl, QVariant, pyqtSignal, pyqtSlot, QThread)
+                          Qt, QThread, QUrl, QVariant, pyqtSignal, pyqtSlot)
+from PyQt5.QtGui import QCursor
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
-from PyQt5.QtWidgets import QApplication, QSplitter, QWidget, QPushButton, QHBoxLayout, QVBoxLayout, QMessageBox, QLabel
-from PyQt5.QtGui import QCursor
+from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QMessageBox,
+                             QPushButton, QSplitter, QVBoxLayout, QWidget)
 
-from UserData import UserData
-from adsb import AircraftsModel, ADSBSource
-from waypoint import Waypoint, WaypointEditWindowFactory, WaypointList, MAVWaypointParameter
-from pymavlink.dialects.v10 import common as mavlink
+from adsb import ADSBSource, AircraftsModel
 from telemetry import UD_TELEMETRY_KEY, UD_TELEMETRY_LOG_FOLDER_KEY
+from UserData import UserData
 from utils import unused
+from waypoint import (MAVWaypointParameter, Waypoint,
+                      WaypointEditWindowFactory, WaypointList)
 
 DEFAULT_LATITUDE = 0.0
 DEFAULT_LONGITUDE = 0.0
@@ -375,6 +377,7 @@ class MapWidget(QSplitter):
         container.setMinimumSize(self.mapView.minimumSize())
         container.setMaximumSize(self.mapView.maximumSize())
         container.setFocusPolicy(Qt.TabFocus)
+        container.sizePolicy().setVerticalStretch(3)
         self.mapView.restorePreviousView()
         self.mapView.wpModel.createWaypointAction.connect(self.createWaypointEvent)
         self.mapView.updateWaypointCoordinateEvent.connect(self.moveWaypointEvent)
@@ -407,6 +410,7 @@ class MapWidget(QSplitter):
         lowerLayout.addWidget(self.waypointList)
         lowerLayout.addWidget(self.actionPanel)
         self.lowerPanel.setLayout(lowerLayout)
+        self.lowerPanel.sizePolicy().setVerticalStretch(1)
 
         self.addWidget(container)
         self.addWidget(self.lowerPanel)
