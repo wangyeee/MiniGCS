@@ -318,9 +318,11 @@ class MapView(QQuickView):
     def mapCenterChangedEvent(self, lat, lng):
         self.mapConf[UD_MAP_INIT_LATITUDE_KEY] = str(lat)
         self.mapConf[UD_MAP_INIT_LONGITUDE_KEY] = str(lng)
+        UserData.getInstance().setUserDataEntry(UD_MAP_KEY, self.mapConf)
 
     def mapZoomLevelChangedEvent(self, zoom):
         self.mapConf[UD_MAP_INIT_ZOOM_KEY] = str(zoom)
+        UserData.getInstance().setUserDataEntry(UD_MAP_KEY, self.mapConf)
 
     def mapDragEvent(self, index, lat, lng, actType):
         '''
@@ -495,12 +497,6 @@ class MapWidget(QSplitter):
         for wp in wpList:
             self.mapView.wpModel.createWaypoint(wp.latitude, wp.longitude)
             self.mapView.map.waypointCreated.emit(wp.latitude, wp.longitude)
-
-    def getParametersToSave(self, cleanup = False):
-        if cleanup:
-            # a hack to close log file on close
-            self.textMessageLogFile.close()
-        return [(UD_MAP_KEY, self.mapView.mapConf)]
 
 #test only
 if __name__ == "__main__":

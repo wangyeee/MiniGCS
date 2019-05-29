@@ -130,10 +130,6 @@ class MiniGCS(QMainWindow):
         self.param[UD_MAIN_WINDOW_HEIGHT_KEY] = s.height()
         self.param[UD_MAIN_WINDOW_WIDTH_KEY] = s.width()
         ud.setUserDataEntry(UD_MAIN_WINDOW_KEY, self.param)
-        if self.map != None:
-            ps = self.map.getParametersToSave(True)
-            for p in ps:
-                ud.setUserDataEntry(p[0], p[1])
         try:
             ud.saveGCSConfiguration()
             print('GCS Conf saved.')
