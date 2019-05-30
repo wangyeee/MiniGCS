@@ -156,8 +156,8 @@ MapItem {
             property bool firstRun: true
 
             id: homeMarker
-            anchorPoint.x: homeImage.width / 4
-            anchorPoint.y: homeImage.height
+            anchorPoint.x: homeImage.width / 2
+            anchorPoint.y: homeImage.height / 2
             // coordinate : navMap.center
             sourceItem: Image {
                 id: homeImage
