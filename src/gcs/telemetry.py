@@ -92,6 +92,9 @@ UD_TELEMETRY_KEY = 'TELEMETRY'
 UD_TELEMETRY_LOG_FOLDER_KEY = 'LOG_FOLDER'
 UD_TELEMETRY_TIMEOUT_THRESHOLD_KEY = 'TIMEOUT_THRESHOLD'
 UD_TELEMETRY_HEARTBEAT_TIMEOUT_KEY = 'HB_TIMEOUT'
+UD_TELEMETRY_LAST_CONNECTION_KEY = 'LAST_CONN'
+UD_TELEMETRY_LAST_CONNECTION_PORT_KEY = 'PORT'
+UD_TELEMETRY_LAST_CONNECTION_BAUD_RATE_KEY = 'BAUD_RATE'
 
 DEFAULT_RC_AUTO_SCALE_SAMPLES = 10
 MAVLINKV2_MESSAGE_SIGNING_KEY_LEN = 32 # bytes
@@ -280,7 +283,7 @@ class ConnectionEditWindow(QWidget):
         self.setLayout(l)
 
     def _createTabs(self):
-        self.serialConnTab = SerialConnectionEditTab(self)
+        self.serialConnTab = SerialConnectionEditTab(parent=self)
         self.logReplayTab = LogFileReplayEditTab(self)
         self.tabs.addTab(self.serialConnTab, 'Serial Link')
         self.tabs.addTab(self.logReplayTab, 'Log File Replay')
@@ -378,17 +381,24 @@ class SerialConnectionEditTab(QWidget):
 
     __autoBaudStartSignal = pyqtSignal(object)
 
-    def __init__(self, parent):
+    def __init__(self, initParams = None, parent = None):
         super().__init__(parent)
         self.portList = {}
         self.autoBaud = None
         self.MAVLinkConnectedSignal = parent.MAVLinkConnectedSignal
+        self.MAVLinkConnectedSignal.connect(self.__recordLastConnection)
         self.__autoBaudStartSignal.connect(self.__autoBaud)
         self.listSerialPorts()
+        if initParams == None:
+            self.params = self.__getLastConnectionParameter()
+        else:
+            self.params = initParams
         l = QGridLayout()
         row = 0
 
-        lbl, self.portsDropDown = self._createDropDown('Serial Port', self.portList)
+        lbl, self.portsDropDown = self._createDropDown(
+            'Serial Port', self.portList,
+            UserData.getParameterValue(self.params, UD_TELEMETRY_LAST_CONNECTION_PORT_KEY))
         l.addWidget(lbl, row, 0, 1, 1, Qt.AlignRight)
         l.addWidget(self.portsDropDown, row, 1, 1, 3, Qt.AlignLeft)
         self.refreshButton = QPushButton('\u21BB')  # Unicode for clockwise open circle arrow
@@ -397,7 +407,9 @@ class SerialConnectionEditTab(QWidget):
         self.refreshButton.clicked.connect(lambda: self.listSerialPorts(self.portsDropDown))
         row += 1
 
-        lbl, self.baudDropDown = self._createDropDown('Baud Rate', BAUD_RATES)
+        lbl, self.baudDropDown = self._createDropDown(
+            'Baud Rate', BAUD_RATES,
+            UserData.getParameterValue(self.params, UD_TELEMETRY_LAST_CONNECTION_BAUD_RATE_KEY))
         l.addWidget(lbl, row, 0, 1, 1, Qt.AlignRight)
         l.addWidget(self.baudDropDown, row, 1, 1, 3, Qt.AlignLeft)
         row += 1
@@ -425,11 +437,16 @@ class SerialConnectionEditTab(QWidget):
 
         self.setLayout(l)
 
-    def _createDropDown(self, label, data: dict):
+    def _createDropDown(self, label, data: dict, defaultValue = None):
         dropDown = QComboBox(self)
         dropDown.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        i = 0
         for key, val in data.items():
             dropDown.addItem(str(val), QVariant(key))
+            if key == defaultValue:
+                dropDown.setCurrentIndex(i)
+                print('key = {}, val = {}, default = {}'.format(key, val, defaultValue))
+            i += 1
         return QLabel(label), dropDown
 
     def listSerialPorts(self, dropDown = None):
@@ -463,6 +480,15 @@ class SerialConnectionEditTab(QWidget):
         self.autoBaud.finished.connect(self.parentWidget().parentWidget().parentWidget().close)
         self.autoBaud.autoBaudStatusUpdateSignal.connect(self.autoBaudMessageLabel.setText)
         self.autoBaud.start()
+
+    def __recordLastConnection(self, conn):
+        print('last connection: {}, {}'.format(conn.device, conn.baud))
+        self.params[UD_TELEMETRY_LAST_CONNECTION_PORT_KEY] = conn.device
+        self.params[UD_TELEMETRY_LAST_CONNECTION_BAUD_RATE_KEY] = conn.baud
+
+    def __getLastConnectionParameter(self):
+        pParam = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY, {})
+        return UserData.getParameterValue(pParam, UD_TELEMETRY_LAST_CONNECTION_KEY, {})
 
 class AutoBaudThread(QThread):
 

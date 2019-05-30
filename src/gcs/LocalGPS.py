@@ -49,7 +49,7 @@ class GPSConfigurationWindow(ConnectionEditWindow):
         self.setWindowTitle('GPS Configuration')
 
     def _createTabs(self):
-        self.serialConnTab = SerialConnectionEditTab(self)
+        self.serialConnTab = SerialConnectionEditTab(initParams={}, parent=self)
         self.tabs.addTab(self.serialConnTab, 'Serial GPS Receiver')
 
     def _doConnect(self):

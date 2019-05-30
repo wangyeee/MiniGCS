@@ -49,7 +49,12 @@ class UserData:
         return oldValue
 
     def getUserDataEntry(self, key, defaultValue = None):
-        return defaultValue if key not in self.userData else self.userData[key]
+        if key in self.userData:
+            return self.userData[key]
+        if defaultValue != None:
+            self.userData[key] = defaultValue
+            return self.userData[key]
+        return None
 
     @staticmethod
     def getParameterValue(params, key, defaultValue = None):
