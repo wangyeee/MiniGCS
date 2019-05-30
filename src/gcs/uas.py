@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from math import log
 from PyQt5.QtCore import QObject, pyqtSignal
+from pymavlink import mavutil
 from pymavlink.dialects.v10 import common as mavlink
 
 UINT16_MAX = 0xFFFF
@@ -23,6 +24,7 @@ class UASInterface(QObject):
     updateRCStatusSignal = pyqtSignal(object, int, int, int, int) # uas, type(local, remote), rssi, noise, errors
     # uas, desiredRoll, desiredPitch, desiredHeading, targetBearing, wpDist
     updateNavigationControllerOutputSignal = pyqtSignal(object, float, float, float, float, float)
+    mavlinkMessageTxSignal = pyqtSignal(object) # mavlink message object
 
     def __init__(self, name, parent = None):
         super().__init__(parent)
@@ -97,6 +99,10 @@ class UASInterface(QObject):
         self.signingKey = key0
         if ts0 > self.initialTimestamp:
             self.initialTimestamp = ts0
+        if mavutil.mavlink.WIRE_PROTOCOL_VERSION == '2.0':
+            from pymavlink.dialects.v20 import common as mavlinkv2
+            msg = mavlinkv2.MAVLink_setup_signing_message(255, 255, self.signingKey, self.initialTimestamp)
+            self.mavlinkMessageTxSignal.emit(msg)
 
 class StandardMAVLinkInterface(UASInterface):
 

@@ -182,7 +182,7 @@ class MessageSigningSetupWindow(QWidget):
     def __getCurrentMavlinkV2Time(self):
         # units of 10 microseconds since 01-JAN-2015 GMT
         # https://mavlink.io/en/guide/message_signing.html#timestamp
-        tm = int((time() * 1420070400) * 100 * 1000)
+        tm = int((time() - 1420070400) * 100 * 1000)
         self.msgSignTimeField.setText(str(tm))
 
     def __processMsgSigningSetup(self):
@@ -781,6 +781,7 @@ class MAVLinkConnection(QThread):
     def __setMavlinkDialect(self, ap):
         mavutil.mavlink = None  # reset previous dialect
         self.uas = UASInterfaceFactory.getUASInterface(ap)
+        self.uas.mavlinkMessageTxSignal.connect(self.sendMavlinkMessage)
         if ap in MAVLINK_DIALECTS:
             print('Set dialect to: {} ({})'.format(MAVLINK_DIALECTS[ap], ap))
             mavutil.set_dialect(MAVLINK_DIALECTS[ap])
