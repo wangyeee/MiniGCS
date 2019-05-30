@@ -41,6 +41,8 @@ class UASInterface(QObject):
         self.messageHandlers['HEARTBEAT'] = self.uasDefaultMessageHandler
         self.altitudeReference = 0.0  # meter
         self.pressureReference = 101325.0  # Pa
+        self.signingKey = None
+        self.initialTimestamp = 0
 
     def receiveMAVLinkMessage(self, msg):
         tp = msg.get_type()
@@ -80,6 +82,21 @@ class UASInterface(QObject):
         kelvin = temperature + 273.0
         altitude = self.altitudeReference - (UNIVERSAL_GAS_CONSTANT * kelvin) * log(pressure / self.pressureReference) / (gravity * MOLAR_MASS)
         return altitude
+
+    def acceptMessageSigningKey(self, key, ts):
+        key0 = self.signingKey
+        ts0 = self.initialTimestamp
+        try:
+            key0 = bytes.fromhex(key)
+        except ValueError:
+            pass
+        try:
+            ts0 = int(ts)
+        except ValueError:
+            pass
+        self.signingKey = key0
+        if ts0 > self.initialTimestamp:
+            self.initialTimestamp = ts0
 
 class StandardMAVLinkInterface(UASInterface):
 

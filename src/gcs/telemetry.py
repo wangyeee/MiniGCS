@@ -111,6 +111,7 @@ class MavStsKeys(Enum):
 class MessageSigningSetupWindow(QWidget):
 
     __mavlinkVersionUpdated = pyqtSignal()
+    setMessageSigningKeySignal = pyqtSignal(object, object) # key(hex str), initial timestamp (str of 64 bit integer)
 
     def __init__(self, mavlinkVersion = -1.0, parent = None):
         super().__init__(parent)
@@ -185,7 +186,7 @@ class MessageSigningSetupWindow(QWidget):
         self.msgSignTimeField.setText(str(tm))
 
     def __processMsgSigningSetup(self):
-        print('secret key = {}, initial timestamp = {}'.format(self.msgSignSecretField.text(), self.msgSignTimeField.text()))
+        self.setMessageSigningKeySignal.emit(self.msgSignSecretField.text(), self.msgSignTimeField.text())
 
 class RadioControlTelemetryWindow(QWidget):
 
@@ -481,7 +482,6 @@ class SerialConnectionEditTab(QWidget):
         self.autoBaud.start()
 
     def __recordLastConnection(self, conn):
-        print('last connection: {}, {}'.format(conn.device, conn.baud))
         self.params[UD_TELEMETRY_LAST_CONNECTION_PORT_KEY] = conn.device
         self.params[UD_TELEMETRY_LAST_CONNECTION_BAUD_RATE_KEY] = conn.baud
 
