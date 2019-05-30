@@ -445,7 +445,6 @@ class SerialConnectionEditTab(QWidget):
             dropDown.addItem(str(val), QVariant(key))
             if key == defaultValue:
                 dropDown.setCurrentIndex(i)
-                print('key = {}, val = {}, default = {}'.format(key, val, defaultValue))
             i += 1
         return QLabel(label), dropDown
 

@@ -118,7 +118,7 @@ class AutoQuadMAVLinkInterface(StandardMAVLinkInterface):
         scale = 1E7
         self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
         self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
-        self.updateGPSStatusSignal.emit(self, msg.fix_type, msg.time_usec, UINT16_MAX, UINT16_MAX, msg.satellites_visible, int(msg.eph / 100), int(msg.epv / 100), 0, 0)
+        self.updateGPSStatusSignal.emit(self, msg.time_usec, msg.fix_type, UINT16_MAX, UINT16_MAX, msg.satellites_visible, int(msg.eph / 100), int(msg.epv / 100), 0, 0)
         if msg.vel != UINT16_MAX:
             self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
 
