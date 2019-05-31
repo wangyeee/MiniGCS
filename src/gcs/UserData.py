@@ -62,3 +62,13 @@ class UserData:
             return params[key]
         params[key] = defaultValue
         return defaultValue
+
+class SecureData:
+
+    @staticmethod
+    def encryptConfigurationParameter(params: dict, key):
+        pass
+
+    @staticmethod
+    def decryptConfigurationParameter(cipher, key):
+        pass
