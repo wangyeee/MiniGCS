@@ -115,6 +115,7 @@ class MiniGCS(QMainWindow):
         self.sts.compassPanel.setActiveUAS(self.mav.uas)
         self.sts.barometerPanel.setActiveUAS(self.mav.uas)
         self.msgSignWindow.setMAVLinkVersion(self.mav.connection.WIRE_PROTOCOL_VERSION)
+        self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.setupMessageSigningKey)
         self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.uas.acceptMessageSigningKey)
 
         self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)

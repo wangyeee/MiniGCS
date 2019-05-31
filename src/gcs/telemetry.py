@@ -773,6 +773,22 @@ class MAVLinkConnection(QThread):
                                                                  param.param_value, param.param_type)
             self.sendMavlinkMessage(paramSet)
 
+    def setupMessageSigningKey(self, key, ts):
+        key0 = None
+        ts0 = 0
+        try:
+            key0 = bytes.fromhex(key)
+        except ValueError:
+            pass
+        try:
+            ts0 = int(ts)
+        except ValueError:
+            pass
+        if self.connection.WIRE_PROTOCOL_VERSION == '2.0':
+            self.connection.setup_signing(key0,
+                                          allow_unsigned_callback = self.uas.allowUnsignedCallback,
+                                          initial_timestamp = ts0)
+
     def __createLogFile(self):
         if self.enableLog:
             name = 'MAV_{}.bin'.format(int(time() * 1000))

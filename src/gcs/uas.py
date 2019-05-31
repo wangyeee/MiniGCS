@@ -3,6 +3,7 @@ from math import log
 from PyQt5.QtCore import QObject, pyqtSignal
 from pymavlink import mavutil
 from pymavlink.dialects.v10 import common as mavlink
+from utils import unused
 
 UINT16_MAX = 0xFFFF
 UNIVERSAL_GAS_CONSTANT = 8.3144598 # J/(mol·K)
@@ -103,6 +104,10 @@ class UASInterface(QObject):
             from pymavlink.dialects.v20 import common as mavlinkv2
             msg = mavlinkv2.MAVLink_setup_signing_message(255, 255, self.signingKey, self.initialTimestamp)
             self.mavlinkMessageTxSignal.emit(msg)
+
+    def allowUnsignedCallback(self, mav, msgId):
+        unused(mav, msgId)
+        return True
 
 class StandardMAVLinkInterface(UASInterface):
 
