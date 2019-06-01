@@ -34,6 +34,7 @@ class UASInterface(QObject):
         self.messageHandlers = {}
         self.messageHandlers['SYS_STATUS'] = self.uasStatusHandler
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
+        self.messageHandlers['GLOBAL_POSITION_INT'] = self.uasFilteredLocationHandler
         self.messageHandlers['SCALED_PRESSURE'] = self.uasAltitudeHandler
         self.messageHandlers['ATTITUDE'] = self.uasAttitudeHandler
 
@@ -60,6 +61,10 @@ class UASInterface(QObject):
 
     @abstractmethod
     def uasLocationHandler(self, msg):
+        pass
+
+    @abstractmethod
+    def uasFilteredLocationHandler(self, msg):
         pass
 
     @abstractmethod
@@ -121,6 +126,11 @@ class StandardMAVLinkInterface(UASInterface):
         self.updateGPSStatusSignal.emit(self, msg.fix_type, msg.time_usec, msg.eph, msg.epv, msg.satellites_visible, 0, 0, 0, 0)
         if msg.vel != UINT16_MAX:
             self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
+
+    def uasFilteredLocationHandler(self, msg):
+        scale = 1E7
+        self.updateGlobalPositionSignal.emit(self, msg.time_boot_ms, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+        self.updateGPSAltitudeSignal.emit(self, msg.time_boot_ms, msg.alt / 1000.0) # mm -> meter
 
     def uasAltitudeHandler(self, msg):
         self.updateAirPressureSignal.emit(self, msg.time_usec, msg.press_abs, msg.press_diff, msg.temperature)
