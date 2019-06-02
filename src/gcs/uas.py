@@ -43,6 +43,11 @@ class UASInterface(QObject):
         self.messageHandlers['NAV_CONTROLLER_OUTPUT'] = self.uasNavigationControllerOutputHandler
         self.messageHandlers['PARAM_VALUE'] = self.uasDefaultMessageHandler
         self.messageHandlers['HEARTBEAT'] = self.uasDefaultMessageHandler
+        self.messageHandlers['ATTITUDE_QUATERNION'] = self.uasDefaultMessageHandler
+        self.messageHandlers['SYSTEM_TIME'] = self.uasDefaultMessageHandler
+        self.messageHandlers['VFR_HUD'] = self.uasDefaultMessageHandler
+        self.messageHandlers['AUTOPILOT_VERSION'] = self.uasDefaultMessageHandler
+        self.messageHandlers['BATTERY_STATUS'] = self.uasDefaultMessageHandler
         self.altitudeReference = 0.0  # meter
         self.pressureReference = 101325.0  # Pa
         self.signingKey = None
