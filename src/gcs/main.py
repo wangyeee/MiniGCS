@@ -13,6 +13,8 @@ from telemetry import ConnectionEditWindow, MAVLinkConnection, MessageSigningSet
 from UserData import UserData
 from HUD import HUDWindow
 from fpv import FileVideoSource
+from barometer import BarometerConfigWindow
+from uas import DEFAULT_ALTITUDE_REFERENCE, DEFAULT_PRESSURE_REFERENCE
 
 UD_MAIN_WINDOW_KEY = 'MAIN'
 UD_MAIN_WINDOW_HEIGHT_KEY = 'WINDOW_HEIGHT'
@@ -81,10 +83,14 @@ class MiniGCS(QMainWindow):
         self.showHUDAction.triggered.connect(self.hudWindow.show)
         self.showMsgSignAction = QAction('Message Signing', self)
         self.showMsgSignAction.triggered.connect(self.msgSignWindow.show)
+        self.baroRefCfgWindow = BarometerConfigWindow(DEFAULT_ALTITUDE_REFERENCE, DEFAULT_PRESSURE_REFERENCE)
+        self.baroRefCfgAction = QAction('Pressure Altitude Reference', self)
+        self.baroRefCfgAction.triggered.connect(self.baroRefCfgWindow.show)
         toolsMenu = menubar.addMenu('&Tools')
         toolsMenu.addAction(self.localGPSAction)
         toolsMenu.addAction(self.showHUDAction)
         toolsMenu.addAction(self.showMsgSignAction)
+        toolsMenu.addAction(self.baroRefCfgAction)
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
@@ -114,6 +120,7 @@ class MiniGCS(QMainWindow):
         self.sts.statusPanel.setActiveUAS(self.mav.uas)
         self.sts.compassPanel.setActiveUAS(self.mav.uas)
         self.sts.barometerPanel.setActiveUAS(self.mav.uas)
+        self.baroRefCfgWindow.updatePressureAltitudeReferenceSignal.connect(self.mav.uas.setPressureAltitudeReference)
         self.msgSignWindow.setMAVLinkVersion(self.mav.connection.WIRE_PROTOCOL_VERSION)
         self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.setupMessageSigningKey)
         self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.uas.acceptMessageSigningKey)

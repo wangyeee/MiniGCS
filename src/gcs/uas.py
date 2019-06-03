@@ -9,6 +9,8 @@ UINT16_MAX = 0xFFFF
 UNIVERSAL_GAS_CONSTANT = 8.3144598 # J/(mol·K)
 MOLAR_MASS = 0.0289644 # kg/mol
 gravity = 9.80665 # m/s2
+DEFAULT_ALTITUDE_REFERENCE = 0.0  # METER
+DEFAULT_PRESSURE_REFERENCE = 101325.0  # PA
 
 class UASInterface(QObject):
 
@@ -59,6 +61,10 @@ class UASInterface(QObject):
             self.messageHandlers[tp](msg)
         else:
             print('UNKNOWN MSG:', msg)
+
+    def setPressureAltitudeReference(self, presRef, altiRef):
+        self.altitudeReference = altiRef
+        self.pressureReference = presRef
 
     @abstractmethod
     def uasStatusHandler(self, msg):

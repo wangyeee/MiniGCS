@@ -1,8 +1,10 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QColor, QFont, QTextOption, QTransform
 from PyQt5.QtSvg import QGraphicsSvgItem, QSvgRenderer
 from PyQt5.QtWidgets import (QGraphicsItem, QGraphicsScene, QGraphicsTextItem,
-                             QGraphicsView, QVBoxLayout, QWidget)
+                             QGraphicsView, QGridLayout, QLabel, QLineEdit, QPushButton,
+                             QVBoxLayout, QWidget)
+
 from utils import unused
 
 class Barometer(QWidget):
@@ -64,3 +66,37 @@ class Barometer(QWidget):
     def setActiveUAS(self, uas):
         uas.updateAirPressureSignal.connect(self.updateAirPressure)
         self.uas = uas
+
+class BarometerConfigWindow(QWidget):
+
+    updatePressureAltitudeReferenceSignal = pyqtSignal(float, float) # presRef, altiRef
+
+    def __init__(self, presRef, altiRef, parent = None):
+        super().__init__(parent)
+        self.setWindowTitle('Pressure Altitude Reference')
+        l = QGridLayout()
+        row = 0
+        l.addWidget(QLabel('Pressure Reference'), row, 0, 1, 1)
+        self.presRefField = QLineEdit(str(presRef))
+        l.addWidget(self.presRefField, row, 1, 1, 1)
+        row += 1
+        l.addWidget(QLabel('Altitude Reference'), row, 0, 1, 1)
+        self.altiRefField = QLineEdit(str(altiRef))
+        l.addWidget(self.altiRefField, row, 1, 1, 1)
+        row += 1
+        self.cancelButton = QPushButton('Cancel')
+        self.cancelButton.clicked.connect(self.close)
+        l.addWidget(self.cancelButton, row, 0, 1, 1)
+        self.okButton = QPushButton('OK')
+        self.okButton.clicked.connect(self.__updatePressureAltitudeReference)
+        l.addWidget(self.okButton, row, 1, 1, 1)
+        self.setLayout(l)
+
+    def __updatePressureAltitudeReference(self):
+        try:
+            presRef = float(self.presRefField.text())
+            altiRef = float(self.altiRefField.text())
+            self.updatePressureAltitudeReferenceSignal.emit(presRef, altiRef)
+        except ValueError:
+            pass
+        self.close()
