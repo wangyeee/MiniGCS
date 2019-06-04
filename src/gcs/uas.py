@@ -11,6 +11,7 @@ MOLAR_MASS = 0.0289644 # kg/mol
 gravity = 9.80665 # m/s2
 DEFAULT_ALTITUDE_REFERENCE = 0.0  # METER
 DEFAULT_PRESSURE_REFERENCE = 101325.0  # PA
+ZERO_KELVIN = -273.15 # degree
 
 class UASInterface(QObject):
 
@@ -50,8 +51,8 @@ class UASInterface(QObject):
         self.messageHandlers['VFR_HUD'] = self.uasDefaultMessageHandler
         self.messageHandlers['AUTOPILOT_VERSION'] = self.uasDefaultMessageHandler
         self.messageHandlers['BATTERY_STATUS'] = self.uasDefaultMessageHandler
-        self.altitudeReference = 0.0  # meter
-        self.pressureReference = 101325.0  # Pa
+        self.altitudeReference = DEFAULT_ALTITUDE_REFERENCE
+        self.pressureReference = DEFAULT_PRESSURE_REFERENCE
         self.signingKey = None
         self.initialTimestamp = 0
 
@@ -98,7 +99,7 @@ class UASInterface(QObject):
         pass
 
     def getPressureAltitude(self, pressure, temperature):
-        kelvin = temperature + 273.0
+        kelvin = temperature - ZERO_KELVIN
         altitude = self.altitudeReference - (UNIVERSAL_GAS_CONSTANT * kelvin) * log(pressure / self.pressureReference) / (gravity * MOLAR_MASS)
         return altitude
 
