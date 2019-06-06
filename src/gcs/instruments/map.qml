@@ -122,7 +122,7 @@ MapItem {
                     height: 32
                     Image {
                         id: aircraftImage
-                        source: "res/aircraft.png"
+                        source: "../res/aircraft.png"
                         anchors.top: parent.top
                         anchors.left: parent.left
                         transform: Rotation {
@@ -161,7 +161,7 @@ MapItem {
             // coordinate : navMap.center
             sourceItem: Image {
                 id: homeImage
-                source: "res/home.png"
+                source: "../res/home.png"
                 MouseArea {
                     id: homeArea
                     anchors.fill: parent

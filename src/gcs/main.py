@@ -6,14 +6,14 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QSplitter, QMessageBox, QAction, qApp
 
 from LocalGPS import GPSConfigurationWindow
-from map import MapWidget
-from pfd import PrimaryFlightDisplay
-from statusPanel import SystemStatusPanel
+from instruments.map import MapWidget
+from instruments.pfd import PrimaryFlightDisplay
+from instruments.statusPanel import SystemStatusPanel
 from telemetry import ConnectionEditWindow, MAVLinkConnection, MessageSigningSetupWindow
 from UserData import UserData
-from HUD import HUDWindow
+from instruments.HUD import HUDWindow
 from fpv import FileVideoSource
-from barometer import BarometerConfigWindow
+from instruments.barometer import BarometerConfigWindow
 from uas import DEFAULT_ALTITUDE_REFERENCE, DEFAULT_PRESSURE_REFERENCE
 
 UD_MAIN_WINDOW_KEY = 'MAIN'
@@ -27,7 +27,7 @@ class MiniGCS(QMainWindow):
         self.mav = None
         self.param = UserData.getInstance().getUserDataEntry(UD_MAIN_WINDOW_KEY, {})
         current_path = os.path.abspath(os.path.dirname(__file__))
-        qmlFile = os.path.join(current_path, 'map.qml')
+        qmlFile = os.path.join(current_path, './instruments/map.qml')
         self.setWindowTitle('Mini GCS')
         if UD_MAIN_WINDOW_HEIGHT_KEY in self.param and UD_MAIN_WINDOW_WIDTH_KEY in self.param:
             self.resize(self.param[UD_MAIN_WINDOW_WIDTH_KEY], self.param[UD_MAIN_WINDOW_HEIGHT_KEY])

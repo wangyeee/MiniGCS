@@ -515,7 +515,7 @@ class WaypointList(QTableWidget):
     afterWaypointEdited = pyqtSignal(object)  # signal after waypoint has been edited in the list
 
     def __init__(self, wpList, parent = None):
-        from map import UD_MAP_KEY, UD_MAP_INIT_LATITUDE_KEY, UD_MAP_INIT_LONGITUDE_KEY
+        from instruments.map import UD_MAP_KEY, UD_MAP_INIT_LATITUDE_KEY, UD_MAP_INIT_LONGITUDE_KEY
         super().__init__(parent)
         lat0 = 0.0
         lng0 = 0.0

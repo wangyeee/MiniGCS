@@ -4,8 +4,8 @@ from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
                              QPushButton, QWidget, QTabWidget, QVBoxLayout)
-from compass import Compass
-from barometer import Barometer
+from instruments.compass import Compass
+from instruments.barometer import Barometer
 from plugins.autoquad import AutoQuadControlPanel
 from plugins.common import GenericControlPanel
 from telemetry import MAVLinkConnection, RadioControlTelemetryWindow
