@@ -15,6 +15,7 @@ from instruments.HUD import HUDWindow
 from fpv import FileVideoSource
 from instruments.barometer import BarometerConfigWindow
 from uas import DEFAULT_ALTITUDE_REFERENCE, DEFAULT_PRESSURE_REFERENCE
+from instruments.plotter import PlotterWindow
 
 UD_MAIN_WINDOW_KEY = 'MAIN'
 UD_MAIN_WINDOW_HEIGHT_KEY = 'WINDOW_HEIGHT'
@@ -86,11 +87,15 @@ class MiniGCS(QMainWindow):
         self.baroRefCfgWindow = BarometerConfigWindow(DEFAULT_ALTITUDE_REFERENCE, DEFAULT_PRESSURE_REFERENCE)
         self.baroRefCfgAction = QAction('Pressure Altitude Reference', self)
         self.baroRefCfgAction.triggered.connect(self.baroRefCfgWindow.show)
+        self.plotterWindow = PlotterWindow('MAVLink Plotter')
+        self.plotterAction = QAction('Plotter', self)
+        self.plotterAction.triggered.connect(self.plotterWindow.show)
         toolsMenu = menubar.addMenu('&Tools')
         toolsMenu.addAction(self.localGPSAction)
         toolsMenu.addAction(self.showHUDAction)
         toolsMenu.addAction(self.showMsgSignAction)
         toolsMenu.addAction(self.baroRefCfgAction)
+        toolsMenu.addAction(self.plotterAction)
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
@@ -116,6 +121,7 @@ class MiniGCS(QMainWindow):
         # self.hud.enableVideo(True)
         # fpv = FileVideoSource('test.mp4')  # test only
         # self.hud.setVideoSource(fpv)
+        self.mav.externalMessageHandler.connect(self.plotterWindow.handleMavlinkMessage)
         self.map.setActiveUAS(self.mav.uas)
         self.sts.statusPanel.setActiveUAS(self.mav.uas)
         self.sts.compassPanel.setActiveUAS(self.mav.uas)

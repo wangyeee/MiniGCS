@@ -51,6 +51,8 @@ class UASInterface(QObject):
         self.messageHandlers['VFR_HUD'] = self.uasDefaultMessageHandler
         self.messageHandlers['AUTOPILOT_VERSION'] = self.uasDefaultMessageHandler
         self.messageHandlers['BATTERY_STATUS'] = self.uasDefaultMessageHandler
+        self.messageHandlers['SCALED_IMU'] = self.uasDefaultMessageHandler
+        self.messageHandlers['RAW_IMU'] = self.uasDefaultMessageHandler
         self.altitudeReference = DEFAULT_ALTITUDE_REFERENCE
         self.pressureReference = DEFAULT_PRESSURE_REFERENCE
         self.signingKey = None
