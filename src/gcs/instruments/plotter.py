@@ -14,6 +14,7 @@ class PlotterPanel(QChart):
 
     def __init__(self, parent = None):
         super().__init__(parent)
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self.xRange = (0, 1)
         self.yRange = (0, 1)
         self.axisX = QValueAxis()
@@ -96,6 +97,7 @@ class PlotItemMenu(QWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setColumnCount(1)
         self.tree.itemChanged.connect(self.__toggleDataPlot)
+        self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().addWidget(self.tree)
         self.rootItems = []
 
