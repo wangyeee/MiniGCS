@@ -147,9 +147,9 @@ class StandardMAVLinkInterface(UASInterface):
         self.updateGPSAltitudeSignal.emit(self, msg.time_boot_ms, msg.alt / 1000.0) # mm -> meter
 
     def uasAltitudeHandler(self, msg):
-        self.updateAirPressureSignal.emit(self, msg.time_usec, msg.press_abs, msg.press_diff, msg.temperature)
-        alt = self.getPressureAltitude(msg.press_abs, msg.temperature)
-        self.updatePrimaryAltitudeSignal.emit(self, msg.time_usec, alt)
+        self.updateAirPressureSignal.emit(self, msg.time_boot_ms, msg.press_abs, msg.press_diff, msg.temperature)
+        alt = self.getPressureAltitude(msg.press_abs * 100, msg.temperature)  # hPa to Pa
+        self.updatePrimaryAltitudeSignal.emit(self, msg.time_boot_ms, alt)
 
     def uasAttitudeHandler(self, msg):
         self.updateAttitudeSignal.emit(self, msg.time_boot_ms, msg.roll, msg.pitch, msg.yaw)
