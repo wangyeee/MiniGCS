@@ -4,11 +4,13 @@ from PyQt5.QtChart import QChart, QChartView, QSplineSeries, QValueAxis
 from PyQt5.QtCore import Qt, QVariant, pyqtSignal
 from PyQt5.QtGui import QPainter
 from PyQt5.QtWidgets import (QSplitter, QTreeWidget, QTreeWidgetItem,
-                             QVBoxLayout, QWidget)
+                             QVBoxLayout, QWidget, QSizePolicy)
 
 from utils import unused
 
 class PlotterPanel(QChart):
+
+    IGNORED_ATTRIBUTES = ['time_usec', 'time_boot_ms']
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -30,8 +32,9 @@ class PlotterPanel(QChart):
         # print('Add msg:', msg)
         tm = self.__getMessageTime(msg)
         for attr in msg.get_fieldnames():
-            k = '{}.{}'.format(msg.get_type(), attr)
-            self.appendData(k, msg.format_attr(attr), tm)
+            if attr not in PlotterPanel.IGNORED_ATTRIBUTES:
+                k = '{}.{}'.format(msg.get_type(), attr)
+                self.appendData(k, msg.format_attr(attr), tm)
 
     def appendData(self, key, data, msgTime):
         if key not in self.data:
@@ -103,12 +106,13 @@ class PlotItemMenu(QWidget):
             rt = QTreeWidgetItem(self.tree)
             rt.setText(0, tp)
             for attr in msg.get_fieldnames():
-                chld = QTreeWidgetItem()
-                chld.setText(0, attr)
-                chld.setFlags(chld.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable)
-                chld.setCheckState(0, Qt.Unchecked)
-                chld.setData(0, PlotItemMenu.messageKeyRole, QVariant('{}.{}'.format(tp, attr)))
-                rt.addChild(chld)
+                if attr not in PlotterPanel.IGNORED_ATTRIBUTES:
+                    chld = QTreeWidgetItem()
+                    chld.setText(0, attr)
+                    chld.setFlags(chld.flags() | Qt.ItemIsUserCheckable | Qt.ItemIsSelectable)
+                    chld.setCheckState(0, Qt.Unchecked)
+                    chld.setData(0, PlotItemMenu.messageKeyRole, QVariant('{}.{}'.format(tp, attr)))
+                    rt.addChild(chld)
             self.tree.addTopLevelItem(rt)
 
     def __toggleDataPlot(self, item, col):
@@ -130,6 +134,12 @@ class PlotterWindow(QSplitter):
         self.chartView.setRenderHint(QPainter.Antialiasing)
         self.plotControl = PlotItemMenu()
         self.plotControl.plotDataSignal.connect(self.chart.toggleDataVisibility)
+        spLeft = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        spLeft.setHorizontalStretch(1)
+        self.plotControl.setSizePolicy(spLeft)
+        spRight = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        spRight.setHorizontalStretch(6)
+        self.chartView.setSizePolicy(spRight)
         self.addWidget(self.plotControl)
         self.addWidget(self.chartView)
 
