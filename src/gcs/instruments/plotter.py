@@ -71,12 +71,17 @@ class PlotterPanel(QChart):
             if key in self.visibleData:
                 del self.visibleData[key]
                 self.removeSeries(self.data[key])
+                self.__resetYRange()
         else:
             if key not in self.visibleData:
                 self.visibleData[key] = self.data[key]
                 self.addSeries(self.data[key])
                 self.data[key].attachAxis(self.axisX)
                 self.data[key].attachAxis(self.axisY)
+
+    def __resetYRange(self):
+        self.yRange = (0, 1)
+        self.axisY.setRange(self.yRange[0], self.yRange[1])
 
     def __getMessageTime(self, msg):
         unused(msg)
