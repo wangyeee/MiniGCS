@@ -7,6 +7,11 @@ from PyQt5.QtWidgets import (QSplitter, QTreeWidget, QTreeWidgetItem,
                              QVBoxLayout, QWidget, QSizePolicy)
 
 from utils import unused
+from UserData import UserData
+
+UD_PLOTTER_WINDOW_KEY = 'PLOTTER'
+UD_PLOTTER_WINDOW_HEIGHT_KEY = 'WINDOW_HEIGHT'
+UD_PLOTTER_WINDOW_WIDTH_KEY = 'WINDOW_WIDTH'
 
 class PlotterPanel(QChart):
 
@@ -128,6 +133,7 @@ class PlotItemMenu(QWidget):
 class PlotterWindow(QSplitter):
     def __init__(self, title, parent = None):
         super().__init__(Qt.Horizontal, parent)
+        self.param = UserData.getInstance().getUserDataEntry(UD_PLOTTER_WINDOW_KEY, {})
         self.setWindowTitle(title)
         self.plotMessages = {
             'RAW_IMU' : None,
@@ -149,9 +155,17 @@ class PlotterWindow(QSplitter):
         self.chartView.setSizePolicy(spRight)
         self.addWidget(self.plotControl)
         self.addWidget(self.chartView)
+        if UD_PLOTTER_WINDOW_HEIGHT_KEY in self.param and UD_PLOTTER_WINDOW_WIDTH_KEY in self.param:
+            self.resize(self.param[UD_PLOTTER_WINDOW_WIDTH_KEY], self.param[UD_PLOTTER_WINDOW_HEIGHT_KEY])
 
     def handleMavlinkMessage(self, msg):
         if self.isVisible():
             if msg.get_type() in self.plotMessages:
                 self.plotControl.addMAVLinkMessage(msg)
                 self.chart.appendMAVLinkMessage(msg)
+
+    def closeEvent(self, event):
+        s = self.size()
+        self.param[UD_PLOTTER_WINDOW_HEIGHT_KEY] = s.height()
+        self.param[UD_PLOTTER_WINDOW_WIDTH_KEY] = s.width()
+        super().closeEvent(event)
