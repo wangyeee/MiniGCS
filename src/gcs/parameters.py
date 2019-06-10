@@ -93,7 +93,7 @@ class ParameterList(QTableWidget):
                 value = self.item(rowNumber, 1).text()
             self.allParams[name] = value
             oldVal = self._initValue(name)
-            if oldVal != value:
+            if oldVal != value and self.paramList[self.paramNameIndexCache[name]].param_type in PARAM_VALUE_TYPE_NAMES:
                 # value of param_count will be corrected in showChangedParametersOnly()
                 p = mavlink.MAVLink_param_value_message(name, value, ptype, 0, changedParamIdx)
                 self.changedParams.append(p)
