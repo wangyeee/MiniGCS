@@ -101,9 +101,12 @@ class UASInterface(QObject):
         pass
 
     def getPressureAltitude(self, pressure, temperature):
-        kelvin = temperature - ZERO_KELVIN
-        altitude = self.altitudeReference - (UNIVERSAL_GAS_CONSTANT * kelvin) * log(pressure / self.pressureReference) / (gravity * MOLAR_MASS)
-        return altitude
+        try:
+            kelvin = temperature - ZERO_KELVIN
+            altitude = self.altitudeReference - (UNIVERSAL_GAS_CONSTANT * kelvin) * log(pressure / self.pressureReference) / (gravity * MOLAR_MASS)
+            return altitude
+        except ValueError:
+            return 0
 
     def acceptMessageSigningKey(self, key, ts):
         key0 = self.signingKey
