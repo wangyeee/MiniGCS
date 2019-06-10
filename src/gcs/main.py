@@ -26,6 +26,7 @@ class MiniGCS(QMainWindow):
     def __init__(self, parent = None):
         super().__init__(parent)
         self.mav = None
+        self.signalConnected = False
         self.param = UserData.getInstance().getUserDataEntry(UD_MAIN_WINDOW_KEY, {})
         current_path = os.path.abspath(os.path.dirname(__file__))
         qmlFile = os.path.join(current_path, './instruments/map.qml')
@@ -99,40 +100,44 @@ class MiniGCS(QMainWindow):
 
     def createConnection(self, conn):
         self.mav = MAVLinkConnection(conn, isinstance(conn, pymavlink.mavutil.mavlogfile))
-        self.mav.heartbeatTimeoutSignal.connect(self.sts.statusPanel.resetConnectionButton)
+        if self.signalConnected == False:
+            self.mav.heartbeatTimeoutSignal.connect(self.sts.statusPanel.resetConnectionButton)
         self.mav.establishConnection()
         if self.mav.running == False:
             QMessageBox.critical(self, 'Error', 'MAVLink connection timeout', QMessageBox.Ok)
             return
-        self.map.waypointList.requestReturnToHome.connect(self.mav.initializeReturnToHome)
-        self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
-        self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
+        if self.signalConnected == False:
+            self.map.waypointList.requestReturnToHome.connect(self.mav.initializeReturnToHome)
+            self.map.uploadWaypointsToUAVEvent.connect(self.mav.uploadWaypoints)
+            self.map.downloadWaypointsFromUAVSignal.connect(self.mav.downloadWaypoints)
 
-        self.mav.connectionEstablishedSignal.connect(lambda: \
-            self.sts.statusPanel.toggleButtonLabel(True))
-        self.mav.connectionEstablishedSignal.connect(lambda: \
-            self.sts.statusPanel.editParameterButton.setEnabled(True))
-        self.sts.addAPControlPanel(self.mav.uas.autopilotClass)
-        self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
-        self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
+            self.mav.connectionEstablishedSignal.connect(lambda: \
+                self.sts.statusPanel.toggleButtonLabel(True))
+            self.mav.connectionEstablishedSignal.connect(lambda: \
+                self.sts.statusPanel.editParameterButton.setEnabled(True))
+            self.sts.addAPControlPanel(self.mav.uas.autopilotClass)
+            self.mav.newTextMessageSignal.connect(self.map.displayTextMessage)
+            self.mav.onboardWaypointsReceivedSignal.connect(self.map.setAllWaypoints)
 
-        self.pfd.setActiveUAS(self.mav.uas)
-        self.hud.setActiveUAS(self.mav.uas)
-        # self.hud.enableVideo(True)
-        # fpv = FileVideoSource('test.mp4')  # test only
-        # self.hud.setVideoSource(fpv)
-        self.mav.externalMessageHandler.connect(self.plotterWindow.handleMavlinkMessage)
-        self.map.setActiveUAS(self.mav.uas)
-        self.sts.statusPanel.setActiveUAS(self.mav.uas)
-        self.sts.compassPanel.setActiveUAS(self.mav.uas)
-        self.sts.barometerPanel.setActiveUAS(self.mav.uas)
-        self.baroRefCfgWindow.updatePressureAltitudeReferenceSignal.connect(self.mav.uas.setPressureAltitudeReference)
+            self.pfd.setActiveUAS(self.mav.uas)
+            self.hud.setActiveUAS(self.mav.uas)
+            # self.hud.enableVideo(True)
+            # fpv = FileVideoSource('test.mp4')  # test only
+            # self.hud.setVideoSource(fpv)
+            self.mav.externalMessageHandler.connect(self.plotterWindow.handleMavlinkMessage)
+            self.map.setActiveUAS(self.mav.uas)
+            self.sts.statusPanel.setActiveUAS(self.mav.uas)
+            self.sts.compassPanel.setActiveUAS(self.mav.uas)
+            self.sts.barometerPanel.setActiveUAS(self.mav.uas)
+            self.baroRefCfgWindow.updatePressureAltitudeReferenceSignal.connect(self.mav.uas.setPressureAltitudeReference)
+            self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.setupMessageSigningKey)
+            self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.uas.acceptMessageSigningKey)
+
+            self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
+            self.sts.initializaMavlinkForControlPanels(self.mav)
+            self.signalConnected = True
+
         self.msgSignWindow.setMAVLinkVersion(self.mav.connection.WIRE_PROTOCOL_VERSION)
-        self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.setupMessageSigningKey)
-        self.msgSignWindow.setMessageSigningKeySignal.connect(self.mav.uas.acceptMessageSigningKey)
-
-        self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
-        self.sts.initializaMavlinkForControlPanels(self.mav)
         self.mav.start()
 
     def disconnect(self):
