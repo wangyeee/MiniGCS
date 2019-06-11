@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
 from instruments.compass import Compass
 from instruments.barometer import Barometer
 from plugins.autoquad import AutoQuadControlPanel
+from plugins.paparazzi import PaparazziControlPanel
 from plugins.common import GenericControlPanel
 from telemetry import MAVLinkConnection, RadioControlTelemetryWindow
 from utils import unused
@@ -46,6 +47,7 @@ class SystemStatusPanel(QWidget):
         self.genericControlPanel = GenericControlPanel()
         self.tabs.addTab(self.genericControlPanel, self.genericControlPanel.tabName())
         self.apControlPanels[mavlink.MAV_AUTOPILOT_AUTOQUAD] = AutoQuadControlPanel()
+        self.apControlPanels[mavlink.MAV_AUTOPILOT_PPZ] = PaparazziControlPanel()
         l = QVBoxLayout()
         l.addWidget(self.tabs)
         self.setLayout(l)

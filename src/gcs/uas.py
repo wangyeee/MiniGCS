@@ -187,4 +187,6 @@ class UASInterfaceFactory:
     def getUASInterface(dialect):
         if dialect in UASInterfaceFactory.UAS_INTERFACES:
             return UASInterfaceFactory.UAS_INTERFACES[dialect]
-        return UASInterfaceFactory.UAS_INTERFACES[mavlink.MAV_AUTOPILOT_GENERIC]
+        inst = UASInterfaceFactory.UAS_INTERFACES[mavlink.MAV_AUTOPILOT_GENERIC]
+        inst.autopilotClass = dialect
+        return inst
