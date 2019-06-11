@@ -633,6 +633,7 @@ class MAVLinkConnection(QThread):
         self.connection.close()
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
+        self.resetOnboardParameterList()
         self.newTextMessageSignal.emit(txtmsg)
 
     def establishConnection(self):
@@ -664,11 +665,13 @@ class MAVLinkConnection(QThread):
         self.paramList.append(msg)
         self.newTextMessageSignal.emit('Param: {} = {}'.format(msg.param_id, msg.param_value))
         if msg.param_index + 1 == msg.param_count:
-            self.isConnected = True
             self.newTextMessageSignal.emit('{} parameters received'.format(msg.param_count))
             if self.param['DOWNLOAD_WAYPOINTS_ON_CONNECT']:
                 self.downloadWaypoints()  # request to read all onboard waypoints
-            self.connectionEstablishedSignal.emit()
+            if self.isConnected == False:
+                # prevent further signals when refreshing parameters
+                self.isConnected = True
+                self.connectionEstablishedSignal.emit()
 
     def receiveMissionItem(self, msg):
         self.numberOfonboardWP += 1
@@ -788,6 +791,10 @@ class MAVLinkConnection(QThread):
             self.connection.setup_signing(key0,
                                           allow_unsigned_callback = self.uas.allowUnsignedCallback,
                                           initial_timestamp = ts0)
+
+    def resetOnboardParameterList(self):
+        while len(self.paramList) > 0:
+            del self.paramList[0]
 
     def __createLogFile(self):
         if self.enableLog:
