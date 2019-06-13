@@ -42,8 +42,9 @@ class UASInterface(QObject):
         self.messageHandlers['ATTITUDE'] = self.uasAttitudeHandler
         self.messageHandlers['GPS_STATUS'] = self.uasGPSStatusHandler
         self.messageHandlers['RADIO_STATUS'] = self.uasRadioStatusHandler
-        self.messageHandlers['LOCAL_POSITION_NED'] = self.uasDefaultMessageHandler
+        self.messageHandlers['RC_CHANNELS'] = self.uasRCChannelsHandler
         self.messageHandlers['NAV_CONTROLLER_OUTPUT'] = self.uasNavigationControllerOutputHandler
+        self.messageHandlers['LOCAL_POSITION_NED'] = self.uasDefaultMessageHandler
         self.messageHandlers['PARAM_VALUE'] = self.uasDefaultMessageHandler
         self.messageHandlers['HEARTBEAT'] = self.uasDefaultMessageHandler
         self.messageHandlers['ATTITUDE_QUATERNION'] = self.uasDefaultMessageHandler
@@ -95,6 +96,10 @@ class UASInterface(QObject):
 
     @abstractmethod
     def uasRadioStatusHandler(self, msg):
+        pass
+
+    @abstractmethod
+    def uasRCChannelsHandler(self, msg):
         pass
 
     @abstractmethod
@@ -163,6 +168,18 @@ class StandardMAVLinkInterface(UASInterface):
 
     def uasRadioStatusHandler(self, msg):
         self.updateRCStatusSignal.emit(self, 0, msg.rssi, msg.noise, msg.rxerrors)
+
+    def uasRCChannelsHandler(self, msg):
+        rcChannels = {}
+        for i in range(msg.chancount):
+            ch = 'chan{}_raw'.format(i + 1)
+            rcChannels[i + 1] = getattr(msg, ch)
+        rcChannels['time_boot_ms'] = msg.time_boot_ms
+        rcChannels['rssi'] = msg.rssi
+
+    def uasGPSStatusHandler(self, msg):
+        # can be used to view gps SNR
+        pass
 
     def uasNavigationControllerOutputHandler(self, msg):
         self.updateNavigationControllerOutputSignal.emit(self, msg.nav_roll, msg.nav_pitch, msg.nav_bearing, msg.target_bearing, msg.wp_dist)
