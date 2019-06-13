@@ -175,7 +175,7 @@ class StandardMAVLinkInterface(UASInterface):
         for i in range(msg.chancount):
             ch = 'chan{}_raw'.format(i + 1)
             rcChannels[i + 1] = getattr(msg, ch)
-        self.updateRCChannelsSignal(self, msg.time_boot_ms, msg.rssi, rcChannels)
+        self.updateRCChannelsSignal.emit(self, msg.time_boot_ms, msg.rssi, rcChannels)
 
     def uasGPSStatusHandler(self, msg):
         # can be used to view gps SNR

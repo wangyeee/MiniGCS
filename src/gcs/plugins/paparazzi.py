@@ -35,7 +35,7 @@ class PaparazziControlPanel(AbstractControlPanel):
         self.accelCalibButton.clicked.connect(lambda: \
             self.__sendMAVLinkLongMessage(target_component=mavlink.MAV_COMP_ID_IMU,
                                           command=mavlink.MAV_CMD_PREFLIGHT_CALIBRATION,
-                                          param1=1))
+                                          param5=4))
 
         self.paramDefaultButton.clicked.connect(lambda: \
             self.__sendMAVLinkLongMessage(command=mavlink.MAV_CMD_PREFLIGHT_STORAGE,
