@@ -28,6 +28,7 @@ class UASInterface(QObject):
     updateRCStatusSignal = pyqtSignal(object, int, int, int, int) # uas, type(local, remote), rssi, noise, errors
     # uas, desiredRoll, desiredPitch, desiredHeading, targetBearing, wpDist
     updateNavigationControllerOutputSignal = pyqtSignal(object, float, float, float, float, float)
+    updateRCChannelsSignal = pyqtSignal(object, int, int, object) # uas, timestamp, rssi, channels
     mavlinkMessageTxSignal = pyqtSignal(object) # mavlink message object
 
     def __init__(self, name, parent = None):
@@ -146,7 +147,6 @@ class StandardMAVLinkInterface(UASInterface):
         self.updateBatterySignal.emit(self, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def uasLocationHandler(self, msg):
-        print(msg)
         scale = 1E7
         self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
         self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
@@ -175,8 +175,7 @@ class StandardMAVLinkInterface(UASInterface):
         for i in range(msg.chancount):
             ch = 'chan{}_raw'.format(i + 1)
             rcChannels[i + 1] = getattr(msg, ch)
-        rcChannels['time_boot_ms'] = msg.time_boot_ms
-        rcChannels['rssi'] = msg.rssi
+        self.updateRCChannelsSignal(self, msg.time_boot_ms, msg.rssi, rcChannels)
 
     def uasGPSStatusHandler(self, msg):
         # can be used to view gps SNR
