@@ -40,7 +40,7 @@ class UASInterface(QObject):
         self.messageHandlers['GLOBAL_POSITION_INT'] = self.uasFilteredLocationHandler
         self.messageHandlers['SCALED_PRESSURE'] = self.uasAltitudeHandler
         self.messageHandlers['ATTITUDE'] = self.uasAttitudeHandler
-
+        self.messageHandlers['GPS_STATUS'] = self.uasGPSStatusHandler
         self.messageHandlers['RADIO_STATUS'] = self.uasRadioStatusHandler
         self.messageHandlers['LOCAL_POSITION_NED'] = self.uasDefaultMessageHandler
         self.messageHandlers['NAV_CONTROLLER_OUTPUT'] = self.uasNavigationControllerOutputHandler
@@ -75,6 +75,10 @@ class UASInterface(QObject):
 
     @abstractmethod
     def uasLocationHandler(self, msg):
+        pass
+
+    @abstractmethod
+    def uasGPSStatusHandler(self, msg):
         pass
 
     @abstractmethod
