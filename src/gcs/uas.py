@@ -7,6 +7,7 @@ from utils import unused
 from UserData import UserData
 
 UINT16_MAX = 0xFFFF
+MAVLINK_LXTITUDE_SCALE = 1E7
 UNIVERSAL_GAS_CONSTANT = 8.3144598 # J/(mol·K)
 MOLAR_MASS = 0.0289644 # kg/mol
 gravity = 9.80665 # m/s2
@@ -159,8 +160,7 @@ class StandardMAVLinkInterface(UASInterface):
 
     def uasLocationHandler(self, msg):
         if (self.gpsSrc == msg.get_type()):
-            scale = 1E7
-            self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+            self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / MAVLINK_LXTITUDE_SCALE, msg.lon / MAVLINK_LXTITUDE_SCALE, msg.alt / 1000.0)
             self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
             if msg.vel != UINT16_MAX:
                 self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
@@ -168,8 +168,7 @@ class StandardMAVLinkInterface(UASInterface):
 
     def uasFilteredLocationHandler(self, msg):
         if (self.gpsSrc == msg.get_type()):
-            scale = 1E7
-            self.updateGlobalPositionSignal.emit(self, msg.time_boot_ms, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+            self.updateGlobalPositionSignal.emit(self, msg.time_boot_ms, msg.lat / MAVLINK_LXTITUDE_SCALE, msg.lon / MAVLINK_LXTITUDE_SCALE, msg.alt / 1000.0)
             self.updateGPSAltitudeSignal.emit(self, msg.time_boot_ms, msg.alt / 1000.0) # mm -> meter
             vel = msg.vx * msg.vx
             vel += msg.vy * msg.vy
@@ -208,8 +207,7 @@ class AutoQuadMAVLinkInterface(StandardMAVLinkInterface):
         self.autopilotClass = mavlink.MAV_AUTOPILOT_AUTOQUAD
 
     def uasLocationHandler(self, msg):
-        scale = 1E7
-        self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+        self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / MAVLINK_LXTITUDE_SCALE, msg.lon / MAVLINK_LXTITUDE_SCALE, msg.alt / 1000.0)
         self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
         self.updateGPSStatusSignal.emit(self, msg.time_usec, msg.fix_type, UINT16_MAX, UINT16_MAX, msg.satellites_visible, int(msg.eph / 100), int(msg.epv / 100), 0, 0)
         if msg.vel != UINT16_MAX:
