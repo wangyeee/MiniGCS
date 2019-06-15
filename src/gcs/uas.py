@@ -1,9 +1,10 @@
 from abc import abstractmethod
-from math import log
+from math import log, sqrt
 from PyQt5.QtCore import QObject, pyqtSignal
 from pymavlink import mavutil
 from pymavlink.dialects.v10 import common as mavlink
 from utils import unused
+from UserData import UserData
 
 UINT16_MAX = 0xFFFF
 UNIVERSAL_GAS_CONSTANT = 8.3144598 # J/(mol·K)
@@ -12,6 +13,9 @@ gravity = 9.80665 # m/s2
 DEFAULT_ALTITUDE_REFERENCE = 0.0  # METER
 DEFAULT_PRESSURE_REFERENCE = 101325.0  # PA
 ZERO_KELVIN = -273.15 # degree
+
+UD_UAS_CONF_KEY = 'UAS'
+UD_UAS_CONF_GPS_SRC_KEY = 'GPS_SRC'
 
 class UASInterface(QObject):
 
@@ -35,6 +39,7 @@ class UASInterface(QObject):
         super().__init__(parent)
         self.uasName = name
         self.autopilotClass = mavlink.MAV_AUTOPILOT_GENERIC
+        self.param = UserData.getInstance().getUserDataEntry(UD_UAS_CONF_KEY, {})
         self.messageHandlers = {}
         self.messageHandlers['SYS_STATUS'] = self.uasStatusHandler
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
@@ -143,21 +148,33 @@ class UASInterface(QObject):
 
 class StandardMAVLinkInterface(UASInterface):
 
+    DEFAULT_GPS_SRC = 'GPS_RAW_INT'
+
+    def __init__(self, name, parent = None):
+        super().__init__(name, parent)
+        self.gpsSrc = UserData.getParameterValue(self.param, UD_UAS_CONF_GPS_SRC_KEY, StandardMAVLinkInterface.DEFAULT_GPS_SRC)
+
     def uasStatusHandler(self, msg):
         self.updateBatterySignal.emit(self, 0, msg.voltage_battery / 1000.0, msg.current_battery / 1000.0, msg.battery_remaining)
 
     def uasLocationHandler(self, msg):
-        scale = 1E7
-        self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
-        self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
+        if (self.gpsSrc == msg.get_type()):
+            scale = 1E7
+            self.updateGlobalPositionSignal.emit(self, msg.time_usec, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+            self.updateGPSAltitudeSignal.emit(self, msg.time_usec, msg.alt / 1000.0) # mm -> meter
+            if msg.vel != UINT16_MAX:
+                self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
         self.updateGPSStatusSignal.emit(self, msg.time_usec, msg.fix_type, msg.eph, msg.epv, msg.satellites_visible, 0, 0, 0, 0)
-        if msg.vel != UINT16_MAX:
-            self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
 
     def uasFilteredLocationHandler(self, msg):
-        scale = 1E7
-        self.updateGlobalPositionSignal.emit(self, msg.time_boot_ms, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
-        self.updateGPSAltitudeSignal.emit(self, msg.time_boot_ms, msg.alt / 1000.0) # mm -> meter
+        if (self.gpsSrc == msg.get_type()):
+            scale = 1E7
+            self.updateGlobalPositionSignal.emit(self, msg.time_boot_ms, msg.lat / scale, msg.lon / scale, msg.alt / 1000.0)
+            self.updateGPSAltitudeSignal.emit(self, msg.time_boot_ms, msg.alt / 1000.0) # mm -> meter
+            vel = msg.vx * msg.vx
+            vel += msg.vy * msg.vy
+            vel += msg.vz * msg.vz
+            self.updateGroundSpeedSignal.emit(self, msg.time_boot_ms, sqrt(vel) / 100 * 3.6)  # cm/s to km/h
 
     def uasAltitudeHandler(self, msg):
         self.updateAirPressureSignal.emit(self, msg.time_boot_ms, msg.press_abs, msg.press_diff, msg.temperature)
@@ -199,13 +216,17 @@ class AutoQuadMAVLinkInterface(StandardMAVLinkInterface):
             self.updateGroundSpeedSignal.emit(self, msg.time_usec, msg.vel / 100 * 3.6)  # cm/s to km/h
 
 class UASInterfaceFactory:
-    UAS_INTERFACES = {
-        mavlink.MAV_AUTOPILOT_GENERIC : StandardMAVLinkInterface('Generic MAVLink Interface'),
-        mavlink.MAV_AUTOPILOT_AUTOQUAD : AutoQuadMAVLinkInterface('AutoQuad MAVLink Interface')
-    }
+    UAS_INTERFACES = {}
+
+    @staticmethod
+    def __initUas():
+        UASInterfaceFactory.UAS_INTERFACES[mavlink.MAV_AUTOPILOT_GENERIC] = StandardMAVLinkInterface('Generic MAVLink Interface')
+        UASInterfaceFactory.UAS_INTERFACES[mavlink.MAV_AUTOPILOT_AUTOQUAD] = AutoQuadMAVLinkInterface('AutoQuad MAVLink Interface')
 
     @staticmethod
     def getUASInterface(dialect):
+        if len(UASInterfaceFactory.UAS_INTERFACES) == 0:
+            UASInterfaceFactory.__initUas()
         if dialect in UASInterfaceFactory.UAS_INTERFACES:
             return UASInterfaceFactory.UAS_INTERFACES[dialect]
         inst = UASInterfaceFactory.UAS_INTERFACES[mavlink.MAV_AUTOPILOT_GENERIC]
