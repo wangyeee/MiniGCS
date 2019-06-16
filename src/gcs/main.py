@@ -140,6 +140,7 @@ class MiniGCS(QMainWindow):
 
             self.sts.statusPanel.editParameterButton.clicked.connect(self.mav.showParameterEditWindow)
             self.sts.initializaMavlinkForControlPanels(self.mav)
+            self.servoOutputWindow.mavlinkMotorTestSignal.connect(self.mav.sendMavlinkMessage)
             self.signalConnected = True
 
         self.msgSignWindow.setMAVLinkVersion(self.mav.connection.WIRE_PROTOCOL_VERSION)

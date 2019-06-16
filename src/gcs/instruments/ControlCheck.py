@@ -1,7 +1,7 @@
-from PyQt5.QtWidgets import QWidget, QSlider, QHBoxLayout, QVBoxLayout, QLabel, QApplication, QPushButton
+from PyQt5.QtWidgets import QWidget, QSlider, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
 from PyQt5.QtCore import Qt, pyqtSignal
 from time import time
-import sys
+from pymavlink import mavutil
 
 class OutputSlider(QWidget):
 
@@ -34,10 +34,13 @@ class OutputSlider(QWidget):
 
 class ServoOutputCheckWindow(QWidget):
 
+    mavlinkMotorTestSignal = pyqtSignal(object)  # set servo msg
+
     def __init__(self, opNumber, parent = None):
         super().__init__(parent)
         self.setWindowTitle('Servo Output Check')
         self.setLayout(QVBoxLayout())
+        self.outputEnable = False
         self.outputPanels = []
         for i in range(opNumber):
             op = OutputSlider(i + 1, 1000, 2000)
@@ -57,17 +60,31 @@ class ServoOutputCheckWindow(QWidget):
         self.layout().addWidget(self.outputControlPanel)
 
     def processSliderOutput(self, seq, val):
-        print('OP#{} = {}'.format(seq, val))
+        if self.outputEnable:
+            msg = mavutil.mavlink.MAVLink_command_long_message(255, 255,
+                                                               mavutil.mavlink.MAV_CMD_DO_SET_SERVO, 0,
+                                                               seq, val, 0, 0, 0, 0, 0)
+            self.mavlinkMotorTestSignal.emit(msg)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.__disableOutput()
+
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self.__disableOutput()
 
     def __armOutput(self):
-        print('Enable output')
+        if self.outputEnable:
+            self.__disableOutput()
+        else:
+            self.outputEnable = True
+            self.armButton.setText('Disarm')
+
+    def __disableOutput(self):
+        self.outputEnable = False
+        self.armButton.setText('Arm')
 
     def __close(self):
-        print('Disable output')
+        self.__disableOutput()
         self.close()
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    frame = ServoOutputCheckWindow(8)
-    frame.show()
-    sys.exit(app.exec_())
