@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QSlider, QHBoxLayout, QVBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QWidget, QSlider, QHBoxLayout, QVBoxLayout, QLabel, QPushButton, QMessageBox
 from PyQt5.QtCore import Qt, pyqtSignal
 from time import time
 from pymavlink import mavutil
@@ -78,8 +78,13 @@ class ServoOutputCheckWindow(QWidget):
         if self.outputEnable:
             self.__disableOutput()
         else:
-            self.outputEnable = True
-            self.armButton.setText('Disarm')
+            cfm = QMessageBox.question(self.window(),
+                                       'Confirm',
+                                       'Are you sure to enable outputs?',
+                                       QMessageBox.Yes, QMessageBox.No)
+            if cfm == QMessageBox.Yes:
+                self.outputEnable = True
+                self.armButton.setText('Disarm')
 
     def __disableOutput(self):
         self.outputEnable = False
