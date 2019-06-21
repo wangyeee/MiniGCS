@@ -1,4 +1,3 @@
-from pymavlink import mavutil
 from pymavlink.mavutil import mavlink
 from PyQt5.QtCore import QObject, QPoint, QRect, Qt, QVariant, pyqtSignal
 from PyQt5.QtGui import (QCursor, QDoubleValidator, QIntValidator, QPalette,
@@ -48,7 +47,7 @@ class Waypoint(QObject):
         return c
 
     def toMavlinkMessage(self, sysId, compId, seq, current = 0, autocontinue = 0):
-        item = mavutil.mavlink.MAVLink_mission_item_message(
+        item = mavlink.MAVLink_mission_item_message(
             sysId, compId, seq, mavlink.MAV_FRAME_GLOBAL,
             self.waypointType, current, autocontinue,
             Waypoint.defaultParameterValue(self.waypointType, MAVWaypointParameter.PARAM1) \
@@ -66,7 +65,6 @@ class Waypoint(QObject):
             self.mavlinkParameters[MAVWaypointParameter.PARAM5],
             self.mavlinkParameters[MAVWaypointParameter.PARAM6],
             self.mavlinkParameters[MAVWaypointParameter.PARAM7])
-        print(item)
         return item
 
     @staticmethod
@@ -145,11 +143,9 @@ class WaypointEditPanel(QWidget):
         self.waypoint = wp
         self.editBtn = QPushButton(edtLbl)
         self.delBtn = QPushButton(delLbl)
-        # self.dupBtn = QPushButton(dupLbl)
         l = QHBoxLayout()
         l.addWidget(self.editBtn)
         l.addWidget(self.delBtn)
-        # l.addWidget(self.dupBtn)
         if edtCb != None:
             self.edtCb = edtCb
             self.editBtn.clicked.connect(lambda: self.edtCb(self.waypoint, 0))
@@ -338,7 +334,7 @@ class WPDegreePanel(WaypointListCell):
         s = float(self.secondsField.text())
         decimal = Waypoint.decimalFromDMS(d, m, s)
         sym = self.dirLabel.text()
-        if sym == 'S' or sym == 'W':
+        if sym in('S', 'W'):
             decimal = 0 - decimal
         return decimal
 
@@ -449,7 +445,6 @@ class WPNumberPanel(WaypointListCell):
     def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, parent = None):
         super().__init__(True, parent)
         self.value = value
-        # print('value = {}, isInt? {}'.format(value, isInteger))
         self.isInteger = isInteger
         self.editField = FocusLineEdit(str(value))
         self.editField.returnPressed.connect(self.valueChangedEvent)
@@ -474,7 +469,6 @@ class WPNumberPanel(WaypointListCell):
             self.value = int(self.editField.text())
         else:
             self.value = float(self.editField.text())
-        # print('new value:', self.value)
         self.valueChanged.emit(self)
 
     def getValue(self):
@@ -634,7 +628,7 @@ class WaypointList(QTableWidget):
             self.preDeleteWaypoint.emit(wp)
             cfm = QMessageBox.question(self.window(),
                                        'Confirm removal',
-                                       'Are you sure to remove waypoint#{0} at ({1}, {2})?'.format(wp.rowNumber + 1, wp.latitude, wp.longitude),
+                                       'Are you sure to remove waypoint#{0} at {1}?'.format(wp.rowNumber + 1, wp.getCoordinate().toString()),
                                        QMessageBox.Yes, QMessageBox.No)
             if cfm == QMessageBox.Yes:
                 self.removeRow(wp.rowNumber + 1)
@@ -681,7 +675,6 @@ class WaypointList(QTableWidget):
 
     def requestReturnHome(self):
         print('RTL started: {0}, {1} at {2}'.format(self.homeLocation.latitude, self.homeLocation.longitude, self.homeLocation.altitude))
-        # TODO set status in GCS
         cfm = QMessageBox.question(self.window(),
                                    'Confirm RTH',
                                    'Start return to home {}?'.format(self.homeLocation.getCoordinate().toString()),
