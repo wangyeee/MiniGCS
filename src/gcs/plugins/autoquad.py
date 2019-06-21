@@ -1,6 +1,6 @@
 from PyQt5.QtCore import Qt  # , pyqtSignal
 from PyQt5.QtWidgets import QGridLayout, QLabel, QPushButton, QMessageBox
-from pymavlink.dialects.v10 import autoquad as mavlink
+from pymavlink.mavutil import mavlink
 from plugins.common import AbstractControlPanel
 
 MAV_CMD_ACKS = {

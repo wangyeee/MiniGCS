@@ -1,5 +1,5 @@
 from pymavlink import mavutil
-from pymavlink.dialects.v10 import common as mavlink
+from pymavlink.mavutil import mavlink
 from PyQt5.QtCore import QObject, QPoint, QRect, Qt, QVariant, pyqtSignal
 from PyQt5.QtGui import (QCursor, QDoubleValidator, QIntValidator, QPalette,
                          QValidator)

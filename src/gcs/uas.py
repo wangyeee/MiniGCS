@@ -1,8 +1,7 @@
 from abc import abstractmethod
 from math import log, sqrt
 from PyQt5.QtCore import QObject, pyqtSignal
-from pymavlink import mavutil
-from pymavlink.dialects.v10 import common as mavlink
+from pymavlink.mavutil import mavlink
 from utils import unused
 from UserData import UserData
 
@@ -138,9 +137,8 @@ class UASInterface(QObject):
         self.signingKey = key0
         if ts0 > self.initialTimestamp:
             self.initialTimestamp = ts0
-        if mavutil.mavlink.WIRE_PROTOCOL_VERSION == '2.0':
-            from pymavlink.dialects.v20 import common as mavlinkv2
-            msg = mavlinkv2.MAVLink_setup_signing_message(255, 255, self.signingKey, self.initialTimestamp)
+        if mavlink.WIRE_PROTOCOL_VERSION == '2.0':
+            msg = mavlink.MAVLink_setup_signing_message(255, 255, self.signingKey, self.initialTimestamp)
             self.mavlinkMessageTxSignal.emit(msg)
 
     def allowUnsignedCallback(self, mav, msgId):

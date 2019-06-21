@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QWidget, QGridLayout, QPushButton, QMessageBox, QPlainTextEdit
 from PyQt5.QtCore import pyqtSignal, Qt
-from pymavlink.dialects.v10 import common as mavlink
+from pymavlink.mavutil import mavlink
 import time
 
 class AbstractControlPanel(QWidget):

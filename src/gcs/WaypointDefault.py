@@ -1,6 +1,6 @@
 from math import nan
 from enum import Enum
-from pymavlink.dialects.v10 import common as mavlink
+from pymavlink.mavutil import mavlink
 
 WP_TYPE_NAMES = {
     mavlink.MAV_CMD_NAV_WAYPOINT : 'Waypoint',

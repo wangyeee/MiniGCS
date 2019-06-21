@@ -1,6 +1,6 @@
 import sys
 
-from pymavlink.dialects.v10 import common as mavlink
+from pymavlink.mavutil import mavlink
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (QApplication, QGridLayout, QLabel, QProgressBar,
                              QPushButton, QWidget, QTabWidget, QVBoxLayout)
