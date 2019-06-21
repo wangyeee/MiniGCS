@@ -3,17 +3,16 @@ The flight map implementation.
 '''
 import math
 import os
-import sys
 import time
 
-from pymavlink.dialects.v10 import common as mavlink
+from pymavlink.mavutil import mavlink
 from PyQt5.QtCore import (QAbstractListModel, QByteArray, QModelIndex, QSize,
                           Qt, QThread, QUrl, QVariant, pyqtSignal, pyqtSlot)
 from PyQt5.QtGui import QCursor
 from PyQt5.QtPositioning import QGeoCoordinate
 from PyQt5.QtQml import qmlRegisterType
 from PyQt5.QtQuick import QQuickItem, QQuickView
-from PyQt5.QtWidgets import (QApplication, QHBoxLayout, QLabel, QMessageBox,
+from PyQt5.QtWidgets import (QHBoxLayout, QLabel, QMessageBox,
                              QPushButton, QSplitter, QVBoxLayout, QWidget)
 
 from adsb import ADSBSource, AircraftsModel
@@ -497,16 +496,3 @@ class MapWidget(QSplitter):
         for wp in wpList:
             self.mapView.wpModel.createWaypoint(wp.latitude, wp.longitude)
             self.mapView.map.waypointCreated.emit(wp.latitude, wp.longitude)
-
-#test only
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    current_path = os.path.abspath(os.path.dirname(__file__))
-    qmlFile = os.path.join(current_path, 'map.qml')
-    try:
-        UserData.getInstance().loadGCSConfiguration()
-    except IOError:
-        sys.exit(1)
-    w = MapWidget(qmlFile)
-    w.show()
-    sys.exit(app.exec_())
