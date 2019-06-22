@@ -39,7 +39,7 @@ class Waypoint(QObject):
                                                                              str(self.mavlinkParameters))
 
     def getCoordinate(self):
-        return QGeoCoordinate(self.latitude, self.longitude)
+        return QGeoCoordinate(self.latitude, self.longitude, self.altitude)
 
     def copy(self):
         c = Waypoint(self.rowNumber, self.latitude, self.longitude, self.altitude, self.parent())
