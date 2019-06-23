@@ -442,10 +442,11 @@ class WPNumberPanel(WaypointListCell):
 
     valueChanged = pyqtSignal(object)
 
-    def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, parent = None):
+    def __init__(self, value, isInteger = False, uom = None, validator: QValidator = None, cachedWP = None, parent = None):
         super().__init__(True, parent)
         self.value = value
         self.isInteger = isInteger
+        self.cachedWP = cachedWP
         self.editField = FocusLineEdit(str(value))
         self.editField.returnPressed.connect(self.valueChangedEvent)
         self.editField.focusLostSignal.connect(self.valueChangedEvent)
@@ -599,7 +600,9 @@ class WaypointList(QTableWidget):
         lngpanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
         lngpanel.focusInSignal.connect(self.cellFocusChangedEvent)
         data.append(lngpanel)
-        data.append(WPNumberPanel(wp.altitude, uom='M'))
+        altipanel = WPNumberPanel(wp.altitude, uom='M', cachedWP = wp)
+        altipanel.valueChanged.connect(self.processWaypointOutfocusUpdate)
+        data.append(altipanel)
         pnl = WaypointEditPanel(wp, 'Edit', 'Remove', self.wpButtonEvent, self.wpButtonEvent)
         data.append(pnl)
         self.setRowCount(len(self.wpList) + 1)
@@ -609,20 +612,24 @@ class WaypointList(QTableWidget):
     def processWaypointOutfocusUpdate(self, panel):
         wp = panel.cachedWP
         if wp != None:
+            self.__updateWaypointFromList(wp)
             self.afterWaypointEdited.emit(wp)
+
+    def __updateWaypointFromList(self, wp: Waypoint):
+        wpIdx = wp.rowNumber + 1
+        widget = self.cellWidget(wpIdx, 0)  # Type (WPDropDownPanel)
+        wp.waypointType = widget.getSelection()
+        widget = self.cellWidget(wpIdx, 1)  # Latitude(WPNumberPanel)
+        wp.latitude = widget.getValue()
+        widget = self.cellWidget(wpIdx, 2)  # Longitude(WPNumberPanel)
+        wp.longitude = widget.getValue()
+        widget = self.cellWidget(wpIdx, 3)  # Altitude(WPNumberPanel)
+        wp.altitude = widget.getValue()
 
     def wpButtonEvent(self, wp: Waypoint, act):
         ''' route event to other components '''
         if act == 0:  # update
-            wpIdx = wp.rowNumber + 1
-            widget = self.cellWidget(wpIdx, 0)  # Type (WPDropDownPanel)
-            wp.waypointType = widget.getSelection()
-            widget = self.cellWidget(wpIdx, 1)  # Latitude(WPNumberPanel)
-            wp.latitude = widget.getValue()
-            widget = self.cellWidget(wpIdx, 2)  # Longitude(WPNumberPanel)
-            wp.longitude = widget.getValue()
-            widget = self.cellWidget(wpIdx, 3)  # Altitude(WPNumberPanel)
-            wp.altitude = widget.getValue()
+            self.__updateWaypointFromList(wp)
             self.editWaypoint.emit(wp)
         elif act == 1: # delete
             self.preDeleteWaypoint.emit(wp)
