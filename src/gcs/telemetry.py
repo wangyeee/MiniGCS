@@ -4,9 +4,8 @@ from enum import Enum
 from time import time, sleep
 from collections import deque
 from pymavlink import mavutil
-from pymavlink.mavutil import mavlogfile
+from pymavlink.mavutil import mavlogfile, mavlink
 from pymavlink.mavwp import MAVWPLoader
-from pymavlink.dialects.v10 import common as mavlink
 from PyQt5.QtCore import (QMutex, Qt, QThread, QTimer, QVariant, QObject,
                           QWaitCondition, pyqtSignal)
 from PyQt5.QtWidgets import (QComboBox, QGridLayout, QLabel, QPushButton, QLineEdit, QFileDialog,
