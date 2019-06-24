@@ -543,7 +543,7 @@ class MAVLinkConnection(QThread):
         self.internalHandlerLookup = {}
         self.mavStatus = {MavStsKeys.AP_SYS_ID : 1}
         self.isConnected = False
-        self.paramList = []
+        # self.paramList = []
         self.paramPanel = None
 
         self.txLock = QMutex()  # uplink lock
@@ -633,7 +633,7 @@ class MAVLinkConnection(QThread):
         self.connection.close()
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
-        self.resetOnboardParameterList()
+        self.uas.resetOnboardParameterList()
         self.newTextMessageSignal.emit(txtmsg)
 
     def establishConnection(self):
@@ -659,10 +659,10 @@ class MAVLinkConnection(QThread):
             self.connectionEstablishedSignal.emit()
         else:
             self.newTextMessageSignal.emit('Conneced to AP:{}'.format(self.mavStatus[MavStsKeys.AP_TYPE]))
-            self.connection.param_fetch_all()
+            self.uas.fetchAllOnboardParameters()
 
     def receiveOnboardParameter(self, msg):
-        self.paramList.append(msg)
+        self.uas.onboardParameters.append(msg)
         self.newTextMessageSignal.emit('Param: {} = {}'.format(msg.param_id, msg.param_value))
         if msg.param_index + 1 == msg.param_count:
             self.newTextMessageSignal.emit('{} parameters received'.format(msg.param_count))
@@ -707,9 +707,9 @@ class MAVLinkConnection(QThread):
 
     def showParameterEditWindow(self):
         if self.isConnected:
-            if self.paramPanel == None:
-                self.paramPanel = ParameterPanel(self.paramList)
-                self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
+            # if self.paramPanel == None:
+            self.paramPanel = ParameterPanel(self.uas.onboardParameters)
+            self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
             self.paramPanel.show()
 
     def downloadWaypoints(self):
@@ -791,10 +791,6 @@ class MAVLinkConnection(QThread):
             self.connection.setup_signing(key0,
                                           allow_unsigned_callback = self.uas.allowUnsignedCallback,
                                           initial_timestamp = ts0)
-
-    def resetOnboardParameterList(self):
-        while len(self.paramList) > 0:
-            del self.paramList[0]
 
     def __createLogFile(self):
         if self.enableLog:

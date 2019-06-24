@@ -65,7 +65,6 @@ class SystemStatusPanel(QWidget):
     def addAPControlPanel(self, apType):
         if apType in self.apControlPanels:
             t = self.apControlPanels[apType]
-            print('Add control panel for AP: {} ({})'.format(t.tabName(), apType))
             self.tabs.addTab(t, t.tabName())
         else:
             print('No control panel available for AP:', apType)
@@ -73,6 +72,7 @@ class SystemStatusPanel(QWidget):
     def __linkTelemetryForControlPanel(self, panel, mav):
         mav.externalMessageHandler.connect(panel.processMavlinkMessage)
         panel.mavlinkTxSignal.connect(mav.sendMavlinkMessage)
+        panel.uas = mav.uas
         panel.isConnected = True
 
 class StatusSummaryPanel(QWidget):

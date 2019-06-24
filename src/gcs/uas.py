@@ -40,6 +40,7 @@ class UASInterface(QObject):
         self.uasName = name
         self.autopilotClass = mavlink.MAV_AUTOPILOT_GENERIC
         self.param = UserData.getInstance().getUserDataEntry(UD_UAS_CONF_KEY, {})
+        self.onboardParameters = []
         self.messageHandlers = {}
         self.messageHandlers['SYS_STATUS'] = self.uasStatusHandler
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
@@ -112,8 +113,16 @@ class UASInterface(QObject):
     def uasNavigationControllerOutputHandler(self, msg):
         pass
 
+    @abstractmethod
+    def fetchAllOnboardParameters(self):
+        pass
+
     def uasDefaultMessageHandler(self, msg):
         pass
+
+    def resetOnboardParameterList(self):
+        while len(self.onboardParameters) > 0:
+            del self.onboardParameters[0]
 
     def getPressureAltitude(self, pressure, temperature):
         try:
@@ -194,6 +203,10 @@ class StandardMAVLinkInterface(UASInterface):
     def uasGPSStatusHandler(self, msg):
         # can be used to view gps SNR
         pass
+
+    def fetchAllOnboardParameters(self):
+        self.resetOnboardParameterList()
+        self.mavlinkMessageTxSignal.emit(mavlink.MAVLink_param_request_list_message(255, 0))
 
     def uasNavigationControllerOutputHandler(self, msg):
         self.updateNavigationControllerOutputSignal.emit(self, msg.nav_roll, msg.nav_pitch, msg.nav_bearing, msg.target_bearing, msg.wp_dist)

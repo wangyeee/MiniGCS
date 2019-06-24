@@ -120,7 +120,7 @@ class AutoQuadControlPanel(AbstractControlPanel):
                 if msg.result == mavlink.MAV_CMD_ACK_OK:
                     if self.syncParamsFromUAV:
                         self.syncParamsFromUAV = False
-                        self.mavlinkTxSignal.emit(mavlink.MAVLink_param_request_list_message(255, 0))
+                        self.uas.fetchAllOnboardParameters()
                     QMessageBox.information(self, 'Information', MAV_CMD_ACKS[msg.result], QMessageBox.Ok)
                 else:
                     QMessageBox.critical(self, 'Error', MAV_CMD_ACKS[msg.result], QMessageBox.Ok)

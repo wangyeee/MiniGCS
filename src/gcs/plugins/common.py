@@ -6,7 +6,11 @@ import time
 class AbstractControlPanel(QWidget):
 
     mavlinkTxSignal = pyqtSignal(object)  # pass a mavlink message object
-    isConnected = False
+
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.isConnected = False
+        self.uas = None
 
     def tabName(self):
         return 'Tools'
