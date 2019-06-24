@@ -41,6 +41,7 @@ class UASInterface(QObject):
         self.autopilotClass = mavlink.MAV_AUTOPILOT_GENERIC
         self.param = UserData.getInstance().getUserDataEntry(UD_UAS_CONF_KEY, {})
         self.onboardParameters = []
+        self.onboardParamNotReceived = 0
         self.messageHandlers = {}
         self.messageHandlers['SYS_STATUS'] = self.uasStatusHandler
         self.messageHandlers['GPS_RAW_INT'] = self.uasLocationHandler
@@ -203,6 +204,10 @@ class StandardMAVLinkInterface(UASInterface):
     def uasGPSStatusHandler(self, msg):
         # can be used to view gps SNR
         pass
+
+    def acceptOnboardParameter(self, msg):
+        self.onboardParameters.append(msg)
+        self.onboardParamNotReceived = msg.param_count - msg.param_index - 1
 
     def fetchAllOnboardParameters(self):
         self.resetOnboardParameterList()

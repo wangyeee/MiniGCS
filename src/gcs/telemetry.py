@@ -662,9 +662,9 @@ class MAVLinkConnection(QThread):
             self.uas.fetchAllOnboardParameters()
 
     def receiveOnboardParameter(self, msg):
-        self.uas.onboardParameters.append(msg)
+        self.uas.acceptOnboardParameter(msg)
         self.newTextMessageSignal.emit('Param: {} = {}'.format(msg.param_id, msg.param_value))
-        if msg.param_index + 1 == msg.param_count:
+        if self.uas.onboardParamNotReceived == 0:
             self.newTextMessageSignal.emit('{} parameters received'.format(msg.param_count))
             if self.param['DOWNLOAD_WAYPOINTS_ON_CONNECT']:
                 self.downloadWaypoints()  # request to read all onboard waypoints
@@ -707,10 +707,14 @@ class MAVLinkConnection(QThread):
 
     def showParameterEditWindow(self):
         if self.isConnected:
-            # if self.paramPanel == None:
-            self.paramPanel = ParameterPanel(self.uas.onboardParameters)
-            self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
-            self.paramPanel.show()
+            if self.uas.onboardParamNotReceived > 0:
+                QMessageBox.warning(None, 'Warning',
+                                    'Please wait while receiving all onboard parameters, {} parameters left.'.format(self.uas.onboardParamNotReceived),
+                                    QMessageBox.Ok)
+            else:
+                self.paramPanel = ParameterPanel(self.uas.onboardParameters)
+                self.paramPanel.uploadNewParametersSignal.connect(self.uploadNewParametersEvent)
+                self.paramPanel.show()
 
     def downloadWaypoints(self):
         self.connection.waypoint_request_list_send()
