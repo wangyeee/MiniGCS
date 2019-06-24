@@ -41,6 +41,7 @@ class UASInterface(QObject):
         self.autopilotClass = mavlink.MAV_AUTOPILOT_GENERIC
         self.param = UserData.getInstance().getUserDataEntry(UD_UAS_CONF_KEY, {})
         self.onboardParameters = []
+        self.oldOnboardParameters = []
         self.onboardParamNotReceived = 0
         self.messageHandlers = {}
         self.messageHandlers['SYS_STATUS'] = self.uasStatusHandler
@@ -121,9 +122,25 @@ class UASInterface(QObject):
     def uasDefaultMessageHandler(self, msg):
         pass
 
+    def __backupOnboardParameters(self, dest, src):
+        '''
+        Copy parameters from `src` to `dest`,
+        any existing parameters in `dest` will be removed.
+        Parameters in `src` will also be removed after the backup.
+        '''
+        while len(dest) > 0:
+            del dest[0]
+        while len(src) > 0:
+            dest.append(src[0])
+            del src[0]
+
     def resetOnboardParameterList(self):
-        while len(self.onboardParameters) > 0:
-            del self.onboardParameters[0]
+        # copy onboardParameters to oldOnboardParameters
+        self.__backupOnboardParameters(self.oldOnboardParameters, self.onboardParameters)
+
+    def restoreToOldOnboardParameterList(self):
+        # copy oldOnboardParameters to onboardParameters
+        self.__backupOnboardParameters(self.onboardParameters, self.oldOnboardParameters)
 
     def getPressureAltitude(self, pressure, temperature):
         try:
