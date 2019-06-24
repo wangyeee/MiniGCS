@@ -165,6 +165,7 @@ class StatusSummaryPanel(QWidget):
     def resetConnectionButton(self):
         self.connectButton.setText('Connect')
         self.connectButton.setEnabled(True)
+        self.editParameterButton.setEnabled(False)
         self.connectLabelShown = True
 
     def toggleButtonLabel(self, isConnected = False):
@@ -173,12 +174,13 @@ class StatusSummaryPanel(QWidget):
                 self.connectLabelShown = False
                 self.connectButton.setText('Disconnect')
                 self.connectButton.setEnabled(True)
+                self.editParameterButton.setEnabled(True)
             else:
                 self.connectToMAVLink.emit()
                 self.connectButton.setEnabled(False)
         else:
-            self.disconnectFromMAVLink.emit()
             self.resetConnectionButton()
+            self.disconnectFromMAVLink.emit()
 
     def toggleGPSButtonLabel(self, isConnected = False):
         if self.gpsLabelShown:

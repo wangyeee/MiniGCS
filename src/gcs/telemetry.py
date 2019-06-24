@@ -630,6 +630,7 @@ class MAVLinkConnection(QThread):
 
     def __doDisconnect(self, txtmsg = 'Disconnected'):
         self.connection.close()
+        self.isConnected = False
         if self.enableLog and self.mavlinkLogFile != None:
             self.mavlinkLogFile.close()
         self.uas.resetOnboardParameterList()
