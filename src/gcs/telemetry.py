@@ -481,8 +481,9 @@ class SerialConnectionEditTab(QWidget):
         self.autoBaud.start()
 
     def __recordLastConnection(self, conn):
-        self.params[UD_TELEMETRY_LAST_CONNECTION_PORT_KEY] = conn.device
-        self.params[UD_TELEMETRY_LAST_CONNECTION_BAUD_RATE_KEY] = conn.baud
+        if isinstance(conn, mavlogfile) == False:
+            self.params[UD_TELEMETRY_LAST_CONNECTION_PORT_KEY] = conn.device
+            self.params[UD_TELEMETRY_LAST_CONNECTION_BAUD_RATE_KEY] = conn.baud
 
     def __getLastConnectionParameter(self):
         pParam = UserData.getInstance().getUserDataEntry(UD_TELEMETRY_KEY, {})
