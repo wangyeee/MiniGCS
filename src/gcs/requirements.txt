@@ -2,5 +2,5 @@ pymavlink==2.3.4
 PyQt5==5.12
 PyQtChart==5.12
 pyserial==3.4
-opencv-python==4.1.0.25
+opencv-python==4.2.0.32
 pynmea2==1.15.0
